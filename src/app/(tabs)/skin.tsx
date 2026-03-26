@@ -1,64 +1,238 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
+import { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  Colors,
+  Fonts,
+  FontSizes,
+  Spacing,
+  BorderRadius,
+} from '../../constants/theme';
+import { ScreenWrapper, PixelCard } from '../../components/ui';
+
+// Hardcoded for MVP — Tina's actual products
+const AM_ROUTINE = [
+  'Laneige Cream Skin',
+  'Wellage HA Blue Ampoule',
+  'Aestura Atobarrier 365',
+  'Goodal Heartleaf SPF',
+];
+
+const PM_ROUTINE = [
+  'Laneige Cream Skin',
+  'Wellage HA Blue Ampoule',
+  'Aestura Atobarrier 365',
+];
+
+const SAFE_PRODUCTS = [
+  'Laneige Cream Skin Toner & Moisturizer',
+  'Wellage Real Hyaluronic Blue Ampoule',
+  'Aestura Atobarrier 365 Cream',
+  'Goodal Green Tangerine Vita C Dark Spot Serum',
+  'Goodal Heartleaf Calming Moisture Sun Cream SPF50+',
+  'La Roche-Posay Toleriane Gentle Cleanser',
+];
+
+const TRIGGERS = [
+  'Niacinamide (high %)',
+  'Snail mucin (COSRX)',
+  'Vea Lipogel (perioral)',
+  'Laneige Lip Sleeping Mask',
+];
+
+function RoutineChecklist({
+  title,
+  items,
+  checked,
+  onToggle,
+}: {
+  title: string;
+  items: string[];
+  checked: Record<string, boolean>;
+  onToggle: (item: string) => void;
+}) {
+  return (
+    <View style={styles.routineBlock}>
+      <Text style={styles.routineLabel}>{title}</Text>
+      <View style={styles.listGap}>
+        {items.map((item) => (
+          <TouchableOpacity
+            key={item + title}
+            onPress={() => onToggle(item + title)}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.checkRow,
+                checked[item + title] && styles.checkRowDone,
+              ]}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  checked[item + title] && styles.checkboxDone,
+                ]}
+              >
+                {checked[item + title] && (
+                  <Text style={styles.checkmark}>✓</Text>
+                )}
+              </View>
+              <Text
+                style={[
+                  styles.checkText,
+                  checked[item + title] && styles.checkTextDone,
+                ]}
+              >
+                {item}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
 
 export default function SkinScreen() {
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+
+  const toggle = (key: string) => {
+    setChecked((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.emoji}>🧴</Text>
-        <Text style={styles.title}>Skin</Text>
-        <Text style={styles.subtitle}>Skincare & progress photos</Text>
-        <View style={styles.card}>
-          <Text style={styles.cardText}>
-            Skin tracking coming soon.{'\n'}
-            Track routines, triggers, and progress.
-          </Text>
+    <ScreenWrapper scrollable>
+      <Text style={styles.header}>🧴 Skin</Text>
+
+      {/* My Routine */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>My Routine</Text>
+
+        <RoutineChecklist
+          title="☀️ AM"
+          items={AM_ROUTINE}
+          checked={checked}
+          onToggle={toggle}
+        />
+
+        <RoutineChecklist
+          title="🌙 PM"
+          items={PM_ROUTINE}
+          checked={checked}
+          onToggle={toggle}
+        />
+      </View>
+
+      {/* Safe Products */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Safe Products</Text>
+        <View style={styles.listGap}>
+          {SAFE_PRODUCTS.map((product) => (
+            <PixelCard key={product}>
+              <Text style={styles.productText}>{product}</Text>
+            </PixelCard>
+          ))}
         </View>
       </View>
-    </SafeAreaView>
+
+      {/* Triggers */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>⚠️ Triggers</Text>
+        <View style={styles.listGap}>
+          {TRIGGERS.map((trigger) => (
+            <View key={trigger} style={styles.triggerCard}>
+              <Text style={styles.triggerText}>{trigger}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.lg,
-  },
-  emoji: {
-    fontSize: 48,
-    marginBottom: Spacing.md,
-  },
-  title: {
+  header: {
     fontFamily: Fonts.pixel,
     fontSize: FontSizes.lg,
     color: Colors.purple,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.lg,
   },
-  subtitle: {
+  section: {
+    marginBottom: Spacing.xl,
+  },
+  sectionTitle: {
+    fontFamily: Fonts.pixel,
+    fontSize: FontSizes.sm,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
+  },
+  routineBlock: {
+    marginBottom: Spacing.md,
+  },
+  routineLabel: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyLg,
     color: Colors.textSecondary,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.sm,
   },
-  card: {
-    backgroundColor: Colors.cardBackgroundTranslucent,
-    borderRadius: 16,
-    padding: Spacing.lg,
-    width: '100%',
-    maxWidth: 320,
+  listGap: {
+    gap: Spacing.sm,
   },
-  cardText: {
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBackground,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    padding: Spacing.md,
+  },
+  checkRowDone: {
+    backgroundColor: 'rgba(129, 199, 132, 0.08)',
+    borderColor: 'rgba(129, 199, 132, 0.3)',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: Colors.textMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  checkboxDone: {
+    backgroundColor: Colors.success,
+    borderColor: Colors.success,
+  },
+  checkmark: {
+    fontFamily: Fonts.pixel,
+    fontSize: 7,
+    color: Colors.textOnDark,
+  },
+  checkText: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
     color: Colors.textPrimary,
-    textAlign: 'center',
-    lineHeight: 30,
+    flex: 1,
+  },
+  checkTextDone: {
+    color: Colors.textSecondary,
+  },
+  productText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textPrimary,
+  },
+  triggerCard: {
+    backgroundColor: 'rgba(229, 115, 115, 0.1)',
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 115, 115, 0.3)',
+    padding: Spacing.md,
+  },
+  triggerText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.error,
   },
 });

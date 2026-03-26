@@ -1,47 +1,70 @@
-import { View, Text, StyleSheet, Image, ImageBackground } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, View, Image, StyleSheet } from 'react-native';
+import { ScreenWrapper, PixelCard, StatDisplay } from '../../components/ui';
+import { useFoodLog } from '../../hooks/use-food-log';
 import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 
-export default function HomeScreen() {
-  return (
-    <ImageBackground
-      source={require('../../../assets/images/backgrounds/healthy-me-final-background-v2.jpg')}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Home</Text>
-          <Text style={styles.subtitle}>Your daily dashboard</Text>
+const CALORIE_TARGET = 1500;
+const PROTEIN_TARGET = 80;
 
-          <View style={styles.card}>
-            <Image
-              source={require('../../../assets/images/character/healthy-me-character-final.jpg')}
-              style={styles.character}
-              resizeMode="contain"
+function formatDate(): string {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+export default function HomeScreen() {
+  const { totals, todaysFoods, loading } = useFoodLog();
+  const hasFood = todaysFoods.length > 0;
+
+  return (
+    <ScreenWrapper scrollable>
+      <View style={styles.header}>
+        <Text style={styles.title}>HEALTHY ME</Text>
+        <Text style={styles.date}>{formatDate()}</Text>
+      </View>
+
+      <View style={styles.characterWrap}>
+        <Image
+          source={require('../../../assets/images/character/healthy-me-character-final.jpg')}
+          style={styles.character}
+          resizeMode="contain"
+        />
+      </View>
+
+      <PixelCard style={styles.summaryCard}>
+        <Text style={styles.cardTitle}>Today's Summary</Text>
+
+        {!loading && hasFood ? (
+          <View style={styles.statsRow}>
+            <StatDisplay
+              label="Calories"
+              value={`${totals.calories}/${CALORIE_TARGET}`}
+              color={Colors.purple}
             />
-            <Text style={styles.cardText}>
-              Welcome to Healthy Me!{'\n'}Start tracking your wellness journey.
-            </Text>
+            <StatDisplay
+              label="Protein"
+              value={`${totals.protein}/${PROTEIN_TARGET}`}
+              unit="g"
+              color={Colors.pink}
+            />
           </View>
-        </View>
-      </SafeAreaView>
-    </ImageBackground>
+        ) : (
+          <Text style={styles.emptyText}>
+            {loading ? 'Loading...' : 'No meals logged yet 🍽️'}
+          </Text>
+        )}
+      </PixelCard>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
+  header: {
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.lg,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   title: {
     fontFamily: Fonts.pixel,
@@ -49,31 +72,39 @@ const styles = StyleSheet.create({
     color: Colors.purple,
     marginBottom: Spacing.sm,
   },
-  subtitle: {
+  date: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyLg,
     color: Colors.textSecondary,
+  },
+  characterWrap: {
+    alignItems: 'center',
     marginBottom: Spacing.xl,
   },
-  card: {
-    backgroundColor: Colors.cardBackgroundTranslucent,
-    borderRadius: 16,
-    padding: Spacing.lg,
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 320,
-  },
   character: {
-    width: 100,
-    height: 100,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+  },
+  summaryCard: {
+    marginBottom: Spacing.lg,
+  },
+  cardTitle: {
+    fontFamily: Fonts.pixel,
+    fontSize: FontSizes.sm,
+    color: Colors.textPrimary,
     marginBottom: Spacing.md,
-    imageRendering: 'pixelated',
-  } as never,
-  cardText: {
+    textAlign: 'center',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  emptyText: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
-    color: Colors.textPrimary,
+    color: Colors.textMuted,
     textAlign: 'center',
-    lineHeight: 30,
+    paddingVertical: Spacing.md,
   },
 });
