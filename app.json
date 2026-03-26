@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Healthy Me",
+    "slug": "healthy-me",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "healthy-me",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#b2e4fa"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.healthyme.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#b2e4fa",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.healthyme.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store"
+    ]
+  }
+}
