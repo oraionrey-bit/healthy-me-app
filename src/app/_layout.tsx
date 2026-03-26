@@ -22,7 +22,7 @@ export default function RootLayout() {
       try {
         await Font.loadAsync({
           PressStart2P: require('../../assets/fonts/PressStart2P.ttf'),
-          VT323: require('../../assets/fonts/VT323.ttf'),
+          Silkscreen: require('../../assets/fonts/Silkscreen.ttf'),
         });
 
         // Verify Supabase connection

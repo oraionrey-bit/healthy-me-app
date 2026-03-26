@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../lib/auth';
@@ -47,8 +48,12 @@ export default function LoginScreen() {
 
         <Text style={styles.subtitle}>your pcos companion</Text>
 
-        {/* Static character decoration */}
-        <Text style={styles.character}>🌸</Text>
+        {/* Character */}
+        <Image
+          source={require('../../../assets/images/character/character-default.jpg')}
+          style={styles.character}
+          resizeMode="contain"
+        />
 
         {sent ? (
           <View style={styles.sentBox}>
@@ -121,8 +126,10 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   character: {
-    fontSize: 48,
-    marginVertical: Spacing.xl,
+    width: 120,
+    height: 120,
+    borderRadius: BorderRadius.xl,
+    marginVertical: Spacing.lg,
   },
   form: {
     width: '100%',
@@ -149,8 +156,8 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    fontFamily: Fonts.pixel,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
     color: Colors.textOnDark,
   },
   sentBox: {

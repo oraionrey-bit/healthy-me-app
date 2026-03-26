@@ -45,7 +45,7 @@ export const Colors = {
 
 export const Fonts = {
   pixel: 'PressStart2P',
-  body: 'VT323',
+  body: 'Silkscreen',
 } as const;
 
 export const FontSizes = {
@@ -55,12 +55,12 @@ export const FontSizes = {
   lg: 16,
   xl: 20,
   xxl: 28,
-  // VT323 needs larger sizes since it's thinner
-  bodyXs: 14,
-  bodySm: 18,
-  bodyMd: 22,
-  bodyLg: 28,
-  bodyXl: 34,
+  // Silkscreen body sizes (wider font, needs smaller sizes)
+  bodyXs: 10,
+  bodySm: 12,
+  bodyMd: 14,
+  bodyLg: 18,
+  bodyXl: 22,
 } as const;
 
 export const Spacing = {
