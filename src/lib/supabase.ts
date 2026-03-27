@@ -45,6 +45,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     storage: createStorageAdapter(),
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === 'web', // Must be true on web for magic link redirect
   },
 });

@@ -39,8 +39,8 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
   value: {
-    fontFamily: Fonts.pixel,
-    fontSize: FontSizes.md,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
     color: Colors.textPrimary,
   },
   unit: {

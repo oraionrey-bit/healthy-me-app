@@ -50,14 +50,14 @@ export default function LoginScreen() {
 
         {/* Character */}
         <Image
-          source={require('../../../assets/images/character/character-default.jpg')}
+          source={require('../../../assets/images/character/character-default.png')}
           style={styles.character}
           resizeMode="contain"
         />
 
         {sent ? (
           <View style={styles.sentBox}>
-            <Text style={styles.sentEmoji}>✉️</Text>
+            <Text style={styles.sentEmoji}>💌</Text>
             <Text style={styles.sentText}>Magic link sent!</Text>
             <Text style={styles.sentHint}>Check your email to sign in</Text>
             <TouchableOpacity onPress={() => setSent(false)} style={styles.retryButton}>
@@ -168,8 +168,8 @@ const styles = StyleSheet.create({
     fontSize: 48,
   },
   sentText: {
-    fontFamily: Fonts.pixel,
-    fontSize: FontSizes.md,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyLg,
     color: Colors.purple,
   },
   sentHint: {

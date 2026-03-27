@@ -217,8 +217,8 @@ const suppStyles = StyleSheet.create({
     borderColor: Colors.success,
   },
   checkmark: {
-    fontFamily: Fonts.pixel,
-    fontSize: FontSizes.xs,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
     color: Colors.textOnDark,
   },
   info: {
@@ -242,8 +242,8 @@ const suppStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   header: {
-    fontFamily: Fonts.pixel,
-    fontSize: FontSizes.lg,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyLg,
     color: Colors.purple,
     marginBottom: Spacing.lg,
   },
@@ -257,14 +257,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   sectionTitle: {
-    fontFamily: Fonts.pixel,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
     color: Colors.textPrimary,
     marginBottom: Spacing.sm,
   },
   progressText: {
-    fontFamily: Fonts.pixel,
-    fontSize: FontSizes.sm,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
     color: Colors.success,
   },
   progressBar: {
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   lastWeightValue: {
-    fontFamily: Fonts.pixel,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xl,
     color: Colors.textPrimary,
     marginVertical: Spacing.xs,

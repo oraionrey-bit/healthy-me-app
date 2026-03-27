@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   text: {
-    fontFamily: Fonts.pixel,
+    fontFamily: Fonts.body,
     fontSize: FontSizes.xs,
     color: Colors.textOnDark,
   },

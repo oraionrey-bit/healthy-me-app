@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: 'healthy-me://auth/callback',
+        emailRedirectTo: 'https://healthy-me-expo.netlify.app',
       },
     });
     return { error: error as Error | null };
