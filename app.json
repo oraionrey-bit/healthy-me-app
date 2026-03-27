@@ -27,9 +27,13 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/images/character/character-default.png",
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "name": "Healthy Me",
+      "shortName": "Healthy Me",
+      "themeColor": "#B388FF",
+      "backgroundColor": "#F8F0FF"
     },
     "plugins": [
       "expo-router",

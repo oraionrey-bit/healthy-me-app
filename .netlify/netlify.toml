@@ -7,9 +7,9 @@ headers = []
 
 [build]
 publish = "/Users/oraion/.openclaw/workspace/healthy-me/dist"
-publishOrigin = "ui"
-commandOrigin = "ui"
-command = "expo export -p web"
+publishOrigin = "config"
+commandOrigin = "config"
+command = "npx expo export -p web"
 
 [build.environment]
 

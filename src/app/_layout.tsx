@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { Colors } from '../constants/theme';
 import { AuthProvider } from '../lib/auth';
 import { supabase } from '../lib/supabase';
@@ -14,8 +14,13 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+const MAX_APP_WIDTH = 430;
+const OUTER_BG = '#EDE7F6'; // soft lavender for desktop sides
+
 export default function RootLayout() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= MAX_APP_WIDTH;
 
   useEffect(() => {
     async function init() {
@@ -50,13 +55,25 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
-        <View style={styles.container}>
-          <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
+        <View
+          style={[
+            styles.outer,
+            isDesktop && { backgroundColor: OUTER_BG },
+          ]}
+        >
+          <View
+            style={[
+              styles.container,
+              isDesktop && styles.containerDesktop,
+            ]}
+          >
+            <StatusBar style="dark" />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+            </Stack>
+          </View>
         </View>
       </QueryClientProvider>
     </AuthProvider>
@@ -64,8 +81,23 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  outer: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
   container: {
     flex: 1,
+    width: '100%',
     backgroundColor: Colors.background,
+  },
+  containerDesktop: {
+    maxWidth: MAX_APP_WIDTH,
+    // Subtle shadow on desktop to frame the app
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
   },
 });
