@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { PixelCard, PixelButton } from '../../components/ui';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useFoodLog } from '../../hooks/use-food-log';
@@ -17,10 +18,15 @@ import { useSupplements } from '../../hooks/use-supplements';
 import { useMoodEnergy } from '../../hooks/use-mood-energy';
 import { useSymptomLog } from '../../hooks/use-symptom-log';
 import { useDailyLog } from '../../hooks/use-daily-log';
+import { useDailyScore } from '../../hooks/use-daily-score';
+import { useStreak } from '../../hooks/use-streak';
+import { useWeeklySummary } from '../../hooks/use-weekly-summary';
 import { toDateKey } from '../../utils/storage';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { useUserProfile } from '../../hooks/use-user-profile';
+import { WeightEntry } from '../../components/health/weight-entry';
+import { useOura } from '../../hooks/use-oura';
 import type { UserSupplement, SymptomType } from '../../types/database';
 
 // ── Helpers ──
@@ -202,6 +208,7 @@ function SeverityDots({
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const { calorieTarget, proteinTarget } = useUserProfile();
   const todayKey = toDateKey(new Date());
   const { totals } = useFoodLog(todayKey);
@@ -217,9 +224,14 @@ export default function HomeScreen() {
   const { mood: savedMood, energy: savedEnergy, saveMoodEnergy } = useMoodEnergy();
   const { symptomLogs, addSymptom, removeSymptom } = useSymptomLog();
   const { dailyLog, saveDailyLog } = useDailyLog();
+  const { score: dailyScore } = useDailyScore();
+  const { currentStreak, isMilestone } = useStreak();
+  const { summary: weeklySummary } = useWeeklySummary();
+  const { isConnected: ouraConnected, todayData: ouraToday } = useOura();
 
   // Check-in state
   const [checkinOpen, setCheckinOpen] = useState(false);
+  const [weightOpen, setWeightOpen] = useState(false);
   const [mood, setMood] = useState<number | null>(savedMood);
   const [energy, setEnergy] = useState<number | null>(savedEnergy);
   const [periodStatus, setPeriodStatus] = useState<string>('off');
@@ -357,20 +369,136 @@ export default function HomeScreen() {
         >
           {/* Max-width wrapper */}
           <View style={styles.maxWidthWrap}>
-            {/* Title */}
-            <Text style={styles.title}>HEALTHY ME</Text>
+            {/* Title + Settings */}
+            <View style={styles.headerRow}>
+              <View style={styles.headerSpacer} />
+              <Text style={styles.title}>HEALTHY ME</Text>
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => router.push('/settings')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.settingsIcon}>⚙️</Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Date */}
             <Text style={styles.date}>{formatDisplayDate()}</Text>
 
-            {/* Character — centered */}
+            {/* Character — centered, celebrating on milestones */}
             <View style={styles.characterWrap}>
               <Image
-                source={require('../../../assets/images/character/character-default.png')}
+                source={
+                  isMilestone
+                    ? require('../../../assets/images/character/character-celebrating.png')
+                    : require('../../../assets/images/character/character-default.png')
+                }
                 style={styles.character}
                 resizeMode="contain"
               />
             </View>
+
+            {/* Streak + Score Display */}
+            {(currentStreak > 0 || (dailyScore && dailyScore.total > 0)) && (
+              <View style={styles.streakCard}>
+                {currentStreak > 0 && (
+                  <Text style={styles.streakText}>
+                    🔥 {currentStreak} Day Streak!
+                  </Text>
+                )}
+                {dailyScore && dailyScore.total > 0 && (
+                  <View style={styles.scoreRow}>
+                    <Text style={styles.scoreLabel}>Today</Text>
+                    <View style={styles.scoreBarOuter}>
+                      <View
+                        style={[
+                          styles.scoreBarInner,
+                          { width: `${Math.min(dailyScore.total, 100)}%` },
+                          dailyScore.total >= 50
+                            ? styles.scoreBarGood
+                            : styles.scoreBarLow,
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.scoreValue}>{dailyScore.total}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Oura Ring Summary */}
+            {ouraConnected && ouraToday && (
+              <View style={[styles.accentCard, styles.accentPurple, { marginBottom: Spacing.md }]}>
+                <Text style={styles.sectionTitle}>💍 Oura Ring</Text>
+                <View style={styles.weeklyGrid}>
+                  {ouraToday.sleep_score != null && (
+                    <View style={styles.weeklyStatRow}>
+                      <Text style={styles.weeklyStatLabel}>Sleep</Text>
+                      <Text style={styles.weeklyStatValue}>{ouraToday.sleep_score}/100</Text>
+                    </View>
+                  )}
+                  {ouraToday.readiness_score != null && (
+                    <View style={styles.weeklyStatRow}>
+                      <Text style={styles.weeklyStatLabel}>Readiness</Text>
+                      <Text style={styles.weeklyStatValue}>{ouraToday.readiness_score}/100</Text>
+                    </View>
+                  )}
+                  {ouraToday.hrv_average != null && (
+                    <View style={styles.weeklyStatRow}>
+                      <Text style={styles.weeklyStatLabel}>HRV</Text>
+                      <Text style={styles.weeklyStatValue}>{Math.round(ouraToday.hrv_average)} ms</Text>
+                    </View>
+                  )}
+                  {ouraToday.resting_hr != null && (
+                    <View style={styles.weeklyStatRow}>
+                      <Text style={styles.weeklyStatLabel}>Resting HR</Text>
+                      <Text style={styles.weeklyStatValue}>{Math.round(ouraToday.resting_hr)} bpm</Text>
+                    </View>
+                  )}
+                  {ouraToday.steps != null && (
+                    <View style={styles.weeklyStatRow}>
+                      <Text style={styles.weeklyStatLabel}>Steps</Text>
+                      <Text style={styles.weeklyStatValue}>{ouraToday.steps.toLocaleString()}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* Weekly Summary */}
+            {weeklySummary && weeklySummary.daysTracked > 0 && (
+              <View style={[styles.accentCard, styles.accentPurple, { marginBottom: Spacing.md }]}>
+                <Text style={styles.sectionTitle}>📊 This Week</Text>
+                <View style={styles.weeklyGrid}>
+                  <View style={styles.weeklyStatRow}>
+                    <Text style={styles.weeklyStatLabel}>Avg Score</Text>
+                    <Text style={styles.weeklyStatValue}>{weeklySummary.avgDailyScore}/100</Text>
+                  </View>
+                  <View style={styles.weeklyStatRow}>
+                    <Text style={styles.weeklyStatLabel}>Exercise</Text>
+                    <Text style={styles.weeklyStatValue}>{weeklySummary.totalExerciseMinutes} min</Text>
+                  </View>
+                  <View style={styles.weeklyStatRow}>
+                    <Text style={styles.weeklyStatLabel}>Avg Calories</Text>
+                    <Text style={styles.weeklyStatValue}>{weeklySummary.avgCalories}</Text>
+                  </View>
+                  <View style={styles.weeklyStatRow}>
+                    <Text style={styles.weeklyStatLabel}>Avg Protein</Text>
+                    <Text style={styles.weeklyStatValue}>{weeklySummary.avgProtein}g</Text>
+                  </View>
+                  <View style={styles.weeklyStatRow}>
+                    <Text style={styles.weeklyStatLabel}>Supplements</Text>
+                    <Text style={styles.weeklyStatValue}>{weeklySummary.supplementAdherencePct}%</Text>
+                  </View>
+                  {weeklySummary.currentStreak > 0 && (
+                    <View style={styles.weeklyStatRow}>
+                      <Text style={styles.weeklyStatLabel}>Streak</Text>
+                      <Text style={styles.weeklyStatValue}>🔥 {weeklySummary.currentStreak} days</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
 
             {/* Content cards */}
             <View style={styles.contentWrap}>
@@ -432,6 +560,25 @@ export default function HomeScreen() {
                 </View>
               ) : (
                 <Text style={styles.emptyText}>No meals logged yet 🍽️</Text>
+              )}
+            </View>
+
+            {/* Weight (collapsed by default) */}
+            <View style={[styles.accentCard, styles.accentBlue]}>
+              <TouchableOpacity
+                onPress={() => setWeightOpen(!weightOpen)}
+                activeOpacity={0.7}
+                style={styles.checkinHeader}
+              >
+                <Text style={styles.sectionTitle}>⚖️ Weight</Text>
+                <Text style={styles.collapseIcon}>
+                  {weightOpen ? '▲' : '▼'}
+                </Text>
+              </TouchableOpacity>
+              {weightOpen && (
+                <View style={styles.weightEntryWrap}>
+                  <WeightEntry />
+                </View>
               )}
             </View>
 
@@ -569,13 +716,33 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxl,
   },
 
+  // Header row
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.lg,
+  },
+  headerSpacer: {
+    width: 36,
+  },
+  settingsButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsIcon: {
+    fontSize: 22,
+  },
+
   // Title
   title: {
+    flex: 1,
     fontFamily: Fonts.pixel,
-    fontSize: 16,
+    fontSize: FontSizes.lg,
     color: Colors.purple,
     textAlign: 'center',
-    marginTop: Spacing.lg,
   },
 
   // Date
@@ -596,6 +763,65 @@ const styles = StyleSheet.create({
   character: {
     width: 80,
     height: 96,
+  },
+
+  // Streak + Score
+  streakCard: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    alignItems: 'center',
+    gap: Spacing.xs,
+    shadowColor: '#7c4dff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  streakText: {
+    fontFamily: Fonts.pixel,
+    fontSize: FontSizes.sm,
+    color: Colors.purple,
+    textAlign: 'center',
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    width: '100%',
+  },
+  scoreLabel: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textSecondary,
+    flexShrink: 0,
+    minWidth: 42,
+  },
+  scoreBarOuter: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#F0EAF8',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  scoreBarInner: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  scoreBarGood: {
+    backgroundColor: Colors.success,
+  },
+  scoreBarLow: {
+    backgroundColor: Colors.warning,
+  },
+  scoreValue: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textPrimary,
+    width: 28,
+    textAlign: 'right',
   },
 
   // Content wrapper
@@ -622,8 +848,36 @@ const styles = StyleSheet.create({
   accentOrange: {
     borderLeftColor: '#ffb74d',
   },
+  accentBlue: {
+    borderLeftColor: Colors.babyBlue,
+  },
   accentPink: {
     borderLeftColor: '#f48fb1',
+  },
+  accentPurple: {
+    borderLeftColor: Colors.purple,
+  },
+
+  // Weekly summary
+  weeklyGrid: {
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  weeklyStatRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  weeklyStatLabel: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textSecondary,
+  },
+  weeklyStatValue: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
   },
 
   // Progress bars (Food section)
@@ -673,10 +927,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
 
-  // Section
-  section: {
-    marginBottom: Spacing.xl,
+  // Weight entry
+  weightEntryWrap: {
+    marginTop: Spacing.sm,
   },
+
+  // Section
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -685,7 +941,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyMd,
+    fontSize: FontSizes.bodyLg,
     color: Colors.textPrimary,
   },
   progress: {
@@ -848,7 +1104,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyXs,
+    fontSize: FontSizes.bodySm,
     color: Colors.textMuted,
   },
   chipTextActive: {

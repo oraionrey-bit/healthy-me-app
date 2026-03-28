@@ -6,6 +6,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { PixelButton } from '../../components/ui';
 import { OnboardingCard } from '../../components/onboarding/onboarding-card';
 import { ProgressDots } from '../../components/onboarding/progress-dots';
+import { PixelBackButton } from '../../components/onboarding/pixel-back-button';
 import { useUserProfile } from '../../hooks/use-user-profile';
 
 const CAL_MIN = 800;
@@ -87,9 +88,7 @@ export default function GoalsScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>◀ Back</Text>
-          </TouchableOpacity>
+          <PixelBackButton />
 
           <OnboardingCard>
             <Text style={styles.title}>YOUR GOALS</Text>
@@ -176,15 +175,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
   },
-  backBtn: {
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.md,
-  },
-  backText: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyMd,
-    color: Colors.purple,
-  },
+
   title: {
     fontFamily: Fonts.pixel,
     fontSize: FontSizes.lg,
@@ -250,18 +241,22 @@ const styles = StyleSheet.create({
   },
   weightRow: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: Spacing.sm,
     marginBottom: Spacing.lg,
   },
   weightInput: {
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
     backgroundColor: Colors.background,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.tabBarBorder,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.md,
     color: Colors.textPrimary,
   },
   unitToggle: {
@@ -270,10 +265,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.tabBarBorder,
+    alignSelf: 'stretch',
+    flexShrink: 0,
+    flexGrow: 0,
   },
   unitBtn: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    minWidth: 40,
     backgroundColor: Colors.background,
   },
   unitBtnActive: {
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   tip: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyXs,
+    fontSize: FontSizes.bodySm,
     color: Colors.textMuted,
     textAlign: 'center',
     marginBottom: Spacing.xl,

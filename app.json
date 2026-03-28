@@ -41,7 +41,7 @@
       "expo-secure-store"
     ],
     "experiments": {
-      "baseUrl": "/healthy-me-app"
+      "baseUrl": ""
     }
   }
 }

@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyXs,
+    fontSize: FontSizes.bodySm,
     textAlign: 'center',
   },
   labelFocused: {

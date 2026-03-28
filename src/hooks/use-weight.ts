@@ -4,29 +4,46 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { WeightLog } from '../types/database';
 
-
 export function useWeight() {
   const { user } = useAuth();
   const [lastWeight, setLastWeight] = useState<WeightLog | null>(null);
+  const [todayWeight, setTodayWeight] = useState<WeightLog | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const today = toDateKey(new Date());
 
   const fetchLastWeight = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('weight_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('log_date', { ascending: false })
-        .limit(1);
+      const [lastRes, todayRes] = await Promise.all([
+        supabase
+          .from('weight_logs')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('log_date', { ascending: false })
+          .limit(1),
+        supabase
+          .from('weight_logs')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('log_date', today)
+          .maybeSingle(),
+      ]);
 
-      if (error) throw error;
-      setLastWeight(data && data.length > 0 ? (data[0] as WeightLog) : null);
+      if (lastRes.error) throw lastRes.error;
+      setLastWeight(
+        lastRes.data && lastRes.data.length > 0
+          ? (lastRes.data[0] as WeightLog)
+          : null,
+      );
+      setTodayWeight(
+        todayRes.data ? (todayRes.data as WeightLog) : null,
+      );
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, today]);
 
   useEffect(() => {
     fetchLastWeight();
@@ -35,18 +52,30 @@ export function useWeight() {
   const logWeight = useCallback(
     async (weight: number) => {
       if (!user) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
-      const { error } = await (supabase.from('weight_logs') as any).insert({
-        user_id: user.id,
-        log_date: toDateKey(new Date()),
-        weight,
-        notes: null,
-      });
-      if (error) throw error;
+
+      if (todayWeight) {
+        // Update existing entry for today
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+        const { error } = await (supabase.from('weight_logs') as any)
+          .update({ weight })
+          .eq('id', todayWeight.id);
+        if (error) throw error;
+      } else {
+        // Insert new entry
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+        const { error } = await (supabase.from('weight_logs') as any).insert({
+          user_id: user.id,
+          log_date: today,
+          weight,
+          notes: null,
+        });
+        if (error) throw error;
+      }
+
       await fetchLastWeight();
     },
-    [user, fetchLastWeight],
+    [user, today, todayWeight, fetchLastWeight],
   );
 
-  return { lastWeight, loading, logWeight, refetch: fetchLastWeight };
+  return { lastWeight, todayWeight, loading, logWeight, refetch: fetchLastWeight };
 }

@@ -3,22 +3,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useUserProfile } from './use-user-profile';
+import { DEFAULT_SUPPLEMENTS } from '../constants/supplements';
 import type { UserSupplement, SupplementLog } from '../types/database';
-
-
-const DEFAULT_SUPPLEMENTS: Array<{
-  supplement_name: string;
-  dosage: string;
-  time_of_day: string;
-  sort_order: number;
-}> = [
-  { supplement_name: 'Ovasitol (AM)', dosage: '1 scoop', time_of_day: 'morning', sort_order: 0 },
-  { supplement_name: 'Knowell', dosage: '4 caps', time_of_day: 'morning', sort_order: 1 },
-  { supplement_name: 'NAC', dosage: '500mg', time_of_day: 'morning', sort_order: 2 },
-  { supplement_name: 'Omega-3', dosage: '4 softgels', time_of_day: 'morning', sort_order: 3 },
-  { supplement_name: 'Ovasitol (PM)', dosage: '1 scoop', time_of_day: 'evening', sort_order: 4 },
-  { supplement_name: 'BionerLab Gummies', dosage: '2 gummies', time_of_day: 'evening', sort_order: 5 },
-];
 
 export function useSupplements() {
   const { user } = useAuth();
@@ -88,7 +74,7 @@ export function useSupplements() {
     } finally {
       setLoading(false);
     }
-  }, [user, seedDefaults]);
+  }, [user, seedDefaults, isOnboarded]);
 
   const fetchTodaysLogs = useCallback(async () => {
     if (!user) return;

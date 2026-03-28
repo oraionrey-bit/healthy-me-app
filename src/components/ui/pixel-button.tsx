@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.bodyMd,
     color: Colors.textOnDark,
   },
   outlineText: {

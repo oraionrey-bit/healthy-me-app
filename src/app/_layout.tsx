@@ -32,13 +32,11 @@ export default function RootLayout() {
 
         // Verify Supabase connection
         const { error } = await supabase.auth.getSession();
-        if (error) {
+        if (error && __DEV__) {
           console.warn('Supabase session check:', error.message);
-        } else {
-          console.log('✅ Supabase connected');
         }
       } catch (e) {
-        console.warn('Init error:', e);
+        if (__DEV__) console.warn('Init error:', e);
       } finally {
         setFontsLoaded(true);
         await SplashScreen.hideAsync();
@@ -72,6 +70,7 @@ export default function RootLayout() {
               <Stack.Screen name="index" />
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="settings" />
             </Stack>
           </View>
         </View>

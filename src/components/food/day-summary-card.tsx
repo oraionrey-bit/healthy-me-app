@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   viewBtnText: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodySm,
+    fontSize: FontSizes.bodyMd,
     color: Colors.textOnDark,
   },
 });

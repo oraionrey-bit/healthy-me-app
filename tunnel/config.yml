@@ -1,0 +1,7 @@
+tunnel: 94a748bf-4eb6-4d23-8fe4-c5b3acf49b99
+credentials-file: /Users/oraion/.cloudflared/94a748bf-4eb6-4d23-8fe4-c5b3acf49b99.json
+
+ingress:
+  - hostname: chat.withluna.dev
+    service: http://localhost:7700
+  - service: http_status:404

@@ -8,13 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  Image,
   ImageBackground,
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../lib/auth';
 
-const BG_NIGHT = require('../../../assets/images/bg-night-city.jpg');
+const BG_DAY_TOWN = require('../../../assets/images/bg-day-town-v2.jpg');
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -41,7 +40,7 @@ export default function LoginScreen() {
 
   return (
     <ImageBackground
-      source={BG_NIGHT}
+      source={BG_DAY_TOWN}
       style={styles.bgImage}
       resizeMode="cover"
     >
@@ -49,25 +48,12 @@ export default function LoginScreen() {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        {/* 
+          The bg image already has: title, chibi, and a card area (~27-62% from top).
+          We just position the form to land inside that card area.
+        */}
         <View style={styles.content}>
-          {/* Spacer to push content below background artwork */}
-          <View style={styles.spacer} />
-
-          {/* Glass card overlay */}
-          <View style={styles.glassCard}>
-            {/* Pixel title */}
-            <Text style={styles.title}>HEALTHY</Text>
-            <Text style={styles.titleAccent}>ME</Text>
-
-            <Text style={styles.subtitle}>your pcos companion ♡</Text>
-
-            {/* Character */}
-            <Image
-              source={require('../../../assets/images/character/character-default.png')}
-              style={styles.character}
-              resizeMode="contain"
-            />
-
+          <View style={styles.formArea}>
             {sent ? (
               <View style={styles.sentBox}>
                 <Text style={styles.sentEmoji}>💌</Text>
@@ -82,7 +68,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="your@email.com"
-                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  placeholderTextColor={Colors.textMuted}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -121,54 +107,15 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xxl,
+    paddingHorizontal: '12%',
+    // Card area runs ~28-73% of screen height. Center form vertically in that card.
+    // Shift down slightly from true center to account for title+chibi above card.
+    paddingTop: '15%',
   },
-  spacer: {
-    flex: 1,
-    minHeight: 120,
-  },
-  glassCard: {
+  formArea: {
     width: '100%',
-    maxWidth: 400,
-    backgroundColor: 'rgba(30, 20, 50, 0.75)',
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    borderColor: 'rgba(179, 136, 255, 0.3)',
-    padding: Spacing.xl,
-    alignItems: 'center',
-  },
-  title: {
-    fontFamily: Fonts.pixel,
-    fontSize: FontSizes.xxl,
-    color: '#E8DEF8',
-    textAlign: 'center',
-    textShadowColor: 'rgba(124, 77, 255, 0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-  },
-  titleAccent: {
-    fontFamily: Fonts.pixel,
-    fontSize: FontSizes.xxl,
-    color: Colors.pink,
-    textAlign: 'center',
-    marginTop: Spacing.xs,
-    textShadowColor: 'rgba(255, 128, 171, 0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-  },
-  subtitle: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyLg,
-    color: 'rgba(200, 176, 216, 0.9)',
-    marginTop: Spacing.sm,
-  },
-  character: {
-    width: 100,
-    height: 100,
-    marginVertical: Spacing.lg,
   },
   form: {
     width: '100%',
@@ -177,13 +124,13 @@ const styles = StyleSheet.create({
   input: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    color: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(179, 136, 255, 0.4)',
+    color: Colors.textPrimary,
+    borderWidth: 2,
+    borderColor: Colors.lavender,
   },
   button: {
     backgroundColor: Colors.purple,
@@ -213,12 +160,12 @@ const styles = StyleSheet.create({
   sentText: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyLg,
-    color: '#E8DEF8',
+    color: Colors.textPrimary,
   },
   sentHint: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
-    color: 'rgba(200, 176, 216, 0.8)',
+    color: Colors.textSecondary,
   },
   retryButton: {
     marginTop: Spacing.md,

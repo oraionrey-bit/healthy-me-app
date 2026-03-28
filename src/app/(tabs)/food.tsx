@@ -10,6 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { ScreenWrapper, PixelCard, PixelButton } from '../../components/ui';
+import { AskOraionFAB, AskOraionModal } from '../../components/chat';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useFoodLog } from '../../hooks/use-food-log';
 import { useFoodCalendar } from '../../hooks/use-food-calendar';
@@ -38,16 +39,6 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-function getLocalPhotos(dateKey: string, entryId: string): string[] {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(`hm-photos-${dateKey}-${entryId}`);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
 function saveLocalPhotos(dateKey: string, entryId: string, photos: string[]): void {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return;
   try {
@@ -62,9 +53,36 @@ function removeLocalPhotos(dateKey: string, entryId: string): void {
   } catch {}
 }
 
-function FoodEntry({ entry, onDelete }: { entry: FoodLog; onDelete: () => void }) {
+function getSmartMealType(): MealType {
+  const hour = new Date().getHours();
+  if (hour < 11) return 'breakfast';
+  if (hour < 15) return 'lunch';
+  if (hour < 17) return 'snack';
+  return 'dinner';
+}
+
+function FoodEntry({
+  entry,
+  onDelete,
+  onUpdateMealType,
+  onAddLeftovers,
+}: {
+  entry: FoodLog;
+  onDelete: () => void;
+  onUpdateMealType: (mealType: MealType) => void;
+  onAddLeftovers: (file: File) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const leftoversInputRef = useRef<HTMLInputElement | null>(null);
   const mealInfo = MEAL_LABELS.find((m) => m.key === entry.meal_type) ?? MEAL_LABELS[0];
+  const hasAnalysis = entry.ai_analyzed && entry.calories !== null;
+  const isAdjusted = entry.notes === 'adjusted_for_leftovers';
+
+  const handleLeftoversFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onAddLeftovers(file);
+  };
 
   return (
     <PixelCard>
@@ -77,13 +95,16 @@ function FoodEntry({ entry, onDelete }: { entry: FoodLog; onDelete: () => void }
           <Text style={styles.entryDesc} numberOfLines={expanded ? undefined : 2}>
             {mealInfo.emoji} {entry.description || 'No description'}
           </Text>
-          {entry.ai_analyzed && entry.calories !== null ? (
+          {hasAnalysis ? (
             <View>
               <Text style={styles.entryNutrition}>
                 {entry.calories} cal · {entry.protein ?? 0}g protein
                 {entry.carbs != null ? ` · ${entry.carbs}g carbs` : ''}
                 {entry.fat != null ? ` · ${entry.fat}g fat` : ''}
               </Text>
+              {isAdjusted && (
+                <Text style={styles.entryLeftoversNote}>🍽️ Adjusted for leftovers</Text>
+              )}
               {entry.ai_pcos_notes ? (
                 <Text style={styles.entryPcosNote} numberOfLines={expanded ? undefined : 2}>
                   💡 {entry.ai_pcos_notes}
@@ -103,16 +124,76 @@ function FoodEntry({ entry, onDelete }: { entry: FoodLog; onDelete: () => void }
             <Text style={styles.entryPending}>Pending ⏳</Text>
           )}
         </View>
+        <View style={styles.entryActions}>
+          <TouchableOpacity
+            style={styles.editBtn}
+            onPress={(e) => {
+              e.stopPropagation();
+              setEditing(!editing);
+            }}
+          >
+            <Text style={styles.editBtnText}>✏️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Text style={styles.deleteBtnText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+
+      {/* Inline meal type editor */}
+      {editing && (
+        <View style={styles.editRow}>
+          {MEAL_LABELS.map((meal) => (
+            <TouchableOpacity
+              key={meal.key}
+              onPress={() => {
+                onUpdateMealType(meal.key);
+                setEditing(false);
+              }}
+              style={[styles.editPill, entry.meal_type === meal.key && styles.editPillActive]}
+            >
+              <Text
+                style={[
+                  styles.editPillText,
+                  entry.meal_type === meal.key && styles.editPillTextActive,
+                ]}
+              >
+                {meal.emoji} {meal.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Leftovers button — only for analyzed meals */}
+      {hasAnalysis && !isAdjusted && (
         <TouchableOpacity
-          style={styles.deleteBtn}
-          onPress={(e) => {
-            e.stopPropagation();
-            onDelete();
+          style={styles.leftoversBtn}
+          onPress={() => {
+            if (Platform.OS === 'web') {
+              leftoversInputRef.current?.click();
+            }
           }}
         >
-          <Text style={styles.deleteBtnText}>✕</Text>
+          <Text style={styles.leftoversBtnText}>📸 Add Leftovers</Text>
         </TouchableOpacity>
-      </TouchableOpacity>
+      )}
+
+      {Platform.OS === 'web' && (
+        <input
+          ref={leftoversInputRef as React.RefObject<HTMLInputElement>}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleLeftoversFile as unknown as React.ChangeEventHandler<HTMLInputElement>}
+        />
+      )}
     </PixelCard>
   );
 }
@@ -121,7 +202,7 @@ export default function FoodScreen() {
   const { calorieTarget, proteinTarget } = useUserProfile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
-  const [selectedMeal, setSelectedMeal] = useState<MealType>('breakfast');
+  const [selectedMeal, setSelectedMeal] = useState<MealType>(getSmartMealType());
   const [photos, setPhotos] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
@@ -129,12 +210,13 @@ export default function FoodScreen() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedCalDate, setSelectedCalDate] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [askOraionVisible, setAskOraionVisible] = useState(false);
 
   const calendar = useFoodCalendar();
 
   const dateKey = toDateKey(currentDate);
   const isToday = isSameDay(currentDate, new Date());
-  const { entries, loading, addEntry, deleteEntry, totals } = useFoodLog(dateKey);
+  const { entries, loading, addEntry, deleteEntry, updateMealType, addLeftoversPhoto, totals } = useFoodLog(dateKey);
 
   const calProgress = Math.min(totals.calories / calorieTarget, 1);
   const proteinProgress = Math.min(totals.protein / proteinTarget, 1);
@@ -212,7 +294,7 @@ export default function FoodScreen() {
     setShowForm(false);
     setDescription('');
     setPhotos([]);
-    setSelectedMeal('breakfast');
+    setSelectedMeal(getSmartMealType());
   };
 
   // Group entries by meal type
@@ -222,6 +304,7 @@ export default function FoodScreen() {
   })).filter((g) => g.items.length > 0);
 
   return (
+    <>
     <ScreenWrapper scrollable>
       {/* Date Navigation */}
       <View style={styles.dateNav}>
@@ -410,6 +493,8 @@ export default function FoodScreen() {
                     key={entry.id}
                     entry={entry}
                     onDelete={() => handleDelete(entry)}
+                    onUpdateMealType={(mealType) => updateMealType(entry.id, mealType)}
+                    onAddLeftovers={(file) => addLeftoversPhoto(entry.id, file)}
                   />
                 ))}
               </View>
@@ -432,6 +517,9 @@ export default function FoodScreen() {
       )}
       </>)}
     </ScreenWrapper>
+    <AskOraionFAB onPress={() => setAskOraionVisible(true)} />
+    <AskOraionModal visible={askOraionVisible} onClose={() => setAskOraionVisible(false)} />
+    </>
   );
 }
 
@@ -593,7 +681,7 @@ const styles = StyleSheet.create({
   },
   photoAreaText: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodySm,
+    fontSize: FontSizes.bodyMd,
     color: Colors.textMuted,
   },
   thumbScroll: {
@@ -702,6 +790,23 @@ const styles = StyleSheet.create({
     marginTop: 2,
     opacity: 0.7,
   },
+  entryActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginLeft: Spacing.sm,
+  },
+  editBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.softPurple,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editBtnText: {
+    fontSize: 12,
+  },
   deleteBtn: {
     width: 28,
     height: 28,
@@ -709,12 +814,61 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.softPink,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: Spacing.sm,
   },
   deleteBtnText: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyXs,
     color: Colors.error,
+  },
+  editRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.tabBarBorder,
+  },
+  editPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+  },
+  editPillActive: {
+    backgroundColor: Colors.purple,
+    borderColor: Colors.purple,
+  },
+  editPillText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textSecondary,
+  },
+  editPillTextActive: {
+    color: Colors.textOnDark,
+  },
+  leftoversBtn: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.cream,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    alignSelf: 'flex-start',
+  },
+  leftoversBtnText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textSecondary,
+  },
+  entryLeftoversNote: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.warning,
+    marginTop: 2,
   },
   emptyWrap: {
     alignItems: 'center',

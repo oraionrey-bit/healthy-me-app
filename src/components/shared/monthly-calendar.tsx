@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   navDisabled: { opacity: 0.3 },
   navText: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodySm,
+    fontSize: FontSizes.bodyMd,
     color: Colors.purple,
   },
   navTextDisabled: { color: Colors.textMuted },

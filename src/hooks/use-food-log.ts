@@ -20,13 +20,18 @@ interface AddFoodInput {
  * Trigger AI analysis of a food log entry via the analyze-food Edge Function.
  * Fire-and-forget — doesn't block the UI.
  */
-async function triggerAnalysis(foodLogId: string): Promise<void> {
+async function triggerAnalysis(foodLogId: string, mode?: 'leftovers', leftoversPhotoUrl?: string): Promise<void> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData?.session?.access_token;
     if (!token) return;
 
     const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+    const body: Record<string, unknown> = { food_log_id: foodLogId };
+    if (mode === 'leftovers' && leftoversPhotoUrl) {
+      body.mode = 'leftovers';
+      body.leftovers_photo_url = leftoversPhotoUrl;
+    }
     await fetch(`${supabaseUrl}/functions/v1/analyze-food`, {
       method: 'POST',
       headers: {
@@ -34,7 +39,7 @@ async function triggerAnalysis(foodLogId: string): Promise<void> {
         Authorization: `Bearer ${token}`,
         apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
       },
-      body: JSON.stringify({ food_log_id: foodLogId }),
+      body: JSON.stringify(body),
     });
   } catch (err) {
     console.error('Failed to trigger food analysis:', err);
@@ -167,6 +172,46 @@ export function useFoodLog(date: string) {
     if (!error) await fetchEntries();
   };
 
+  const updateMealType = async (id: string, mealType: FoodLog['meal_type']) => {
+    if (!user) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+    const { error } = await (supabase.from('food_logs') as any)
+      .update({ meal_type: mealType })
+      .eq('id', id)
+      .eq('user_id', user.id);
+    if (!error) await fetchEntries();
+  };
+
+  const addLeftoversPhoto = async (entryId: string, photoFile: File) => {
+    if (!user) return;
+    const timestamp = Date.now();
+    const filePath = `${user.id}/${date}/${timestamp}-leftovers.jpg`;
+    const { error: uploadError } = await supabase.storage
+      .from('food-photos')
+      .upload(filePath, photoFile, {
+        contentType: photoFile.type || 'image/jpeg',
+        upsert: false,
+      });
+    if (uploadError) {
+      console.error('Failed to upload leftovers photo:', uploadError);
+      return;
+    }
+    const { data: urlData } = supabase.storage
+      .from('food-photos')
+      .getPublicUrl(filePath);
+
+    // Mark entry as re-analyzing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+    await (supabase.from('food_logs') as any)
+      .update({ ai_analyzed: false })
+      .eq('id', entryId)
+      .eq('user_id', user.id);
+
+    await fetchEntries();
+    // Trigger leftovers analysis
+    triggerAnalysis(entryId, 'leftovers', urlData.publicUrl);
+  };
+
   const totals = entries.reduce(
     (acc, e) => ({
       calories: acc.calories + (e.calories ?? 0),
@@ -175,5 +220,5 @@ export function useFoodLog(date: string) {
     { calories: 0, protein: 0 },
   );
 
-  return { entries, loading, addEntry, deleteEntry, totals, refresh: fetchEntries };
+  return { entries, loading, addEntry, deleteEntry, updateMealType, addLeftoversPhoto, totals, refresh: fetchEntries };
 }

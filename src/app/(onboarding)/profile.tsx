@@ -6,6 +6,7 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { PixelButton } from '../../components/ui';
 import { OnboardingCard } from '../../components/onboarding/onboarding-card';
 import { ProgressDots } from '../../components/onboarding/progress-dots';
+import { PixelBackButton } from '../../components/onboarding/pixel-back-button';
 import { useUserProfile } from '../../hooks/use-user-profile';
 import { useAuth } from '../../lib/auth';
 import type { UserProfile } from '../../types/database';
@@ -26,15 +27,28 @@ export default function ProfileScreen() {
   const emailPrefix = user?.email?.split('@')[0] ?? '';
 
   const [name, setName] = useState(emailPrefix);
+  const [age, setAge] = useState('');
+  const [heightFt, setHeightFt] = useState('');
+  const [heightIn, setHeightIn] = useState('');
+  const [weight, setWeight] = useState('');
   const [pcosType, setPcosType] = useState<PcosType | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleNext = async () => {
     setSaving(true);
     try {
+      const ft = parseInt(heightFt, 10) || 0;
+      const inches = parseInt(heightIn, 10) || 0;
+      const heightCm = ft || inches ? Math.round((ft * 12 + inches) * 2.54) : null;
+      const parsedAge = parseInt(age, 10) || null;
+      const parsedWeight = parseFloat(weight) || null;
+
       await updateProfile({
         display_name: name.trim() || emailPrefix,
         pcos_type: pcosType,
+        age: parsedAge,
+        height_cm: heightCm,
+        current_weight: parsedWeight,
       });
       router.push('/(onboarding)/goals');
     } finally {
@@ -46,9 +60,7 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>◀ Back</Text>
-          </TouchableOpacity>
+          <PixelBackButton />
 
           <OnboardingCard>
             <Text style={styles.title}>ABOUT YOU</Text>
@@ -65,6 +77,58 @@ export default function ProfileScreen() {
               placeholder="Your name"
               placeholderTextColor={Colors.textMuted}
               autoCapitalize="words"
+            />
+
+            {/* Age */}
+            <Text style={styles.label}>Age</Text>
+            <TextInput
+              style={styles.input}
+              value={age}
+              onChangeText={setAge}
+              placeholder="Age"
+              placeholderTextColor={Colors.textMuted}
+              keyboardType="numeric"
+              maxLength={3}
+            />
+
+            {/* Height */}
+            <Text style={styles.label}>Height</Text>
+            <View style={styles.heightRow}>
+              <View style={styles.heightField}>
+                <TextInput
+                  style={styles.heightInput}
+                  value={heightFt}
+                  onChangeText={setHeightFt}
+                  placeholder="5"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="numeric"
+                  maxLength={1}
+                />
+                <Text style={styles.heightUnit}>ft</Text>
+              </View>
+              <View style={styles.heightField}>
+                <TextInput
+                  style={styles.heightInput}
+                  value={heightIn}
+                  onChangeText={setHeightIn}
+                  placeholder="4"
+                  placeholderTextColor={Colors.textMuted}
+                  keyboardType="numeric"
+                  maxLength={2}
+                />
+                <Text style={styles.heightUnit}>in</Text>
+              </View>
+            </View>
+
+            {/* Current Weight */}
+            <Text style={styles.label}>Current Weight (lbs)</Text>
+            <TextInput
+              style={styles.input}
+              value={weight}
+              onChangeText={setWeight}
+              placeholder="Weight"
+              placeholderTextColor={Colors.textMuted}
+              keyboardType="numeric"
             />
 
             {/* PCOS Type */}
@@ -115,15 +179,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
   },
-  backBtn: {
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.md,
-  },
-  backText: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyMd,
-    color: Colors.purple,
-  },
+
   title: {
     fontFamily: Fonts.pixel,
     fontSize: FontSizes.lg,
@@ -161,6 +217,34 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: Spacing.xl,
   },
+  heightRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  heightField: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    paddingHorizontal: Spacing.md,
+  },
+  heightInput: {
+    flex: 1,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textPrimary,
+    paddingVertical: Spacing.md,
+  },
+  heightUnit: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+    marginLeft: Spacing.xs,
+  },
   pillWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -181,7 +265,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodySm,
+    fontSize: FontSizes.bodyMd,
     color: Colors.textSecondary,
   },
   pillTextActive: {

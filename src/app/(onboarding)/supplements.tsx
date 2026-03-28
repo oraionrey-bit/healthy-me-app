@@ -6,24 +6,10 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { PixelButton } from '../../components/ui';
 import { OnboardingCard } from '../../components/onboarding/onboarding-card';
 import { ProgressDots } from '../../components/onboarding/progress-dots';
+import { PixelBackButton } from '../../components/onboarding/pixel-back-button';
 import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
-
-interface DefaultSupplement {
-  supplement_name: string;
-  dosage: string;
-  time_of_day: string;
-  sort_order: number;
-}
-
-const DEFAULT_SUPPLEMENTS: DefaultSupplement[] = [
-  { supplement_name: 'Ovasitol (AM)', dosage: '1 scoop', time_of_day: 'morning', sort_order: 0 },
-  { supplement_name: 'Knowell', dosage: '4 caps', time_of_day: 'morning', sort_order: 1 },
-  { supplement_name: 'NAC', dosage: '500mg', time_of_day: 'morning', sort_order: 2 },
-  { supplement_name: 'Omega-3', dosage: '4 softgels', time_of_day: 'morning', sort_order: 3 },
-  { supplement_name: 'Ovasitol (PM)', dosage: '1 scoop', time_of_day: 'evening', sort_order: 4 },
-  { supplement_name: 'BionerLab Gummies', dosage: '2 gummies', time_of_day: 'evening', sort_order: 5 },
-];
+import { DEFAULT_SUPPLEMENTS } from '../../constants/supplements';
 
 export default function SupplementsScreen() {
   const { user } = useAuth();
@@ -78,9 +64,7 @@ export default function SupplementsScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>◀ Back</Text>
-          </TouchableOpacity>
+          <PixelBackButton />
 
           <OnboardingCard>
             <Text style={styles.title}>SUPPLEMENTS 💊</Text>
@@ -147,15 +131,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
   },
-  backBtn: {
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.md,
-  },
-  backText: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyMd,
-    color: Colors.purple,
-  },
+
   title: {
     fontFamily: Fonts.pixel,
     fontSize: FontSizes.lg,
@@ -203,7 +179,7 @@ const styles = StyleSheet.create({
   },
   checkmark: {
     fontFamily: Fonts.body,
-    fontSize: 8,
+    fontSize: FontSizes.bodyXs,
     color: Colors.textOnDark,
   },
   suppInfo: {
@@ -225,7 +201,7 @@ const styles = StyleSheet.create({
   },
   tip: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyXs,
+    fontSize: FontSizes.bodySm,
     color: Colors.textMuted,
     textAlign: 'center',
     marginBottom: Spacing.xl,

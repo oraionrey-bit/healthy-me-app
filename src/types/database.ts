@@ -77,6 +77,21 @@ export interface Database {
         Insert: Omit<DailyScore, 'id'>;
         Update: Partial<DailyScore>;
       };
+      oura_daily: {
+        Row: OuraDaily;
+        Insert: Omit<OuraDaily, 'id' | 'created_at'>;
+        Update: Partial<OuraDaily>;
+      };
+      oura_workouts: {
+        Row: OuraWorkout;
+        Insert: Omit<OuraWorkout, 'synced_at'>;
+        Update: Partial<OuraWorkout>;
+      };
+      chat_messages: {
+        Row: ChatMessage;
+        Insert: Omit<ChatMessage, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<ChatMessage>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -95,6 +110,9 @@ export interface UserProfile {
   avatar_url: string | null;
   pcos_type: 'insulin_resistant' | 'post_pill' | 'inflammatory' | 'adrenal' | 'unsure' | null;
   date_of_birth: string | null;
+  age: number | null;
+  height_cm: number | null;
+  current_weight: number | null;
   calorie_target: number;
   protein_target: number;
   carb_target: number;
@@ -112,6 +130,9 @@ export interface UserProfile {
   notification_checkin_time: string;
   notifications_enabled: boolean;
   timezone: string;
+  oura_access_token: string | null;
+  oura_refresh_token: string | null;
+  oura_connected: boolean;
 }
 
 export interface FoodLog {
@@ -297,3 +318,73 @@ export type SymptomType =
   | 'other';
 
 export type FlowLevel = 'spotting' | 'light' | 'medium' | 'heavy';
+
+export interface OuraDaily {
+  id: string;
+  user_id: string;
+  log_date: string;
+  sleep_score: number | null;
+  readiness_score: number | null;
+  activity_score: number | null;
+  hrv_average: number | null;
+  resting_hr: number | null;
+  temperature_deviation: number | null;
+  total_sleep_minutes: number | null;
+  deep_sleep_minutes: number | null;
+  rem_sleep_minutes: number | null;
+  steps: number | null;
+  active_calories: number | null;
+  total_calories: number | null;
+  low_activity_minutes: number | null;
+  medium_activity_minutes: number | null;
+  high_activity_minutes: number | null;
+  sedentary_minutes: number | null;
+  equivalent_walking_distance: number | null;
+  non_wear_minutes: number | null;
+  resting_minutes: number | null;
+  created_at: string;
+}
+
+export interface OuraWorkout {
+  id: string;
+  user_id: string;
+  log_date: string;
+  activity_type: string | null;
+  calories: number | null;
+  distance_meters: number | null;
+  duration_minutes: number | null;
+  intensity: string | null;
+  label: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  source: string | null;
+  synced_at: string;
+}
+
+export type ChatMessageDirection = 'user' | 'oraion';
+export type ChatMessageType = 'chat' | 'food_analysis' | 'skin_analysis' | 'supplement_check' | 'lab_analysis' | 'menu_analysis' | 'fridge_analysis';
+export type ChatMessageStatus = 'pending' | 'processing' | 'complete' | 'error';
+
+export interface FoodAnalysis {
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  pcos_notes?: string;
+  items?: string[];
+  confidence?: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  user_id: string;
+  direction: ChatMessageDirection;
+  content: string | null;
+  photo_urls: string[] | null;
+  analysis: FoodAnalysis | Record<string, unknown> | null;
+  message_type: ChatMessageType;
+  status: ChatMessageStatus;
+  created_at: string;
+  updated_at: string;
+}

@@ -5,11 +5,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.100.1";
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY")!;
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+
+const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
+const TINA_CHAT_ID = "5052308275";
 
 const PCOS_PROMPT = `You are a nutrition analyst specialized in PCOS management.
 
@@ -39,6 +46,37 @@ Where:
 - confidence: 0-1, how confident you are in the estimate
 - pcos_notes: brief note about this meal's impact on PCOS (insulin, inflammation, androgens)`;
 
+const LEFTOVERS_PROMPT = `You are a nutrition analyst specialized in PCOS management.
+
+The user originally ate a meal but has leftovers remaining. You are given:
+1. The original meal photos and description
+2. A photo of the leftovers (what was NOT eaten)
+
+Estimate the ACTUAL nutritional content the user consumed (original minus leftovers).
+Look at how much food remains and estimate what percentage was left uneaten.
+
+Patient context:
+- Korean female, mid-30s, PCOS (high androgen type, testosterone elevated)
+- Daily targets: 1,400-1,600 calories, 80-100g protein
+
+Respond in STRICT JSON format only (no markdown, no code fences, no explanation):
+{
+  "calories": number,
+  "protein": number,
+  "carbs": number,
+  "fat": number,
+  "fiber": number,
+  "confidence": number,
+  "pcos_notes": "string",
+  "percent_eaten": number
+}
+
+Where:
+- calories/protein/carbs/fat/fiber: ACTUAL amount consumed (after subtracting leftovers)
+- confidence: 0-1, how confident you are
+- pcos_notes: brief note about actual intake vs PCOS goals
+- percent_eaten: estimated percentage of the meal that was eaten (0-100)`;
+
 interface AnalysisResult {
   calories: number;
   protein: number;
@@ -47,6 +85,48 @@ interface AnalysisResult {
   fiber: number;
   confidence: number;
   pcos_notes: string;
+  percent_eaten?: number;
+}
+
+/**
+ * Notify Oraion via Telegram that food was logged and analyzed.
+ * This triggers the AI assistant to follow up with PCOS-specific feedback.
+ */
+async function notifyOraion(
+  mealType: string,
+  description: string,
+  analysis: AnalysisResult,
+  analyzedBy: string,
+): Promise<void> {
+  if (!TELEGRAM_BOT_TOKEN) return;
+
+  const text = [
+    `🍽️ *Food logged* (${mealType})`,
+    description ? `"${description.substring(0, 100)}"` : "",
+    "",
+    `📊 ${Math.round(analysis.calories)} cal | ${Math.round(analysis.protein)}g protein | ${Math.round(analysis.carbs)}g carbs | ${Math.round(analysis.fat)}g fat`,
+    `🤖 Analyzed by: ${analyzedBy}`,
+    "",
+    `💬 _Tina, I'll follow up with PCOS tips!_`,
+  ].filter(Boolean).join("\n");
+
+  try {
+    await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: TINA_CHAT_ID,
+          text,
+          parse_mode: "Markdown",
+        }),
+      },
+    );
+  } catch (err) {
+    // Non-critical — don't fail the analysis if notification fails
+    console.warn("Telegram notification failed:", String(err));
+  }
 }
 
 /**
@@ -85,11 +165,75 @@ async function downloadImageAsBase64(
 }
 
 /**
- * Call Gemini 2.5 Flash with vision for food analysis.
+ * Call Claude (primary) for food analysis with vision.
+ */
+async function analyzeWithClaude(
+  description: string,
+  images: { base64: string; mimeType: string }[],
+  promptOverride?: string,
+): Promise<AnalysisResult> {
+  const basePrompt = promptOverride ?? PCOS_PROMPT;
+  const fullPrompt = `${basePrompt}\n\nMeal description: ${description || "No description provided"}`;
+
+  // Build content array with images + text
+  const content: Record<string, unknown>[] = [];
+  for (const img of images) {
+    content.push({
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: img.mimeType,
+        data: img.base64,
+      },
+    });
+  }
+  content.push({ type: "text", text: fullPrompt });
+
+  const body = {
+    model: ANTHROPIC_MODEL,
+    max_tokens: 1024,
+    messages: [{ role: "user", content }],
+  };
+
+  const response = await fetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Claude API error ${response.status}: ${errorText}`);
+  }
+
+  const result = await response.json();
+  const text = result.content?.[0]?.text;
+  if (!text) {
+    throw new Error("No response from Claude");
+  }
+
+  // Parse JSON — strip code fences if present
+  const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+  const parsed: AnalysisResult = JSON.parse(cleaned);
+
+  if (typeof parsed.calories !== "number" || typeof parsed.protein !== "number") {
+    throw new Error("Invalid analysis result from Claude: missing required fields");
+  }
+
+  return parsed;
+}
+
+/**
+ * Call Gemini 2.5 Flash with vision for food analysis (fallback).
  */
 async function analyzeWithGemini(
   description: string,
   images: { base64: string; mimeType: string }[],
+  promptOverride?: string,
 ): Promise<AnalysisResult> {
   const parts: Record<string, unknown>[] = [];
 
@@ -104,7 +248,8 @@ async function analyzeWithGemini(
   }
 
   // Add text prompt
-  const fullPrompt = `${PCOS_PROMPT}\n\nMeal description: ${description || "No description provided"}`;
+  const basePrompt = promptOverride ?? PCOS_PROMPT;
+  const fullPrompt = `${basePrompt}\n\nMeal description: ${description || "No description provided"}`;
   parts.push({ text: fullPrompt });
 
   const body = {
@@ -186,13 +331,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { food_log_id } = await req.json();
+    const { food_log_id, mode, leftovers_photo_url } = await req.json();
     if (!food_log_id) {
       return new Response(JSON.stringify({ error: "food_log_id is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const isLeftovers = mode === "leftovers" && leftovers_photo_url;
 
     // Use service role to access private storage + update records
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -211,8 +358,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Skip if already analyzed
-    if (entry.ai_analyzed) {
+    // Skip if already analyzed (unless leftovers mode)
+    if (entry.ai_analyzed && !isLeftovers) {
       return new Response(JSON.stringify({ data: entry, skipped: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -234,6 +381,12 @@ Deno.serve(async (req) => {
       if (img) images.push(img);
     }
 
+    // For leftovers mode, download the leftovers photo and add it
+    if (isLeftovers && leftovers_photo_url) {
+      const leftoversImg = await downloadImageAsBase64(supabase, leftovers_photo_url);
+      if (leftoversImg) images.push(leftoversImg);
+    }
+
     // Need at least a description or photo
     if (images.length === 0 && !entry.description) {
       return new Response(
@@ -242,22 +395,38 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Call Gemini for analysis
-    const analysis = await analyzeWithGemini(entry.description, images);
+    // Try Claude first (primary), fall back to Gemini
+    const prompt = isLeftovers ? LEFTOVERS_PROMPT : undefined;
+    let analysis: AnalysisResult;
+    let analyzedBy = "claude";
+    try {
+      analysis = await analyzeWithClaude(entry.description, images, prompt);
+    } catch (claudeErr) {
+      console.warn("Claude analysis failed, falling back to Gemini:", String(claudeErr));
+      analyzedBy = "gemini";
+      analysis = await analyzeWithGemini(entry.description, images, prompt);
+    }
 
     // Update the food log with results
+    const updatePayload: Record<string, unknown> = {
+      calories: Math.round(analysis.calories),
+      protein: Math.round(analysis.protein * 10) / 10,
+      carbs: Math.round(analysis.carbs * 10) / 10,
+      fat: Math.round(analysis.fat * 10) / 10,
+      fiber: Math.round(analysis.fiber * 10) / 10,
+      ai_analyzed: true,
+      ai_confidence: analysis.confidence,
+      ai_pcos_notes: analysis.pcos_notes,
+    };
+    if (isLeftovers) {
+      updatePayload.notes = `adjusted_for_leftovers|${analyzedBy}`;
+    } else {
+      updatePayload.notes = analyzedBy;
+    }
+
     const { data: updated, error: updateError } = await supabase
       .from("food_logs")
-      .update({
-        calories: Math.round(analysis.calories),
-        protein: Math.round(analysis.protein * 10) / 10,
-        carbs: Math.round(analysis.carbs * 10) / 10,
-        fat: Math.round(analysis.fat * 10) / 10,
-        fiber: Math.round(analysis.fiber * 10) / 10,
-        ai_analyzed: true,
-        ai_confidence: analysis.confidence,
-        ai_pcos_notes: analysis.pcos_notes,
-      })
+      .update(updatePayload)
       .eq("id", food_log_id)
       .select()
       .single();
@@ -269,9 +438,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Clean up photos after successful analysis
-    if (photoUrls.length > 0) {
+    // Notify Oraion via Telegram
+    await notifyOraion(
+      entry.meal_type ?? "meal",
+      entry.description ?? "",
+      analysis,
+      analyzedBy,
+    );
+
+    // Clean up photos after successful analysis (skip for leftovers — original photos already cleaned)
+    if (photoUrls.length > 0 && !isLeftovers) {
       await cleanupPhotos(supabase, photoUrls);
+    }
+    // Clean up leftovers photo
+    if (isLeftovers && leftovers_photo_url) {
+      await cleanupPhotos(supabase, [leftovers_photo_url]);
     }
 
     return new Response(JSON.stringify({ data: updated }), {
