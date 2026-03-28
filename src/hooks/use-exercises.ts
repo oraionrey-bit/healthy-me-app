@@ -1,11 +1,9 @@
+import { toDateKey } from '../utils/storage';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { ExerciseLog } from '../types/database';
 
-function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
-}
 
 interface AddExerciseInput {
   exercise_type: string;
@@ -26,7 +24,7 @@ export function useExercises() {
         .from('exercise_logs')
         .select('*')
         .eq('user_id', user.id)
-        .eq('log_date', getTodayDate())
+        .eq('log_date', toDateKey(new Date()))
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -46,7 +44,7 @@ export function useExercises() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
       const { error } = await (supabase.from('exercise_logs') as any).insert({
         user_id: user.id,
-        log_date: getTodayDate(),
+        log_date: toDateKey(new Date()),
         exercise_type: exercise.exercise_type,
         duration_minutes: exercise.duration_minutes,
         calories_burned: exercise.calories_burned,

@@ -1,20 +1,58 @@
-import { useState, useEffect, useCallback } from 'react';
+import { toDateKey } from '../utils/storage';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { useUserProfile } from './use-user-profile';
 import type { UserSupplement, SupplementLog } from '../types/database';
 
-function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
-}
+
+const DEFAULT_SUPPLEMENTS: Array<{
+  supplement_name: string;
+  dosage: string;
+  time_of_day: string;
+  sort_order: number;
+}> = [
+  { supplement_name: 'Ovasitol (AM)', dosage: '1 scoop', time_of_day: 'morning', sort_order: 0 },
+  { supplement_name: 'Knowell', dosage: '4 caps', time_of_day: 'morning', sort_order: 1 },
+  { supplement_name: 'NAC', dosage: '500mg', time_of_day: 'morning', sort_order: 2 },
+  { supplement_name: 'Omega-3', dosage: '4 softgels', time_of_day: 'morning', sort_order: 3 },
+  { supplement_name: 'Ovasitol (PM)', dosage: '1 scoop', time_of_day: 'evening', sort_order: 4 },
+  { supplement_name: 'BionerLab Gummies', dosage: '2 gummies', time_of_day: 'evening', sort_order: 5 },
+];
 
 export function useSupplements() {
   const { user } = useAuth();
+  const { isOnboarded } = useUserProfile();
   const [supplements, setSupplements] = useState<UserSupplement[]>([]);
   const [todaysLogs, setTodaysLogs] = useState<SupplementLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const seededRef = useRef(false);
 
   const takenCount = todaysLogs.filter((l) => l.taken).length;
   const totalCount = supplements.length;
+
+  const morningSupplements = supplements.filter((s) => s.time_of_day === 'morning');
+  const eveningSupplements = supplements.filter((s) => s.time_of_day === 'evening');
+
+  const seedDefaults = useCallback(async () => {
+    if (!user || seededRef.current) return false;
+    seededRef.current = true;
+
+    const rows = DEFAULT_SUPPLEMENTS.map((s) => ({
+      user_id: user.id,
+      supplement_name: s.supplement_name,
+      dosage: s.dosage,
+      frequency: 'daily',
+      time_of_day: s.time_of_day,
+      notes: null,
+      is_active: true,
+      sort_order: s.sort_order,
+    }));
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+    const { error } = await (supabase.from('user_supplements') as any).insert(rows);
+    return !error;
+  }, [user]);
 
   const fetchSupplements = useCallback(async () => {
     if (!user) return;
@@ -28,11 +66,29 @@ export function useSupplements() {
         .order('sort_order', { ascending: true });
 
       if (error) throw error;
-      setSupplements((data as UserSupplement[]) ?? []);
+
+      const rows = (data as UserSupplement[]) ?? [];
+
+      // Seed defaults only if user has no supplements AND hasn't been through onboarding
+      if (rows.length === 0 && !isOnboarded) {
+        const seeded = await seedDefaults();
+        if (seeded) {
+          const { data: seededData } = await supabase
+            .from('user_supplements')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true });
+          setSupplements((seededData as UserSupplement[]) ?? []);
+          return;
+        }
+      }
+
+      setSupplements(rows);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, seedDefaults]);
 
   const fetchTodaysLogs = useCallback(async () => {
     if (!user) return;
@@ -41,7 +97,7 @@ export function useSupplements() {
         .from('supplement_logs')
         .select('*')
         .eq('user_id', user.id)
-        .eq('log_date', getTodayDate());
+        .eq('log_date', toDateKey(new Date()));
 
       if (error) throw error;
       setTodaysLogs((data as SupplementLog[]) ?? []);
@@ -65,9 +121,11 @@ export function useSupplements() {
   );
 
   const toggleSupplement = useCallback(
-    async (userSupplementId: string, taken: boolean) => {
+    async (userSupplementId: string) => {
       if (!user) return;
 
+      const currentlyTaken = isSupplementTaken(userSupplementId);
+      const newTaken = !currentlyTaken;
       const existing = todaysLogs.find(
         (l) => l.user_supplement_id === userSupplementId,
       );
@@ -76,8 +134,8 @@ export function useSupplements() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
         const { error } = await (supabase.from('supplement_logs') as any)
           .update({
-            taken,
-            taken_at: taken ? new Date().toISOString() : null,
+            taken: newTaken,
+            taken_at: newTaken ? new Date().toISOString() : null,
           })
           .eq('id', existing.id);
         if (error) throw error;
@@ -86,9 +144,9 @@ export function useSupplements() {
         const { error } = await (supabase.from('supplement_logs') as any).insert({
           user_id: user.id,
           user_supplement_id: userSupplementId,
-          log_date: getTodayDate(),
-          taken,
-          taken_at: taken ? new Date().toISOString() : null,
+          log_date: toDateKey(new Date()),
+          taken: newTaken,
+          taken_at: newTaken ? new Date().toISOString() : null,
           notes: null,
         });
         if (error) throw error;
@@ -96,11 +154,13 @@ export function useSupplements() {
 
       await fetchTodaysLogs();
     },
-    [user, todaysLogs, fetchTodaysLogs],
+    [user, todaysLogs, isSupplementTaken, fetchTodaysLogs],
   );
 
   return {
     supplements,
+    morningSupplements,
+    eveningSupplements,
     todaysLogs,
     takenCount,
     totalCount,

@@ -9,161 +9,323 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { ScreenWrapper, PixelCard, PixelButton } from '../../components/ui';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { useFoodLog } from '../../hooks/use-food-log';
+import { useFoodCalendar } from '../../hooks/use-food-calendar';
+import { useUserProfile } from '../../hooks/use-user-profile';
+import { FoodCalendar } from '../../components/food/food-calendar';
+import { DaySummaryCard } from '../../components/food/day-summary-card';
+import { formatDate, toDateKey } from '../../utils/storage';
+import type { FoodLog } from '../../types/database';
 
-const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'] as const;
-type MealType = (typeof MEAL_TYPES)[number];
+type MealType = FoodLog['meal_type'];
 
-const CALORIE_TARGET = 1500;
-const PROTEIN_TARGET = 80;
+const MEAL_LABELS: { key: MealType; label: string; emoji: string }[] = [
+  { key: 'breakfast', label: 'Breakfast', emoji: '🌅' },
+  { key: 'lunch', label: 'Lunch', emoji: '🌞' },
+  { key: 'dinner', label: 'Dinner', emoji: '🌆' },
+  { key: 'snack', label: 'Snack', emoji: '🍿' },
+];
 
-interface FoodEntry {
-  id: string;
-  mealType: MealType;
-  description: string;
-  photos: string[];
-  analyzing: boolean;
+// Targets now come from useUserProfile() in FoodScreen
+
+function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
-function formatDate(): string {
-  return new Date().toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
+function getLocalPhotos(dateKey: string, entryId: string): string[] {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(`hm-photos-${dateKey}-${entryId}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalPhotos(dateKey: string, entryId: string, photos: string[]): void {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(`hm-photos-${dateKey}-${entryId}`, JSON.stringify(photos));
+  } catch {}
+}
+
+function removeLocalPhotos(dateKey: string, entryId: string): void {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(`hm-photos-${dateKey}-${entryId}`);
+  } catch {}
+}
+
+function FoodEntry({ entry, onDelete }: { entry: FoodLog; onDelete: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const mealInfo = MEAL_LABELS.find((m) => m.key === entry.meal_type) ?? MEAL_LABELS[0];
+
+  return (
+    <PixelCard>
+      <TouchableOpacity
+        style={styles.entryRow}
+        onPress={() => setExpanded(!expanded)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.entryContent}>
+          <Text style={styles.entryDesc} numberOfLines={expanded ? undefined : 2}>
+            {mealInfo.emoji} {entry.description || 'No description'}
+          </Text>
+          {entry.ai_analyzed && entry.calories !== null ? (
+            <View>
+              <Text style={styles.entryNutrition}>
+                {entry.calories} cal · {entry.protein ?? 0}g protein
+                {entry.carbs != null ? ` · ${entry.carbs}g carbs` : ''}
+                {entry.fat != null ? ` · ${entry.fat}g fat` : ''}
+              </Text>
+              {entry.ai_pcos_notes ? (
+                <Text style={styles.entryPcosNote} numberOfLines={expanded ? undefined : 2}>
+                  💡 {entry.ai_pcos_notes}
+                </Text>
+              ) : null}
+              {!expanded && entry.ai_pcos_notes && entry.ai_pcos_notes.length > 80 && (
+                <Text style={styles.tapToExpand}>tap to read more</Text>
+              )}
+            </View>
+          ) : entry.calories !== null && !entry.ai_analyzed ? (
+            <Text style={styles.entryNutrition}>
+              {entry.calories} cal · {entry.protein ?? 0}g protein
+            </Text>
+          ) : !entry.ai_analyzed ? (
+            <Text style={styles.entryAnalyzing}>🔄 Analyzing...</Text>
+          ) : (
+            <Text style={styles.entryPending}>Pending ⏳</Text>
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
+          <Text style={styles.deleteBtnText}>✕</Text>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </PixelCard>
+  );
 }
 
 export default function FoodScreen() {
+  const { calorieTarget, proteinTarget } = useUserProfile();
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
-  const [selectedMeal, setSelectedMeal] = useState<MealType>('Breakfast');
+  const [selectedMeal, setSelectedMeal] = useState<MealType>('breakfast');
   const [photos, setPhotos] = useState<string[]>([]);
   const [description, setDescription] = useState('');
-  const [entries, setEntries] = useState<FoodEntry[]>([]);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [selectedCalDate, setSelectedCalDate] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const pickImages = async () => {
-    if (Platform.OS === 'web') {
-      // Trigger file input on web
-      fileInputRef.current?.click();
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets) {
-      setPhotos((prev) => [...prev, ...result.assets.map((a) => a.uri)]);
-    }
+  const calendar = useFoodCalendar();
+
+  const dateKey = toDateKey(currentDate);
+  const isToday = isSameDay(currentDate, new Date());
+  const { entries, loading, addEntry, deleteEntry, totals } = useFoodLog(dateKey);
+
+  const calProgress = Math.min(totals.calories / calorieTarget, 1);
+  const proteinProgress = Math.min(totals.protein / proteinTarget, 1);
+
+  const goBack = () => {
+    const prev = new Date(currentDate);
+    prev.setDate(prev.getDate() - 1);
+    setCurrentDate(prev);
+  };
+
+  const goForward = () => {
+    if (isToday) return;
+    const next = new Date(currentDate);
+    next.setDate(next.getDate() + 1);
+    setCurrentDate(next);
   };
 
   const handleWebFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const newUris: string[] = [];
-    for (let i = 0; i < files.length; i++) {
-      newUris.push(URL.createObjectURL(files[i]));
+    const remaining = 5 - photos.length;
+    const toProcess = Math.min(files.length, remaining);
+    for (let i = 0; i < toProcess; i++) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const result = ev.target?.result;
+        if (typeof result === 'string') {
+          setPhotos((prev) => (prev.length < 5 ? [...prev, result] : prev));
+        }
+      };
+      reader.readAsDataURL(files[i]);
     }
-    setPhotos((prev) => [...prev, ...newUris]);
+  };
+
+  const pickImages = () => {
+    if (Platform.OS === 'web') {
+      fileInputRef.current?.click();
+    }
   };
 
   const removePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!description.trim() && photos.length === 0) return;
-    const entry: FoodEntry = {
-      id: Date.now().toString(),
-      mealType: selectedMeal,
-      description: description.trim(),
-      photos: [...photos],
-      analyzing: true,
-    };
-    setEntries((prev) => [entry, ...prev]);
-    setDescription('');
-    setPhotos([]);
-    setShowForm(false);
+    setSaving(true);
 
-    // Simulate analysis completing after 3 seconds
-    setTimeout(() => {
-      setEntries((prev) =>
-        prev.map((e) => (e.id === entry.id ? { ...e, analyzing: false } : e)),
-      );
-    }, 3000);
+    const result = await addEntry({
+      meal_type: selectedMeal,
+      description: description.trim(),
+    });
+
+    if (!result?.error) {
+      // Save photos locally if any — use timestamp as temp ID
+      if (photos.length > 0) {
+        const tempPhotoId = Date.now().toString(36);
+        saveLocalPhotos(dateKey, tempPhotoId, photos);
+      }
+      setDescription('');
+      setPhotos([]);
+      setShowForm(false);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async (entry: FoodLog) => {
+    removeLocalPhotos(dateKey, entry.id);
+    await deleteEntry(entry.id);
   };
 
   const resetForm = () => {
     setShowForm(false);
     setDescription('');
     setPhotos([]);
-    setSelectedMeal('Breakfast');
+    setSelectedMeal('breakfast');
   };
+
+  // Group entries by meal type
+  const groupedEntries = MEAL_LABELS.map((meal) => ({
+    ...meal,
+    items: entries.filter((e) => e.meal_type === meal.key),
+  })).filter((g) => g.items.length > 0);
 
   return (
     <ScreenWrapper scrollable>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.title}>Food Log</Text>
-            <Text style={styles.date}>{formatDate()}</Text>
-          </View>
-          {!showForm && (
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={() => setShowForm(true)}
-            >
-              <Text style={styles.addBtnText}>+</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+      {/* Date Navigation */}
+      <View style={styles.dateNav}>
+        <TouchableOpacity onPress={goBack} style={styles.navArrow}>
+          <Text style={styles.navArrowText}>◀</Text>
+        </TouchableOpacity>
+        <Text style={styles.dateText}>{formatDate(currentDate)}</Text>
+        <TouchableOpacity
+          onPress={goForward}
+          style={[styles.navArrow, isToday && styles.navArrowDisabled]}
+          disabled={isToday}
+        >
+          <Text style={[styles.navArrowText, isToday && styles.navArrowTextDisabled]}>▶</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            setCalendarOpen((v) => !v);
+            if (!calendarOpen) setSelectedCalDate(null);
+          }}
+          style={[styles.navArrow, calendarOpen && styles.calToggleActive]}
+        >
+          <Text style={styles.navArrowText}>📅</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Running Totals */}
-      <PixelCard style={styles.totalsCard}>
-        <View style={styles.totalsRow}>
-          <View style={styles.totalItem}>
-            <Text style={styles.totalValue}>0</Text>
-            <Text style={styles.totalLabel}>/ {CALORIE_TARGET} cal</Text>
+      {/* Calendar View */}
+      {calendarOpen && (
+        <View style={styles.calendarSection}>
+          <FoodCalendar
+            currentMonth={calendar.currentMonth}
+            onMonthChange={calendar.setCurrentMonth}
+            summaries={calendar.summaries}
+            selectedDate={selectedCalDate ?? undefined}
+            onDaySelect={setSelectedCalDate}
+          />
+          {selectedCalDate && calendar.summaries.get(selectedCalDate) && (
+            <DaySummaryCard
+              summary={calendar.summaries.get(selectedCalDate)!}
+              dateLabel={formatDate(new Date(selectedCalDate + 'T12:00:00'))}
+              onViewFullDay={() => {
+                setCurrentDate(new Date(selectedCalDate + 'T12:00:00'));
+                setCalendarOpen(false);
+                setSelectedCalDate(null);
+              }}
+            />
+          )}
+        </View>
+      )}
+
+      {/* Day View — hidden when calendar is open */}
+      {!calendarOpen && (<>
+      {/* Success Toast */}
+      {showSuccess && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>✓ Meal saved!</Text>
+        </View>
+      )}
+
+      {/* Daily Summary */}
+      <PixelCard style={styles.summaryCard}>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Calories</Text>
+            <Text style={styles.summaryValue}>
+              {totals.calories} <Text style={styles.summaryTarget}>/ {calorieTarget}</Text>
+            </Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${calProgress * 100}%` }]} />
+            </View>
           </View>
-          <View style={styles.totalDivider} />
-          <View style={styles.totalItem}>
-            <Text style={styles.totalValue}>0g</Text>
-            <Text style={styles.totalLabel}>/ {PROTEIN_TARGET}g protein</Text>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Protein</Text>
+            <Text style={styles.summaryValue}>
+              {totals.protein}g <Text style={styles.summaryTarget}>/ {proteinTarget}g</Text>
+            </Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${proteinProgress * 100}%` }]} />
+            </View>
           </View>
         </View>
       </PixelCard>
 
-      {/* Add Form */}
-      {showForm && (
+      {/* Add Meal Button / Form */}
+      {!showForm ? (
+        <TouchableOpacity style={styles.addMealBtn} onPress={() => setShowForm(true)}>
+          <Text style={styles.addMealText}>+ Add Meal</Text>
+        </TouchableOpacity>
+      ) : (
         <PixelCard style={styles.formCard}>
           {/* Meal type pills */}
           <Text style={styles.formLabel}>Meal Type</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.pillScroll}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
             <View style={styles.pillRow}>
-              {MEAL_TYPES.map((meal) => (
+              {MEAL_LABELS.map((meal) => (
                 <TouchableOpacity
-                  key={meal}
-                  onPress={() => setSelectedMeal(meal)}
-                  style={[
-                    styles.pill,
-                    selectedMeal === meal && styles.pillActive,
-                  ]}
+                  key={meal.key}
+                  onPress={() => setSelectedMeal(meal.key)}
+                  style={[styles.pill, selectedMeal === meal.key && styles.pillActive]}
                 >
                   <Text
-                    style={[
-                      styles.pillText,
-                      selectedMeal === meal && styles.pillTextActive,
-                    ]}
+                    style={[styles.pillText, selectedMeal === meal.key && styles.pillTextActive]}
                   >
-                    {meal}
+                    {meal.emoji} {meal.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -173,12 +335,9 @@ export default function FoodScreen() {
           {/* Photo upload */}
           <Text style={styles.formLabel}>Photos</Text>
           <TouchableOpacity style={styles.photoArea} onPress={pickImages}>
-            <Text style={styles.photoAreaText}>
-              📷 Tap to add photos
-            </Text>
+            <Text style={styles.photoAreaText}>📷 Add Photos</Text>
           </TouchableOpacity>
 
-          {/* Web file input (hidden) */}
           {Platform.OS === 'web' && (
             <input
               ref={fileInputRef as React.RefObject<HTMLInputElement>}
@@ -192,17 +351,10 @@ export default function FoodScreen() {
 
           {/* Photo thumbnails */}
           {photos.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.thumbScroll}
-            >
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbScroll}>
               <View style={styles.thumbRow}>
                 {photos.map((uri, i) => (
-                  <TouchableOpacity
-                    key={`photo-${i}`}
-                    onPress={() => removePhoto(i)}
-                  >
+                  <TouchableOpacity key={`photo-${i}`} onPress={() => removePhoto(i)}>
                     <Image source={{ uri }} style={styles.thumb} />
                     <View style={styles.thumbRemove}>
                       <Text style={styles.thumbRemoveText}>✕</Text>
@@ -229,131 +381,170 @@ export default function FoodScreen() {
           <View style={styles.formButtons}>
             <PixelButton title="Cancel" variant="outline" onPress={resetForm} />
             <PixelButton
-              title="Submit for Analysis"
+              title={saving ? 'Saving...' : 'Save'}
               onPress={handleSubmit}
-              disabled={!description.trim() && photos.length === 0}
+              disabled={saving || (!description.trim() && photos.length === 0)}
             />
           </View>
         </PixelCard>
       )}
 
-      {/* Today's entries */}
-      {entries.length > 0 && (
-        <View style={styles.entriesSection}>
-          <Text style={styles.entriesTitle}>Today&apos;s Entries</Text>
-          <View style={styles.entriesGap}>
-            {entries.map((entry) => (
-              <PixelCard key={entry.id}>
-                <View style={styles.entryHeader}>
-                  <Text style={styles.entryMeal}>{entry.mealType}</Text>
-                  {entry.analyzing && (
-                    <Text style={styles.analyzingBadge}>Analyzing... 🔍</Text>
-                  )}
-                </View>
-                {entry.description ? (
-                  <Text style={styles.entryDesc}>{entry.description}</Text>
-                ) : null}
-                {entry.photos.length > 0 && (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.entryThumbScroll}
-                  >
-                    <View style={styles.thumbRow}>
-                      {entry.photos.map((uri, i) => (
-                        <Image
-                          key={`entry-photo-${i}`}
-                          source={{ uri }}
-                          style={styles.entryThumb}
-                        />
-                      ))}
-                    </View>
-                  </ScrollView>
-                )}
-              </PixelCard>
-            ))}
-          </View>
+      {/* Loading state */}
+      {loading && entries.length === 0 && (
+        <View style={styles.emptyWrap}>
+          <Text style={styles.emptyTitle}>Loading...</Text>
         </View>
       )}
 
-      {/* Empty state */}
-      {entries.length === 0 && !showForm && (
+      {/* Grouped Meal List */}
+      {groupedEntries.length > 0 && (
+        <View style={styles.entriesSection}>
+          {groupedEntries.map((group) => (
+            <View key={group.key} style={styles.mealGroup}>
+              <Text style={styles.groupTitle}>
+                {group.emoji} {group.label}
+              </Text>
+              <View style={styles.entriesGap}>
+                {group.items.map((entry) => (
+                  <FoodEntry
+                    key={entry.id}
+                    entry={entry}
+                    onDelete={() => handleDelete(entry)}
+                  />
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Empty State */}
+      {!loading && entries.length === 0 && !showForm && (
         <View style={styles.emptyWrap}>
           <Image
             source={require('../../../assets/images/character/character-eating.png')}
             style={styles.emptyChar}
             resizeMode="contain"
           />
-          <Text style={styles.emptyText}>
-            Tap + to log your first meal
-          </Text>
+          <Text style={styles.emptyTitle}>No meals logged yet today</Text>
+          <Text style={styles.emptyHint}>Tap + to add your first meal</Text>
         </View>
       )}
+      </>)}
     </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    marginBottom: Spacing.md,
-  },
-  headerRow: {
+  dateNav: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+    gap: Spacing.md,
   },
-  title: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyLg,
-    color: Colors.purple,
-    marginBottom: Spacing.xs,
+  navArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  date: {
+  navArrowDisabled: {
+    opacity: 0.3,
+  },
+  navArrowText: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodySm,
-    color: Colors.textSecondary,
-  },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.purple,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addBtnText: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyLg,
-    color: Colors.textOnDark,
-    marginTop: -2,
-  },
-  totalsCard: {
-    marginBottom: Spacing.lg,
-  },
-  totalsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  totalItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  totalValue: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyLg,
     color: Colors.purple,
   },
-  totalLabel: {
+  navArrowTextDisabled: {
+    color: Colors.textMuted,
+  },
+  calToggleActive: {
+    backgroundColor: Colors.purple,
+    borderColor: Colors.purple,
+  },
+  calendarSection: {
+    marginBottom: Spacing.md,
+  },
+  dateText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textPrimary,
+  },
+  toast: {
+    backgroundColor: Colors.success,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  toastText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textOnDark,
+  },
+  summaryCard: {
+    marginBottom: Spacing.lg,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryLabel: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyXs,
     color: Colors.textMuted,
-    marginTop: 2,
+    marginBottom: Spacing.xs,
   },
-  totalDivider: {
+  summaryValue: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyLg,
+    color: Colors.purple,
+  },
+  summaryTarget: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+  },
+  summaryDivider: {
     width: 1,
-    height: 30,
+    height: 50,
     backgroundColor: Colors.tabBarBorder,
+    marginHorizontal: Spacing.md,
+  },
+  progressBar: {
+    width: '80%',
+    height: 6,
+    backgroundColor: Colors.tabBarBorder,
+    borderRadius: 3,
+    marginTop: Spacing.sm,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.purple,
+    borderRadius: 3,
+  },
+  addMealBtn: {
+    backgroundColor: Colors.purple,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  addMealText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textOnDark,
   },
   formCard: {
     marginBottom: Spacing.lg,
@@ -414,24 +605,24 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   thumb: {
-    width: 64,
-    height: 64,
+    width: 56,
+    height: 56,
     borderRadius: BorderRadius.sm,
   },
   thumbRemove: {
     position: 'absolute',
     top: -4,
     right: -4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: Colors.error,
     alignItems: 'center',
     justifyContent: 'center',
   },
   thumbRemoveText: {
     fontFamily: Fonts.body,
-    fontSize: 8,
+    fontSize: 7,
     color: Colors.textOnDark,
   },
   textArea: {
@@ -455,44 +646,75 @@ const styles = StyleSheet.create({
   entriesSection: {
     marginTop: Spacing.sm,
   },
-  entriesTitle: {
+  mealGroup: {
+    marginBottom: Spacing.lg,
+  },
+  groupTitle: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
+    color: Colors.purple,
+    marginBottom: Spacing.sm,
   },
   entriesGap: {
     gap: Spacing.sm,
   },
-  entryHeader: {
+  entryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
   },
-  entryMeal: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodySm,
-    color: Colors.purple,
-  },
-  analyzingBadge: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyXs,
-    color: Colors.warning,
+  entryContent: {
+    flex: 1,
   },
   entryDesc: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyMd,
+    fontSize: FontSizes.bodySm,
     color: Colors.textPrimary,
   },
-  entryThumbScroll: {
-    flexGrow: 0,
-    marginTop: Spacing.sm,
+  entryNutrition: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
-  entryThumb: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.sm,
+  entryPending: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.warning,
+    marginTop: 2,
+  },
+  entryAnalyzing: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.babyBlue,
+    marginTop: 2,
+  },
+  entryPcosNote: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  tapToExpand: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.purple,
+    marginTop: 2,
+    opacity: 0.7,
+  },
+  deleteBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.softPink,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: Spacing.sm,
+  },
+  deleteBtnText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.error,
   },
   emptyWrap: {
     alignItems: 'center',
@@ -503,7 +725,13 @@ const styles = StyleSheet.create({
     height: 80,
     marginBottom: Spacing.md,
   },
-  emptyText: {
+  emptyTitle: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  emptyHint: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodySm,
     color: Colors.textMuted,

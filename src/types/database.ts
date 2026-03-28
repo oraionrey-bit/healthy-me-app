@@ -52,10 +52,20 @@ export interface Database {
         Insert: Omit<Symptom, 'id' | 'created_at'>;
         Update: Partial<Symptom>;
       };
+      symptom_logs: {
+        Row: SymptomLog;
+        Insert: Omit<SymptomLog, 'id' | 'created_at'>;
+        Update: Partial<SymptomLog>;
+      };
       period_logs: {
         Row: PeriodLog;
         Insert: Omit<PeriodLog, 'id' | 'created_at'>;
         Update: Partial<PeriodLog>;
+      };
+      daily_logs: {
+        Row: DailyLog;
+        Insert: Omit<DailyLog, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<DailyLog>;
       };
       skin_photos: {
         Row: SkinPhoto;
@@ -121,6 +131,7 @@ export interface FoodLog {
   ai_confidence: number | null;
   ai_pcos_notes: string | null;
   photo_url: string | null;
+  photo_urls: string[] | null;
   user_edited: boolean;
   notes: string | null;
 }
@@ -249,3 +260,40 @@ export interface DailyScore {
   carbs_consumed: number;
   fat_consumed: number;
 }
+
+export interface SymptomLog {
+  id: string;
+  user_id: string;
+  symptom_type: string;
+  severity: number;
+  notes: string | null;
+  triggers: string | null;
+  log_date: string;
+  created_at: string;
+}
+
+export interface DailyLog {
+  id: string;
+  user_id: string;
+  log_date: string;
+  exercise: string | null;
+  mood: string | null;
+  period: string | null;
+  health_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SymptomType =
+  | 'stomach'
+  | 'histamine'
+  | 'headache'
+  | 'bloating'
+  | 'acne'
+  | 'cramps'
+  | 'brain_fog'
+  | 'fatigue'
+  | 'anxiety'
+  | 'other';
+
+export type FlowLevel = 'spotting' | 'light' | 'medium' | 'heavy';

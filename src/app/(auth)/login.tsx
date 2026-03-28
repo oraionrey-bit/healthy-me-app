@@ -9,9 +9,12 @@ import {
   Platform,
   Alert,
   Image,
+  ImageBackground,
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useAuth } from '../../lib/auth';
+
+const BG_NIGHT = require('../../../assets/images/bg-night-city.jpg');
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -37,80 +40,114 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <ImageBackground
+      source={BG_NIGHT}
+      style={styles.bgImage}
+      resizeMode="cover"
     >
-      <View style={styles.content}>
-        {/* Pixel title */}
-        <Text style={styles.title}>HEALTHY</Text>
-        <Text style={styles.titleAccent}>ME</Text>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.content}>
+          {/* Spacer to push content below background artwork */}
+          <View style={styles.spacer} />
 
-        <Text style={styles.subtitle}>your pcos companion</Text>
+          {/* Glass card overlay */}
+          <View style={styles.glassCard}>
+            {/* Pixel title */}
+            <Text style={styles.title}>HEALTHY</Text>
+            <Text style={styles.titleAccent}>ME</Text>
 
-        {/* Character */}
-        <Image
-          source={require('../../../assets/images/character/character-default.png')}
-          style={styles.character}
-          resizeMode="contain"
-        />
+            <Text style={styles.subtitle}>your pcos companion ♡</Text>
 
-        {sent ? (
-          <View style={styles.sentBox}>
-            <Text style={styles.sentEmoji}>💌</Text>
-            <Text style={styles.sentText}>Magic link sent!</Text>
-            <Text style={styles.sentHint}>Check your email to sign in</Text>
-            <TouchableOpacity onPress={() => setSent(false)} style={styles.retryButton}>
-              <Text style={styles.retryText}>Try again</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              placeholder="your@email.com"
-              placeholderTextColor={Colors.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!sending}
+            {/* Character */}
+            <Image
+              source={require('../../../assets/images/character/character-default.png')}
+              style={styles.character}
+              resizeMode="contain"
             />
 
-            <TouchableOpacity
-              style={[styles.button, sending && styles.buttonDisabled]}
-              onPress={handleSendLink}
-              disabled={sending}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.buttonText}>
-                {sending ? 'Sending...' : 'Send Magic Link'}
-              </Text>
-            </TouchableOpacity>
+            {sent ? (
+              <View style={styles.sentBox}>
+                <Text style={styles.sentEmoji}>💌</Text>
+                <Text style={styles.sentText}>Magic link sent!</Text>
+                <Text style={styles.sentHint}>Check your email to sign in</Text>
+                <TouchableOpacity onPress={() => setSent(false)} style={styles.retryButton}>
+                  <Text style={styles.retryText}>Try again</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.form}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="your@email.com"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!sending}
+                />
+
+                <TouchableOpacity
+                  style={[styles.button, sending && styles.buttonDisabled]}
+                  onPress={handleSendLink}
+                  disabled={sending}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.buttonText}>
+                    {sending ? 'Sending...' : '✨ Send Magic Link'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
-        )}
-      </View>
-    </KeyboardAvoidingView>
+        </View>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  bgImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xxl,
+  },
+  spacer: {
+    flex: 1,
+    minHeight: 120,
+  },
+  glassCard: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: 'rgba(30, 20, 50, 0.75)',
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(179, 136, 255, 0.3)',
+    padding: Spacing.xl,
+    alignItems: 'center',
   },
   title: {
     fontFamily: Fonts.pixel,
     fontSize: FontSizes.xxl,
-    color: Colors.purple,
+    color: '#E8DEF8',
     textAlign: 'center',
+    textShadowColor: 'rgba(124, 77, 255, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   titleAccent: {
     fontFamily: Fonts.pixel,
@@ -118,17 +155,19 @@ const styles = StyleSheet.create({
     color: Colors.pink,
     textAlign: 'center',
     marginTop: Spacing.xs,
+    textShadowColor: 'rgba(255, 128, 171, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   subtitle: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyLg,
-    color: Colors.textSecondary,
-    marginTop: Spacing.md,
+    color: 'rgba(200, 176, 216, 0.9)',
+    marginTop: Spacing.sm,
   },
   character: {
-    width: 120,
-    height: 120,
-    borderRadius: BorderRadius.xl,
+    width: 100,
+    height: 100,
     marginVertical: Spacing.lg,
   },
   form: {
@@ -138,19 +177,23 @@ const styles = StyleSheet.create({
   input: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    color: Colors.textPrimary,
-    borderWidth: 2,
-    borderColor: Colors.softPurple,
+    color: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(179, 136, 255, 0.4)',
   },
   button: {
     backgroundColor: Colors.purple,
     borderRadius: BorderRadius.md,
     paddingVertical: Spacing.md,
     alignItems: 'center',
+    shadowColor: Colors.purple,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -170,12 +213,12 @@ const styles = StyleSheet.create({
   sentText: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyLg,
-    color: Colors.purple,
+    color: '#E8DEF8',
   },
   sentHint: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
-    color: Colors.textSecondary,
+    color: 'rgba(200, 176, 216, 0.8)',
   },
   retryButton: {
     marginTop: Spacing.md,

@@ -1,11 +1,9 @@
+import { toDateKey } from '../utils/storage';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { WeightLog } from '../types/database';
 
-function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
-}
 
 export function useWeight() {
   const { user } = useAuth();
@@ -40,7 +38,7 @@ export function useWeight() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
       const { error } = await (supabase.from('weight_logs') as any).insert({
         user_id: user.id,
-        log_date: getTodayDate(),
+        log_date: toDateKey(new Date()),
         weight,
         notes: null,
       });
