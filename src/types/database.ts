@@ -361,6 +361,23 @@ export interface OuraWorkout {
   synced_at: string;
 }
 
+export interface SavedMeal {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | null;
+  calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  fiber: number | null;
+  pcos_notes: string | null;
+  use_count: number;
+  last_used_at: string | null;
+  created_at: string;
+}
+
 export type ChatMessageDirection = 'user' | 'oraion';
 export type ChatMessageType = 'chat' | 'food_analysis' | 'skin_analysis' | 'supplement_check' | 'lab_analysis' | 'menu_analysis' | 'fridge_analysis';
 export type ChatMessageStatus = 'pending' | 'processing' | 'complete' | 'error';

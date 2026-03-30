@@ -13,6 +13,7 @@ interface UseOuraReturn {
   loading: boolean;
   todayData: OuraDaily | null;
   recentData: OuraDaily[];
+  activityFromYesterday: boolean;
   connectOura: () => Promise<void>;
   disconnectOura: () => Promise<void>;
   syncOura: (startDate?: string, endDate?: string) => Promise<void>;
@@ -54,18 +55,48 @@ export function useOura(): UseOuraReturn {
   }, [user]);
 
   // Fetch today's Oura data
+  const [activityFromYesterday, setActivityFromYesterday] = useState(false);
+
   const fetchTodayData = useCallback(async () => {
     if (!user) return;
 
+    const today = toDateKey(new Date());
     const { data, error } = await supabase
       .from('oura_daily')
       .select('*')
       .eq('user_id', user.id)
-      .eq('log_date', toDateKey(new Date()))
+      .eq('log_date', today)
       .maybeSingle();
 
     if (!error && data) {
-      setTodayData(data as OuraDaily);
+      const ouraData = data as OuraDaily;
+      // If today's activity is null, merge yesterday's activity fields
+      if (ouraData.activity_score == null && ouraData.steps == null) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const { data: ydayData } = await supabase
+          .from('oura_daily')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('log_date', toDateKey(yesterday))
+          .maybeSingle();
+
+        if (ydayData) {
+          const yday = ydayData as OuraDaily;
+          // Only fill activity fields from yesterday, keep today's sleep/readiness
+          ouraData.activity_score = yday.activity_score;
+          ouraData.steps = yday.steps;
+          ouraData.active_calories = yday.active_calories;
+          ouraData.total_calories = yday.total_calories;
+          ouraData.low_activity_minutes = yday.low_activity_minutes;
+          ouraData.medium_activity_minutes = yday.medium_activity_minutes;
+          ouraData.high_activity_minutes = yday.high_activity_minutes;
+          setActivityFromYesterday(true);
+        }
+      } else {
+        setActivityFromYesterday(false);
+      }
+      setTodayData(ouraData);
     }
   }, [user]);
 
@@ -185,6 +216,7 @@ export function useOura(): UseOuraReturn {
     loading,
     todayData,
     recentData,
+    activityFromYesterday,
     connectOura,
     disconnectOura,
     syncOura,

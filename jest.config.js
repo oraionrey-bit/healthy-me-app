@@ -17,5 +17,8 @@ module.exports = {
     '^expo-linear-gradient$': '<rootDir>/src/__tests__/__mocks__/expo-linear-gradient.ts',
     '\\.(png|jpg|jpeg|gif|webp|svg)$': '<rootDir>/src/__tests__/__mocks__/asset.ts',
     '^react-native-safe-area-context$': '<rootDir>/src/__tests__/__mocks__/react-native-safe-area-context.ts',
+    '^react-native-gifted-charts$': '<rootDir>/src/__tests__/__mocks__/react-native-gifted-charts.ts',
+    '^react-native-gifted-charts/(.*)$': '<rootDir>/src/__tests__/__mocks__/react-native-gifted-charts.ts',
+    '^react-native-svg$': '<rootDir>/src/__tests__/__mocks__/react-native-svg.ts',
   },
 };

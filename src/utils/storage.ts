@@ -1,71 +1,3 @@
-import { Platform } from 'react-native';
-
-export interface FoodEntry {
-  id: string;
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  description: string;
-  photos: string[]; // base64 data URIs (web only for now)
-  calories: number | null;
-  protein: number | null;
-  carbs: number | null;
-  fat: number | null;
-  status: 'pending' | 'analyzed';
-  createdAt: string;
-}
-
-function getStorage() {
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return window.localStorage;
-  }
-  return null;
-}
-
-export function getFoodEntries(date: string): FoodEntry[] {
-  try {
-    const storage = getStorage();
-    if (!storage) return [];
-    const data = storage.getItem(`hm-food-${date}`);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveFoodEntry(date: string, entry: FoodEntry): void {
-  try {
-    const storage = getStorage();
-    if (!storage) return;
-    const entries = getFoodEntries(date);
-    entries.push(entry);
-    storage.setItem(`hm-food-${date}`, JSON.stringify(entries));
-  } catch {}
-}
-
-export function deleteFoodEntry(date: string, entryId: string): void {
-  try {
-    const storage = getStorage();
-    if (!storage) return;
-    const entries = getFoodEntries(date).filter(e => e.id !== entryId);
-    storage.setItem(`hm-food-${date}`, JSON.stringify(entries));
-  } catch {}
-}
-
-export function updateFoodEntry(date: string, entryId: string, updates: Partial<FoodEntry>): void {
-  try {
-    const storage = getStorage();
-    if (!storage) return;
-    const entries = getFoodEntries(date).map(e =>
-      e.id === entryId ? { ...e, ...updates } : e
-    );
-    storage.setItem(`hm-food-${date}`, JSON.stringify(entries));
-  } catch {}
-}
-
-// Generate a simple unique ID
-export function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-}
-
 // Format date for display
 export function formatDate(date: Date): string {
   return date.toLocaleDateString('en-US', {
@@ -84,26 +16,17 @@ export function toDateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-// Checklist storage
-export interface ChecklistState {
-  [key: string]: boolean;
-}
-
-export function getChecklist(date: string): ChecklistState {
-  try {
-    const storage = getStorage();
-    if (!storage) return {};
-    const data = storage.getItem(`hm-checklist-${date}`);
-    return data ? JSON.parse(data) : {};
-  } catch {
-    return {};
-  }
-}
-
-export function saveChecklist(date: string, state: ChecklistState): void {
-  try {
-    const storage = getStorage();
-    if (!storage) return;
-    storage.setItem(`hm-checklist-${date}`, JSON.stringify(state));
-  } catch {}
+/**
+ * Get Monday and Sunday date keys for the current week.
+ * Week starts on Monday (ISO 8601).
+ */
+export function getCurrentWeekRange(): { mondayKey: string; sundayKey: string } {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { mondayKey: toDateKey(monday), sundayKey: toDateKey(sunday) };
 }

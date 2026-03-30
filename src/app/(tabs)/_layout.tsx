@@ -1,12 +1,13 @@
 import { Tabs } from 'expo-router';
-import { Text, StyleSheet } from 'react-native';
+import { Text, Image, StyleSheet, ImageSourcePropType } from 'react-native';
 import { Colors, Fonts, FontSizes } from '../../constants/theme';
 
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+function TabIcon({ source, focused }: { source: ImageSourcePropType; focused: boolean }) {
   return (
-    <Text style={[styles.emoji, focused && styles.emojiFocused]}>
-      {emoji}
-    </Text>
+    <Image
+      source={source}
+      style={[styles.icon, focused ? styles.iconFocused : styles.iconInactive]}
+    />
   );
 }
 
@@ -36,7 +37,9 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="❤️" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon source={require('../../../assets/images/icons/heart.png')} focused={focused} />
+          ),
           tabBarLabel: ({ focused }) => <TabLabel label="Home" focused={focused} />,
         }}
       />
@@ -44,7 +47,9 @@ export default function TabsLayout() {
         name="food"
         options={{
           title: 'Food',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🍽️" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon source={require('../../../assets/images/icons/plate.png')} focused={focused} />
+          ),
           tabBarLabel: ({ focused }) => <TabLabel label="Food" focused={focused} />,
         }}
       />
@@ -52,7 +57,9 @@ export default function TabsLayout() {
         name="move"
         options={{
           title: 'Move',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏋️" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon source={require('../../../assets/images/icons/dumbbell.png')} focused={focused} />
+          ),
           tabBarLabel: ({ focused }) => <TabLabel label="Move" focused={focused} />,
         }}
       />
@@ -60,7 +67,9 @@ export default function TabsLayout() {
         name="skin"
         options={{
           title: 'Skin',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🧴" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon source={require('../../../assets/images/icons/bottle.png')} focused={focused} />
+          ),
           tabBarLabel: ({ focused }) => <TabLabel label="Skin" focused={focused} />,
         }}
       />
@@ -68,7 +77,9 @@ export default function TabsLayout() {
         name="health"
         options={{
           title: 'Health',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🔬" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon source={require('../../../assets/images/icons/microscope.png')} focused={focused} />
+          ),
           tabBarLabel: ({ focused }) => <TabLabel label="Health" focused={focused} />,
         }}
       />
@@ -88,13 +99,16 @@ const styles = StyleSheet.create({
   tabBarItem: {
     gap: 4,
   },
-  emoji: {
-    fontSize: 22,
-    opacity: 0.6,
+  icon: {
+    width: 24,
+    height: 24,
   },
-  emojiFocused: {
+  iconFocused: {
     opacity: 1,
     transform: [{ scale: 1.1 }],
+  },
+  iconInactive: {
+    opacity: 0.5,
   },
   label: {
     fontFamily: Fonts.body,

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { getCurrentWeekRange } from '../utils/storage';
 import type { OuraWorkout } from '../types/database';
 
 /**
@@ -88,16 +89,7 @@ export function useWeeklyOuraWorkouts() {
     if (!user) return;
     setLoading(true);
 
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + mondayOffset);
-    const mondayKey = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    const sundayKey = `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
+    const { mondayKey, sundayKey } = getCurrentWeekRange();
 
     const { data, error } = await supabase
       .from('oura_workouts')

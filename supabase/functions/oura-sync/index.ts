@@ -269,8 +269,13 @@ Deno.serve(async (req) => {
     const defaultStart = new Date(now);
     defaultStart.setDate(defaultStart.getDate() - 7);
 
+    // Extend range by 1 day back — Oura API can return empty for single-day queries
+    const requestedStart = start_date || toDateString(defaultStart);
+    const extendedStart = new Date(requestedStart);
+    extendedStart.setDate(extendedStart.getDate() - 1);
+
     const dateParams = {
-      start_date: start_date || toDateString(defaultStart),
+      start_date: toDateString(extendedStart),
       end_date: end_date || toDateString(now),
     };
 

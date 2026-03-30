@@ -5,6 +5,7 @@ import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { HealthCard, EmptyState } from './health-card';
 import { useChartWidth } from './use-chart-width';
 import { aggregateWeekly, chartLabelStyle } from '../../utils/chart-helpers';
+import { getWeightInsight } from '../../utils/chart-insights';
 import type { WeightPoint, TimeRange } from '../../hooks/use-health-trends';
 import { format, parseISO } from 'date-fns';
 
@@ -24,7 +25,7 @@ function aggregateWeightWeekly(points: WeightPoint[]): WeightPoint[] {
 export const WeightTrend = React.memo(function WeightTrend({ data, range, unit = 'lbs' }: Props) {
   const chartWidth = useChartWidth();
 
-  const { lineData, current, change, minVal, maxVal } = useMemo(() => {
+  const { lineData, current, change, minVal, maxVal, insight } = useMemo(() => {
     const points = range === '90d' ? aggregateWeightWeekly(data) : data;
     const labelInterval = Math.max(1, Math.floor(points.length / 6));
 
@@ -32,17 +33,20 @@ export const WeightTrend = React.memo(function WeightTrend({ data, range, unit =
     const min = weights.length ? Math.floor(Math.min(...weights) - 2) : 0;
     const max = weights.length ? Math.ceil(Math.max(...weights) + 2) : 200;
 
+    const chartPoints = points.map((p, i) => ({
+      value: p.weight,
+      label: i % labelInterval === 0 ? format(parseISO(p.date), 'd') : '',
+    }));
+
     return {
-      lineData: points.map((p, i) => ({
-        value: p.weight,
-        label: i % labelInterval === 0 ? format(parseISO(p.date), 'd') : '',
-      })),
+      lineData: chartPoints,
       current: weights.length ? weights[weights.length - 1] : null,
       change: weights.length >= 2 ? weights[weights.length - 1] - weights[0] : null,
       minVal: min,
       maxVal: max,
+      insight: getWeightInsight(chartPoints, unit),
     };
-  }, [data, range]);
+  }, [data, range, unit]);
 
   return (
     <HealthCard title="⚖️ Weight" borderColor={Colors.babyBlue}>
@@ -88,6 +92,9 @@ export const WeightTrend = React.memo(function WeightTrend({ data, range, unit =
               </Text>
             )}
           </View>
+          {insight.length > 0 && (
+            <Text style={styles.insightText}>{insight}</Text>
+          )}
         </>
       )}
     </HealthCard>
@@ -105,5 +112,14 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyXs,
     color: Colors.textSecondary,
+  },
+  insightText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
   },
 });

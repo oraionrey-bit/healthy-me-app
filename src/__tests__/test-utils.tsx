@@ -58,6 +58,10 @@ function mockCreateTable(table: string) {
     symptom_logs: [],
     weight_logs: [],
     period_logs: [],
+    oura_daily: [],
+    oura_workouts: [],
+    chat_messages: [],
+    symptoms: [],
   };
 
   const data = mockTableData[table] ?? [];
@@ -70,6 +74,7 @@ function mockCreateTable(table: string) {
   builder.upsert = jest.fn(() => builder);
   builder.eq = jest.fn(() => builder);
   builder.neq = jest.fn(() => builder);
+  builder.not = jest.fn(() => builder);
   builder.gte = jest.fn(() => builder);
   builder.lte = jest.fn(() => builder);
   builder.order = jest.fn(() => builder);
@@ -105,6 +110,11 @@ jest.mock('../lib/supabase', () => ({
       signOut: jest.fn(() => Promise.resolve({ error: null })),
     },
     from: jest.fn((table: string) => mockCreateTable(table)),
+    channel: jest.fn(() => ({
+      on: jest.fn(function(this: any) { return this; }),
+      subscribe: jest.fn(function(this: any) { return this; }),
+      unsubscribe: jest.fn(),
+    })),
     storage: {
       from: jest.fn(() => ({
         upload: jest.fn(() => Promise.resolve({ error: null })),

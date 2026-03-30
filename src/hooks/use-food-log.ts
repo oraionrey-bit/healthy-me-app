@@ -14,13 +14,14 @@ interface AddFoodInput {
   carbs?: number | null;
   fat?: number | null;
   photos?: File[];
+  leftovers_photos?: File[];
 }
 
 /**
  * Trigger AI analysis of a food log entry via the analyze-food Edge Function.
  * Fire-and-forget — doesn't block the UI.
  */
-async function triggerAnalysis(foodLogId: string, mode?: 'leftovers', leftoversPhotoUrl?: string): Promise<void> {
+async function triggerAnalysis(foodLogId: string, mode?: 'leftovers', leftoversPhotoUrl?: string, retryCount = 0): Promise<void> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData?.session?.access_token;
@@ -32,7 +33,7 @@ async function triggerAnalysis(foodLogId: string, mode?: 'leftovers', leftoversP
       body.mode = 'leftovers';
       body.leftovers_photo_url = leftoversPhotoUrl;
     }
-    await fetch(`${supabaseUrl}/functions/v1/analyze-food`, {
+    const response = await fetch(`${supabaseUrl}/functions/v1/analyze-food`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -41,7 +42,17 @@ async function triggerAnalysis(foodLogId: string, mode?: 'leftovers', leftoversP
       },
       body: JSON.stringify(body),
     });
+
+    // Retry on 5xx errors (worker limit, etc.) — up to 3 times with backoff
+    if (!response.ok && response.status >= 500 && retryCount < 3) {
+      const delay = (retryCount + 1) * 10000; // 10s, 20s, 30s
+      setTimeout(() => triggerAnalysis(foodLogId, mode, leftoversPhotoUrl, retryCount + 1), delay);
+    }
   } catch (err) {
+    // Network error — retry once after 15s
+    if (retryCount < 2) {
+      setTimeout(() => triggerAnalysis(foodLogId, mode, leftoversPhotoUrl, retryCount + 1), 15000);
+    }
     console.error('Failed to trigger food analysis:', err);
   }
 }
@@ -129,6 +140,8 @@ export function useFoodLog(date: string) {
     if (!user) return { error: new Error('Not authenticated') };
 
     const photoUrls = entry.photos ? await uploadPhotos(entry.photos) : [];
+    const leftoversUrls = entry.leftovers_photos ? await uploadPhotos(entry.leftovers_photos) : [];
+    const allPhotoUrls = [...photoUrls, ...leftoversUrls];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch with placeholder Database types
     const foodTable = supabase.from('food_logs') as ReturnType<typeof supabase.from> & { insert: (v: Record<string, unknown>) => ReturnType<ReturnType<typeof supabase.from>['insert']> };
@@ -146,8 +159,8 @@ export function useFoodLog(date: string) {
       ai_analyzed: false,
       ai_confidence: null,
       ai_pcos_notes: null,
-      photo_url: photoUrls.length > 0 ? photoUrls[0] : null,
-      photo_urls: photoUrls.length > 0 ? photoUrls : null,
+      photo_url: allPhotoUrls.length > 0 ? allPhotoUrls[0] : null,
+      photo_urls: allPhotoUrls.length > 0 ? allPhotoUrls : null,
       user_edited: false,
       notes: null,
     }).select().single();
@@ -156,7 +169,12 @@ export function useFoodLog(date: string) {
       await fetchEntries();
       // Trigger AI analysis in the background (don't await)
       if (data?.id) {
-        triggerAnalysis(data.id as string);
+        if (leftoversUrls.length > 0) {
+          // Has leftovers — trigger in leftovers mode
+          triggerAnalysis(data.id as string, 'leftovers', leftoversUrls[0]);
+        } else {
+          triggerAnalysis(data.id as string);
+        }
       }
     }
     return { error };

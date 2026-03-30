@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Text,
   View,
@@ -78,6 +78,16 @@ const CYCLE_NOTES = [
   { phase: 'Post egg-freezing', note: 'Listen to your body — ease back gradually', emoji: '💛' },
 ];
 
+function formatSyncTime(date: Date): string {
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'just now';
+  if (diffMin === 1) return '1 min ago';
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  return `${diffHr}h ago`;
+}
+
 function formatTime(iso: string | null): string {
   if (!iso) return '';
   try {
@@ -94,7 +104,22 @@ export default function MoveScreen() {
   const { weeklyTotals } = useWeeklyExerciseSummary();
   const { workouts: ouraWorkouts, totals: ouraTotals } = useOuraWorkouts(dateKey);
   const { weeklyTotals: ouraWeeklyTotals } = useWeeklyOuraWorkouts();
-  const { todayData, isConnected } = useOura();
+  const { todayData, isConnected, syncOura, syncing, activityFromYesterday } = useOura();
+  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+  const syncedRef = useRef(false);
+
+  // Auto-sync today's Oura data on mount
+  useEffect(() => {
+    if (isConnected && !syncedRef.current) {
+      syncedRef.current = true;
+      const today = toDateKey(new Date());
+      syncOura(today, today).then(() => {
+        setLastSynced(new Date());
+      }).catch(() => {
+        // Ignore sync errors — data may still be stale but usable
+      });
+    }
+  }, [isConnected, syncOura]);
 
   const [showForm, setShowForm] = useState(false);
   const [selectedType, setSelectedType] = useState<string>('Pilates');
@@ -106,9 +131,9 @@ export default function MoveScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Combined weekly stats (manual + Oura)
-  const combinedWeeklyMinutes = weeklyTotals.minutes + ouraWeeklyTotals.minutes;
-  const combinedWeeklySessions = weeklyTotals.sessions + ouraWeeklyTotals.sessions;
-  const combinedWeeklyCalories = weeklyTotals.calories + ouraWeeklyTotals.calories;
+  const combinedWeeklyMinutes = Math.round(weeklyTotals.minutes + ouraWeeklyTotals.minutes);
+  const combinedWeeklySessions = Math.round(weeklyTotals.sessions + ouraWeeklyTotals.sessions);
+  const combinedWeeklyCalories = Math.round(weeklyTotals.calories + ouraWeeklyTotals.calories);
   const weeklyProgress = Math.min(combinedWeeklyMinutes / WEEKLY_GOAL_MINUTES, 1);
 
   const handleSubmit = async () => {
@@ -191,50 +216,79 @@ export default function MoveScreen() {
       </PixelCard>
 
       {/* Activity Breakdown (from Oura) */}
-      {isConnected && todayData && (todayData.total_calories || todayData.low_activity_minutes || todayData.high_activity_minutes) && (
+      {isConnected && (
         <PixelCard style={styles.sectionCard}>
           <View style={styles.activityHeader}>
             <Text style={styles.sectionTitle}>Daily Activity</Text>
-            <Text style={styles.ouraRingBadge}>💍</Text>
+            <View style={styles.activityBadgeRow}>
+              {syncing && <Text style={styles.syncingText}>🔄 Syncing...</Text>}
+              {!syncing && lastSynced && (
+                <Text style={styles.syncedText}>
+                  🔄 Synced {formatSyncTime(lastSynced)}
+                </Text>
+              )}
+              <Text style={styles.ouraRingBadge}>💍</Text>
+            </View>
           </View>
-          <View style={styles.activityGrid}>
-            {todayData.total_calories != null && (
-              <View style={styles.activityItem}>
-                <Text style={styles.activityValue}>{Math.round(todayData.total_calories)}</Text>
-                <Text style={styles.activityLabel}>Total Cal</Text>
-              </View>
-            )}
-            {todayData.active_calories != null && (
-              <View style={styles.activityItem}>
-                <Text style={styles.activityValue}>{Math.round(todayData.active_calories)}</Text>
-                <Text style={styles.activityLabel}>Active Cal</Text>
-              </View>
-            )}
-            {todayData.high_activity_minutes != null && (
-              <View style={styles.activityItem}>
-                <Text style={[styles.activityValue, styles.highActivity]}>{Math.round(todayData.high_activity_minutes)}</Text>
-                <Text style={styles.activityLabel}>High min</Text>
-              </View>
-            )}
-            {todayData.medium_activity_minutes != null && (
-              <View style={styles.activityItem}>
-                <Text style={[styles.activityValue, styles.medActivity]}>{Math.round(todayData.medium_activity_minutes)}</Text>
-                <Text style={styles.activityLabel}>Med min</Text>
-              </View>
-            )}
-            {todayData.low_activity_minutes != null && (
-              <View style={styles.activityItem}>
-                <Text style={styles.activityValue}>{Math.round(todayData.low_activity_minutes)}</Text>
-                <Text style={styles.activityLabel}>Low min</Text>
-              </View>
-            )}
-            {todayData.equivalent_walking_distance != null && (
-              <View style={styles.activityItem}>
-                <Text style={styles.activityValue}>{(todayData.equivalent_walking_distance / 1000).toFixed(1)}</Text>
-                <Text style={styles.activityLabel}>km equiv</Text>
-              </View>
-            )}
-          </View>
+          {activityFromYesterday && (
+            <Text style={styles.yesterdayNote}>📊 Showing yesterday's activity — today's data updates later</Text>
+          )}
+          {todayData ? (
+            <View style={styles.activityGrid}>
+              {todayData.activity_score != null && (
+                <View style={styles.activityItem}>
+                  <Text style={[styles.activityValue, styles.scoreValue]}>{Math.round(todayData.activity_score)}</Text>
+                  <Text style={styles.activityLabel}>Score</Text>
+                </View>
+              )}
+              {todayData.steps != null && (
+                <View style={styles.activityItem}>
+                  <Text style={styles.activityValue}>{todayData.steps.toLocaleString()}</Text>
+                  <Text style={styles.activityLabel}>Steps</Text>
+                </View>
+              )}
+              {todayData.total_calories != null && (
+                <View style={styles.activityItem}>
+                  <Text style={styles.activityValue}>{Math.round(todayData.total_calories)}</Text>
+                  <Text style={styles.activityLabel}>Total Cal</Text>
+                </View>
+              )}
+              {todayData.active_calories != null && (
+                <View style={styles.activityItem}>
+                  <Text style={styles.activityValue}>{Math.round(todayData.active_calories)}</Text>
+                  <Text style={styles.activityLabel}>Active Cal</Text>
+                </View>
+              )}
+              {todayData.high_activity_minutes != null && (
+                <View style={styles.activityItem}>
+                  <Text style={[styles.activityValue, styles.highActivity]}>{Math.round(todayData.high_activity_minutes)}</Text>
+                  <Text style={styles.activityLabel}>High min</Text>
+                </View>
+              )}
+              {todayData.medium_activity_minutes != null && (
+                <View style={styles.activityItem}>
+                  <Text style={[styles.activityValue, styles.medActivity]}>{Math.round(todayData.medium_activity_minutes)}</Text>
+                  <Text style={styles.activityLabel}>Med min</Text>
+                </View>
+              )}
+              {todayData.low_activity_minutes != null && (
+                <View style={styles.activityItem}>
+                  <Text style={styles.activityValue}>{Math.round(todayData.low_activity_minutes)}</Text>
+                  <Text style={styles.activityLabel}>Low min</Text>
+                </View>
+              )}
+              {todayData.equivalent_walking_distance != null && (
+                <View style={styles.activityItem}>
+                  <Text style={styles.activityValue}>{(todayData.equivalent_walking_distance / 1000).toFixed(1)}</Text>
+                  <Text style={styles.activityLabel}>km equiv</Text>
+                </View>
+              )}
+            </View>
+          ) : (
+            <Text style={styles.noActivityText}>
+              {syncing ? 'Fetching today\'s data...' : 'No activity data yet today — your Oura Ring will sync soon! 💍'}
+            </Text>
+          )}
         </PixelCard>
       )}
 
@@ -550,6 +604,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  activityBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  syncingText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.purple,
+  },
+  syncedText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+  },
+  yesterdayNote: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.warning,
+    marginBottom: Spacing.sm,
+    fontStyle: 'italic',
+  },
+  scoreValue: {
+    color: Colors.success,
+  },
+  noActivityText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: Spacing.md,
+    fontStyle: 'italic',
   },
   activityGrid: {
     flexDirection: 'row',

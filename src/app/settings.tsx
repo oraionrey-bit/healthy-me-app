@@ -13,6 +13,8 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius, Shadows } from '../con
 import { PixelButton } from '../components/ui';
 import { useAuth } from '../lib/auth';
 import { useUserProfile } from '../hooks/use-user-profile';
+import { useSupplements } from '../hooks/use-supplements';
+import { SupplementManager } from '../components/settings/supplement-manager';
 import { useOura } from '../hooks/use-oura';
 
 const PCOS_TYPE_LABELS: Record<string, string> = {
@@ -57,6 +59,13 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { profile, loading } = useUserProfile();
+  const {
+    supplements,
+    loading: supplementsLoading,
+    addSupplement,
+    updateSupplement,
+    deleteSupplement,
+  } = useSupplements();
   const { isConnected: ouraConnected, loading: ouraLoading, connectOura, disconnectOura, syncing: ouraSyncing, syncOura } = useOura();
 
   const handleSignOut = async () => {
@@ -153,13 +162,13 @@ export default function SettingsScreen() {
             <Text style={styles.sectionDescription}>
               Manage your daily supplement checklist
             </Text>
-            <View style={styles.editButtonWrap}>
-              <PixelButton
-                title="Manage Supplements"
-                variant="outline"
-                onPress={() => router.push('/(onboarding)/supplements')}
-              />
-            </View>
+            <SupplementManager
+              supplements={supplements}
+              loading={supplementsLoading}
+              onAdd={addSupplement}
+              onUpdate={updateSupplement}
+              onDelete={deleteSupplement}
+            />
           </SettingsSection>
 
           {/* Oura Ring */}

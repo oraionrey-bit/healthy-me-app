@@ -8,6 +8,7 @@ import {
   Image,
   Platform,
   ScrollView,
+  ImageSourcePropType,
 } from 'react-native';
 import { ScreenWrapper, PixelCard, PixelButton } from '../../components/ui';
 import { AskOraionFAB, AskOraionModal } from '../../components/chat';
@@ -15,12 +16,21 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { useFoodLog } from '../../hooks/use-food-log';
 import { useFoodCalendar } from '../../hooks/use-food-calendar';
 import { useUserProfile } from '../../hooks/use-user-profile';
+import { useSavedMeals } from '../../hooks/use-saved-meals';
 import { FoodCalendar } from '../../components/food/food-calendar';
 import { DaySummaryCard } from '../../components/food/day-summary-card';
+import { MealSuggestions } from '../../components/food/meal-suggestions';
 import { formatDate, toDateKey } from '../../utils/storage';
 import type { FoodLog } from '../../types/database';
 
 type MealType = FoodLog['meal_type'];
+
+const MEAL_ICON_MAP: Record<MealType, ImageSourcePropType> = {
+  breakfast: require('../../../assets/images/icons/breakfast.png'),
+  lunch: require('../../../assets/images/icons/lunchbox.png'),
+  dinner: require('../../../assets/images/icons/dinner.png'),
+  snack: require('../../../assets/images/icons/snack.png'),
+};
 
 const MEAL_LABELS: { key: MealType; label: string; emoji: string }[] = [
   { key: 'breakfast', label: 'Breakfast', emoji: '🌅' },
@@ -66,11 +76,13 @@ function FoodEntry({
   onDelete,
   onUpdateMealType,
   onAddLeftovers,
+  onSaveAsFavorite,
 }: {
   entry: FoodLog;
   onDelete: () => void;
   onUpdateMealType: (mealType: MealType) => void;
   onAddLeftovers: (file: File) => void;
+  onSaveAsFavorite: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -78,6 +90,7 @@ function FoodEntry({
   const mealInfo = MEAL_LABELS.find((m) => m.key === entry.meal_type) ?? MEAL_LABELS[0];
   const hasAnalysis = entry.ai_analyzed && entry.calories !== null;
   const isAdjusted = entry.notes === 'adjusted_for_leftovers';
+  const mealIcon = MEAL_ICON_MAP[entry.meal_type];
 
   const handleLeftoversFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -92,9 +105,12 @@ function FoodEntry({
         activeOpacity={0.7}
       >
         <View style={styles.entryContent}>
-          <Text style={styles.entryDesc} numberOfLines={expanded ? undefined : 2}>
-            {mealInfo.emoji} {entry.description || 'No description'}
-          </Text>
+          <View style={styles.entryDescRow}>
+            <Image source={mealIcon} style={styles.mealTypeIcon} />
+            <Text style={[styles.entryDesc, { flex: 1 }]} numberOfLines={expanded ? undefined : 2}>
+              {entry.description || 'No description'}
+            </Text>
+          </View>
           {hasAnalysis ? (
             <View>
               <Text style={styles.entryNutrition}>
@@ -125,6 +141,17 @@ function FoodEntry({
           )}
         </View>
         <View style={styles.entryActions}>
+          {hasAnalysis && (
+            <TouchableOpacity
+              style={styles.starBtn}
+              onPress={(e) => {
+                e.stopPropagation();
+                onSaveAsFavorite();
+              }}
+            >
+              <Text style={styles.starBtnText}>⭐</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.editBtn}
             onPress={(e) => {
@@ -204,15 +231,19 @@ export default function FoodScreen() {
   const [showForm, setShowForm] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<MealType>(getSmartMealType());
   const [photos, setPhotos] = useState<string[]>([]);
+  const [leftoversPhotos, setLeftoversPhotos] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedCalDate, setSelectedCalDate] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const leftoversInputRef = useRef<HTMLInputElement | null>(null);
   const [askOraionVisible, setAskOraionVisible] = useState(false);
 
   const calendar = useFoodCalendar();
+  const { savedMeals, saveMeal, logSavedMeal, deleteSavedMeal } = useSavedMeals();
+  const [favSaved, setFavSaved] = useState(false);
 
   const dateKey = toDateKey(currentDate);
   const isToday = isSameDay(currentDate, new Date());
@@ -261,23 +292,67 @@ export default function FoodScreen() {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleLeftoversFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const remaining = 3 - leftoversPhotos.length;
+    const toProcess = Math.min(files.length, remaining);
+    for (let i = 0; i < toProcess; i++) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const result = ev.target?.result;
+        if (typeof result === 'string') {
+          setLeftoversPhotos((prev) => (prev.length < 3 ? [...prev, result] : prev));
+        }
+      };
+      reader.readAsDataURL(files[i]);
+    }
+  };
+
+  const pickLeftoversImages = () => {
+    if (Platform.OS === 'web') {
+      leftoversInputRef.current?.click();
+    }
+  };
+
+  const removeLeftoverPhoto = (index: number) => {
+    setLeftoversPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async () => {
     if (!description.trim() && photos.length === 0) return;
     setSaving(true);
 
+    // Convert data URIs to File objects for upload
+    const photoFiles: File[] = photos.map((uri, i) => {
+      const arr = uri.split(',');
+      const mime = arr[0]?.match(/:(.*?);/)?.[1] ?? 'image/jpeg';
+      const bstr = atob(arr[1] ?? '');
+      const u8arr = new Uint8Array(bstr.length);
+      for (let j = 0; j < bstr.length; j++) u8arr[j] = bstr.charCodeAt(j);
+      return new File([u8arr], `food-${i}.jpg`, { type: mime });
+    });
+
+    const leftoversFiles: File[] = leftoversPhotos.map((uri, i) => {
+      const arr = uri.split(',');
+      const mime = arr[0]?.match(/:(.*?);/)?.[1] ?? 'image/jpeg';
+      const bstr = atob(arr[1] ?? '');
+      const u8arr = new Uint8Array(bstr.length);
+      for (let j = 0; j < bstr.length; j++) u8arr[j] = bstr.charCodeAt(j);
+      return new File([u8arr], `leftover-${i}.jpg`, { type: mime });
+    });
+
     const result = await addEntry({
       meal_type: selectedMeal,
       description: description.trim(),
+      photos: photoFiles.length > 0 ? photoFiles : undefined,
+      leftovers_photos: leftoversFiles.length > 0 ? leftoversFiles : undefined,
     });
 
     if (!result?.error) {
-      // Save photos locally if any — use timestamp as temp ID
-      if (photos.length > 0) {
-        const tempPhotoId = Date.now().toString(36);
-        saveLocalPhotos(dateKey, tempPhotoId, photos);
-      }
       setDescription('');
       setPhotos([]);
+      setLeftoversPhotos([]);
       setShowForm(false);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
@@ -294,6 +369,7 @@ export default function FoodScreen() {
     setShowForm(false);
     setDescription('');
     setPhotos([]);
+    setLeftoversPhotos([]);
     setSelectedMeal(getSmartMealType());
   };
 
@@ -388,6 +464,71 @@ export default function FoodScreen() {
         </View>
       </PixelCard>
 
+      {/* 🤖 Meal Suggestions */}
+      {isToday && (
+        <MealSuggestions
+          calorieTarget={calorieTarget}
+          proteinTarget={proteinTarget}
+          caloriesConsumed={totals.calories}
+          proteinConsumed={totals.protein}
+          onSelectMeal={(desc) => {
+            setDescription(desc);
+            setShowForm(true);
+            setSelectedMeal(getSmartMealType());
+          }}
+        />
+      )}
+
+      {/* ⭐ Favorites Section */}
+      {savedMeals.length > 0 && (
+        <PixelCard style={styles.favoritesCard}>
+          <Text style={styles.favoritesTitle}>⭐ Favorites</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.favoritesScroll}>
+            <View style={styles.favoritesRow}>
+              {savedMeals.map((meal) => (
+                <TouchableOpacity
+                  key={meal.id}
+                  style={styles.favoriteChip}
+                  onPress={async () => {
+                    await logSavedMeal(meal.id, dateKey);
+                    setShowSuccess(true);
+                    setTimeout(() => setShowSuccess(false), 2000);
+                    // Refresh food log
+                    // The useFoodLog hook will pick it up on next poll/focus
+                  }}
+                  onLongPress={() => deleteSavedMeal(meal.id)}
+                  activeOpacity={0.7}
+                >
+                  {meal.meal_type && (
+                    <Image source={MEAL_ICON_MAP[meal.meal_type]} style={styles.favChipIcon} />
+                  )}
+                  <View style={styles.favChipContent}>
+                    <Text style={styles.favChipName} numberOfLines={1}>{meal.name}</Text>
+                    <Text style={styles.favChipMacros}>
+                      {meal.calories ?? 0} cal · {meal.protein ?? 0}g P
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+          <Text style={styles.favoritesHint}>Tap to log · Long press to remove</Text>
+        </PixelCard>
+      )}
+
+      {savedMeals.length === 0 && entries.length > 0 && (
+        <View style={styles.favHintWrap}>
+          <Text style={styles.favHintText}>💡 Save your frequent meals for quick re-logging!</Text>
+        </View>
+      )}
+
+      {/* Fav saved toast */}
+      {favSaved && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>⭐ Saved to favorites!</Text>
+        </View>
+      )}
+
       {/* Add Meal Button / Form */}
       {!showForm ? (
         <TouchableOpacity style={styles.addMealBtn} onPress={() => setShowForm(true)}>
@@ -405,11 +546,14 @@ export default function FoodScreen() {
                   onPress={() => setSelectedMeal(meal.key)}
                   style={[styles.pill, selectedMeal === meal.key && styles.pillActive]}
                 >
-                  <Text
-                    style={[styles.pillText, selectedMeal === meal.key && styles.pillTextActive]}
-                  >
-                    {meal.emoji} {meal.label}
-                  </Text>
+                  <View style={styles.pillInner}>
+                    <Image source={MEAL_ICON_MAP[meal.key]} style={styles.pillIcon} />
+                    <Text
+                      style={[styles.pillText, selectedMeal === meal.key && styles.pillTextActive]}
+                    >
+                      {meal.label}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -460,6 +604,39 @@ export default function FoodScreen() {
             numberOfLines={3}
           />
 
+          {/* Leftovers photos (optional) */}
+          <Text style={styles.formLabel}>Leftovers (optional)</Text>
+          <Text style={styles.formHint}>Photo what you didn't finish — we'll calculate what you actually ate</Text>
+          <TouchableOpacity style={styles.photoAreaSmall} onPress={pickLeftoversImages}>
+            <Text style={styles.photoAreaText}>🥡 Add Leftovers Photo</Text>
+          </TouchableOpacity>
+
+          {Platform.OS === 'web' && (
+            <input
+              ref={leftoversInputRef as React.RefObject<HTMLInputElement>}
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: 'none' }}
+              onChange={handleLeftoversFileChange as unknown as React.ChangeEventHandler<HTMLInputElement>}
+            />
+          )}
+
+          {leftoversPhotos.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbScroll}>
+              <View style={styles.thumbRow}>
+                {leftoversPhotos.map((uri, i) => (
+                  <TouchableOpacity key={`leftover-${i}`} onPress={() => removeLeftoverPhoto(i)}>
+                    <Image source={{ uri }} style={styles.thumb} />
+                    <View style={styles.thumbRemove}>
+                      <Text style={styles.thumbRemoveText}>✕</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          )}
+
           {/* Buttons */}
           <View style={styles.formButtons}>
             <PixelButton title="Cancel" variant="outline" onPress={resetForm} />
@@ -495,6 +672,11 @@ export default function FoodScreen() {
                     onDelete={() => handleDelete(entry)}
                     onUpdateMealType={(mealType) => updateMealType(entry.id, mealType)}
                     onAddLeftovers={(file) => addLeftoversPhoto(entry.id, file)}
+                    onSaveAsFavorite={async () => {
+                      await saveMeal(entry);
+                      setFavSaved(true);
+                      setTimeout(() => setFavSaved(false), 2000);
+                    }}
                   />
                 ))}
               </View>
@@ -684,6 +866,20 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.bodyMd,
     color: Colors.textMuted,
   },
+  photoAreaSmall: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.tabBarBorder,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    alignItems: 'center',
+  },
+  formHint: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+    marginBottom: Spacing.xs,
+  },
   thumbScroll: {
     flexGrow: 0,
     marginTop: Spacing.sm,
@@ -778,10 +974,10 @@ const styles = StyleSheet.create({
   },
   entryPcosNote: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyXs,
+    fontSize: FontSizes.bodySm,
     color: Colors.textMuted,
     marginTop: 4,
-    fontStyle: 'italic',
+    lineHeight: 18,
   },
   tapToExpand: {
     fontFamily: Fonts.body,
@@ -869,6 +1065,106 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.bodyXs,
     color: Colors.warning,
     marginTop: 2,
+  },
+  // Favorites section
+  favoritesCard: {
+    marginBottom: Spacing.md,
+  },
+  favoritesTitle: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.purple,
+    marginBottom: Spacing.sm,
+  },
+  favoritesScroll: {
+    flexGrow: 0,
+  },
+  favoritesRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  favoriteChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.softPurple,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.purple,
+    minWidth: 140,
+    maxWidth: 200,
+    gap: Spacing.sm,
+  },
+  favChipIcon: {
+    width: 20,
+    height: 20,
+  },
+  favChipContent: {
+    flex: 1,
+  },
+  favChipName: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
+  },
+  favChipMacros: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  favoritesHint: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+    marginTop: Spacing.xs,
+  },
+  favHintWrap: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.cream,
+    borderRadius: BorderRadius.md,
+  },
+  favHintText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  // Star button on entry
+  starBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.cream,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  starBtnText: {
+    fontSize: 12,
+  },
+  // Meal type icon in entries
+  entryDescRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  mealTypeIcon: {
+    width: 18,
+    height: 18,
+  },
+  // Pill icon styles
+  pillInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  pillIcon: {
+    width: 16,
+    height: 16,
   },
   emptyWrap: {
     alignItems: 'center',

@@ -5,6 +5,7 @@ import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { HealthCard, EmptyState } from './health-card';
 import { useChartWidth } from './use-chart-width';
 import { chartLabelStyle } from '../../utils/chart-helpers';
+import { getHrvInsight } from '../../utils/chart-insights';
 import type { OuraDaily } from '../../types/database';
 import type { TimeRange } from '../../hooks/use-health-trends';
 import { format, parseISO } from 'date-fns';
@@ -17,7 +18,7 @@ interface Props {
 export const OuraHrvTrend = React.memo(function OuraHrvTrend({ data, range }: Props) {
   const chartWidth = useChartWidth();
 
-  const { chartData, avgHrv } = useMemo(() => {
+  const { chartData, avgHrv, insight } = useMemo(() => {
     const filtered = data.filter((d) => d.hrv_average != null);
     const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
     const cutoff = new Date();
@@ -27,11 +28,13 @@ export const OuraHrvTrend = React.memo(function OuraHrvTrend({ data, range }: Pr
 
     const labelInterval = Math.max(1, Math.floor(rangeData.length / 6));
 
+    const points = rangeData.map((d, i) => ({
+      value: Number(d.hrv_average) ?? 0,
+      label: i % labelInterval === 0 ? format(parseISO(d.log_date), 'd') : '',
+    }));
+
     return {
-      chartData: rangeData.map((d, i) => ({
-        value: Number(d.hrv_average) ?? 0,
-        label: i % labelInterval === 0 ? format(parseISO(d.log_date), 'd') : '',
-      })),
+      chartData: points,
       avgHrv:
         rangeData.length > 0
           ? Math.round(
@@ -39,6 +42,7 @@ export const OuraHrvTrend = React.memo(function OuraHrvTrend({ data, range }: Pr
                 rangeData.length,
             )
           : null,
+      insight: getHrvInsight(points),
     };
   }, [data, range]);
 
@@ -77,6 +81,9 @@ export const OuraHrvTrend = React.memo(function OuraHrvTrend({ data, range }: Pr
               </Text>
             </View>
           )}
+          {insight.length > 0 && (
+            <Text style={styles.insightText}>{insight}</Text>
+          )}
         </>
       )}
     </HealthCard>
@@ -92,5 +99,14 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyXs,
     color: Colors.textSecondary,
+  },
+  insightText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
   },
 });

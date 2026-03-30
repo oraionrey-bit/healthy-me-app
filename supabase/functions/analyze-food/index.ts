@@ -446,14 +446,8 @@ Deno.serve(async (req) => {
       analyzedBy,
     );
 
-    // Clean up photos after successful analysis (skip for leftovers — original photos already cleaned)
-    if (photoUrls.length > 0 && !isLeftovers) {
-      await cleanupPhotos(supabase, photoUrls);
-    }
-    // Clean up leftovers photo
-    if (isLeftovers && leftovers_photo_url) {
-      await cleanupPhotos(supabase, [leftovers_photo_url]);
-    }
+    // Keep photos for 24h — don't delete immediately.
+    // Photos will be cleaned up by a scheduled task or on next day's sync.
 
     return new Response(JSON.stringify({ data: updated }), {
       status: 200,

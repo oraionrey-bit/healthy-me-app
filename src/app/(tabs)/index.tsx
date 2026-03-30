@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  ImageSourcePropType,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -21,12 +22,14 @@ import { useDailyLog } from '../../hooks/use-daily-log';
 import { useDailyScore } from '../../hooks/use-daily-score';
 import { useStreak } from '../../hooks/use-streak';
 import { useWeeklySummary } from '../../hooks/use-weekly-summary';
-import { toDateKey } from '../../utils/storage';
+import { toDateKey, formatDate } from '../../utils/storage';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { useUserProfile } from '../../hooks/use-user-profile';
 import { WeightEntry } from '../../components/health/weight-entry';
+import { WaterTracker } from '../../components/home/water-tracker';
 import { useOura } from '../../hooks/use-oura';
+import { useWeeklyInsights } from '../../hooks/use-weekly-insights';
 import type { UserSupplement, SymptomType } from '../../types/database';
 
 // ── Helpers ──
@@ -80,6 +83,24 @@ const SYMPTOM_OPTIONS: Array<{ type: SymptomType; label: string }> = [
   { type: 'other', label: 'Other' },
 ];
 
+// ── Supplement Icons ──
+
+const SUPP_ICON_DEFAULT: ImageSourcePropType = require('../../../assets/images/icons/pill.png');
+const SUPP_ICON_MAP: Record<string, ImageSourcePropType> = {
+  pill: require('../../../assets/images/icons/pill.png'),
+  powder: require('../../../assets/images/icons/powder-scoop.png'),
+  softgel: require('../../../assets/images/icons/softgel.png'),
+  gummy: require('../../../assets/images/icons/gummy.png'),
+};
+
+function getSupplementIcon(name: string): ImageSourcePropType {
+  const lower = name.toLowerCase();
+  if (lower.includes('ovasitol') || lower.includes('powder') || lower.includes('inositol')) return SUPP_ICON_MAP.powder;
+  if (lower.includes('omega') || lower.includes('fish oil') || lower.includes('vitamin d') || lower.includes('softgel')) return SUPP_ICON_MAP.softgel;
+  if (lower.includes('gummy') || lower.includes('bionerlab') || lower.includes('bioner')) return SUPP_ICON_MAP.gummy;
+  return SUPP_ICON_DEFAULT;
+}
+
 // ── Supplement Group Component ──
 
 function SupplementGroup({
@@ -110,8 +131,9 @@ function SupplementGroup({
                 <View style={[styles.checkbox, done && styles.checkboxDone]}>
                   {done && <Text style={styles.checkmark}>✓</Text>}
                 </View>
+                <Image source={getSupplementIcon(item.supplement_name)} style={styles.suppIcon} />
                 <Text style={[styles.checkLabel, done && styles.checkLabelDone]}>
-                  💊 {item.supplement_name}
+                  {item.supplement_name}
                   {item.dosage ? ` (${item.dosage})` : ''}
                 </Text>
               </View>
@@ -212,6 +234,23 @@ export default function HomeScreen() {
   const { calorieTarget, proteinTarget } = useUserProfile();
   const todayKey = toDateKey(new Date());
   const { totals } = useFoodLog(todayKey);
+
+  // Supplement date navigation
+  const [suppDate, setSuppDate] = useState(new Date());
+  const isSuppToday = toDateKey(suppDate) === toDateKey(new Date());
+
+  const suppGoBack = () => {
+    const prev = new Date(suppDate);
+    prev.setDate(prev.getDate() - 1);
+    setSuppDate(prev);
+  };
+  const suppGoForward = () => {
+    if (isSuppToday) return;
+    const next = new Date(suppDate);
+    next.setDate(next.getDate() + 1);
+    setSuppDate(next);
+  };
+
   const {
     morningSupplements,
     eveningSupplements,
@@ -220,7 +259,7 @@ export default function HomeScreen() {
     loading: supplementsLoading,
     isSupplementTaken,
     toggleSupplement,
-  } = useSupplements();
+  } = useSupplements(suppDate);
   const { mood: savedMood, energy: savedEnergy, saveMoodEnergy } = useMoodEnergy();
   const { symptomLogs, addSymptom, removeSymptom } = useSymptomLog();
   const { dailyLog, saveDailyLog } = useDailyLog();
@@ -228,6 +267,8 @@ export default function HomeScreen() {
   const { currentStreak, isMilestone } = useStreak();
   const { summary: weeklySummary } = useWeeklySummary();
   const { isConnected: ouraConnected, todayData: ouraToday } = useOura();
+  const { data: weeklyInsights } = useWeeklyInsights();
+  const [showInsights, setShowInsights] = useState(false);
 
   // Check-in state
   const [checkinOpen, setCheckinOpen] = useState(false);
@@ -461,6 +502,18 @@ export default function HomeScreen() {
                       <Text style={styles.weeklyStatValue}>{ouraToday.steps.toLocaleString()}</Text>
                     </View>
                   )}
+                  {ouraToday.active_calories != null && (
+                    <View style={styles.weeklyStatRow}>
+                      <Text style={styles.weeklyStatLabel}>Active Cal</Text>
+                      <Text style={styles.weeklyStatValue}>{Math.round(ouraToday.active_calories)}</Text>
+                    </View>
+                  )}
+                  {ouraToday.activity_score != null && (
+                    <View style={styles.weeklyStatRow}>
+                      <Text style={styles.weeklyStatLabel}>Activity</Text>
+                      <Text style={styles.weeklyStatValue}>{Math.round(ouraToday.activity_score)}/100</Text>
+                    </View>
+                  )}
                 </View>
               </View>
             )}
@@ -500,8 +553,80 @@ export default function HomeScreen() {
               </View>
             )}
 
+            {/* Weekly Insights */}
+            {weeklyInsights && weeklyInsights.insights.length > 0 && (
+              <View style={[styles.accentCard, styles.accentPurple, { marginBottom: Spacing.md }]}>
+                <TouchableOpacity
+                  onPress={() => setShowInsights(!showInsights)}
+                  activeOpacity={0.7}
+                  style={styles.checkinHeader}
+                >
+                  <Text style={styles.sectionTitle}>💡 Weekly Insights</Text>
+                  <Text style={styles.collapseIcon}>
+                    {showInsights ? '▲' : '▼'}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Always show key metrics row */}
+                <View style={styles.insightsMetricsRow}>
+                  <View style={styles.insightMetric}>
+                    <Text style={styles.insightMetricValue}>
+                      {weeklyInsights.avgCalories}
+                    </Text>
+                    <Text style={styles.insightMetricLabel}>
+                      Avg Cal {weeklyInsights.calorieTrend === 'up' ? '↑' : weeklyInsights.calorieTrend === 'down' ? '↓' : '→'}
+                    </Text>
+                  </View>
+                  <View style={styles.insightMetric}>
+                    <Text style={styles.insightMetricValue}>
+                      {weeklyInsights.avgProtein}g
+                    </Text>
+                    <Text style={styles.insightMetricLabel}>
+                      Avg Prot {weeklyInsights.proteinTrend === 'up' ? '↑' : weeklyInsights.proteinTrend === 'down' ? '↓' : '→'}
+                    </Text>
+                  </View>
+                  {weeklyInsights.avgSleepScore !== null && (
+                    <View style={styles.insightMetric}>
+                      <Text style={styles.insightMetricValue}>
+                        {Math.round(weeklyInsights.avgSleepScore)}
+                      </Text>
+                      <Text style={styles.insightMetricLabel}>
+                        Sleep {weeklyInsights.sleepTrend === 'up' ? '↑' : weeklyInsights.sleepTrend === 'down' ? '↓' : '→'}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.insightMetric}>
+                    <Text style={styles.insightMetricValue}>
+                      {weeklyInsights.supplementAdherencePct}%
+                    </Text>
+                    <Text style={styles.insightMetricLabel}>Supps</Text>
+                  </View>
+                </View>
+
+                {showInsights && (
+                  <View style={styles.insightsList}>
+                    {weeklyInsights.insights.map((insight, idx) => (
+                      <View key={idx} style={styles.insightItem}>
+                        <Text style={styles.insightEmoji}>{insight.emoji}</Text>
+                        <Text style={styles.insightText}>{insight.text}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {!showInsights && (
+                  <TouchableOpacity onPress={() => setShowInsights(true)}>
+                    <Text style={styles.viewInsightsBtn}>View This Week&apos;s Insights</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
             {/* Content cards */}
             <View style={styles.contentWrap}>
+            {/* Water Tracker */}
+            <WaterTracker />
+
             {/* Supplement Checklist */}
             <View style={[styles.accentCard, styles.accentGreen]}>
               <View style={styles.sectionHeader}>
@@ -511,6 +636,23 @@ export default function HomeScreen() {
                   <Text style={styles.progress}>
                     {supplementsLoading ? '...' : `${takenCount}/${totalCount} done`}
                   </Text>
+                </View>
+
+                {/* Date Navigation */}
+                <View style={styles.suppDateNav}>
+                  <TouchableOpacity onPress={suppGoBack} style={styles.suppNavArrow}>
+                    <Text style={styles.suppNavArrowText}>◀</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.suppDateText}>
+                    {isSuppToday ? 'TODAY' : formatDate(suppDate)}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={suppGoForward}
+                    style={[styles.suppNavArrow, isSuppToday && styles.suppNavArrowDisabled]}
+                    disabled={isSuppToday}
+                  >
+                    <Text style={[styles.suppNavArrowText, isSuppToday && styles.suppNavArrowTextDisabled]}>▶</Text>
+                  </TouchableOpacity>
                 </View>
 
                 {supplementsLoading ? (
@@ -824,6 +966,60 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
+  // Weekly Insights
+  insightsMetricsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  insightMetric: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  insightMetricValue: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyLg,
+    color: Colors.purple,
+  },
+  insightMetricLabel: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  insightsList: {
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  insightItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    backgroundColor: 'rgba(124, 77, 255, 0.06)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+  },
+  insightEmoji: {
+    fontSize: 18,
+    marginTop: 1,
+  },
+  insightText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
+    flex: 1,
+    lineHeight: 18,
+  },
+  viewInsightsBtn: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.purple,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    opacity: 0.8,
+  },
+
   // Content wrapper
   contentWrap: {
     width: '100%',
@@ -950,6 +1146,43 @@ const styles = StyleSheet.create({
     color: Colors.purple,
   },
 
+  // Supplement date navigation
+  suppDateNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  suppNavArrow: {
+    width: 28,
+    height: 28,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suppNavArrowDisabled: {
+    opacity: 0.3,
+  },
+  suppNavArrowText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.purple,
+  },
+  suppNavArrowTextDisabled: {
+    color: Colors.textMuted,
+  },
+  suppDateText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textSecondary,
+    minWidth: 80,
+    textAlign: 'center',
+  },
+
   // Supplement groups
   supplementGroup: {
     marginBottom: Spacing.md,
@@ -994,6 +1227,11 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: 7,
     color: Colors.textOnDark,
+  },
+  suppIcon: {
+    width: 20,
+    height: 20,
+    marginRight: Spacing.sm,
   },
   checkLabel: {
     fontFamily: Fonts.body,

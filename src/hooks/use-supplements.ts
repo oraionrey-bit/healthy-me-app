@@ -6,13 +6,17 @@ import { useUserProfile } from './use-user-profile';
 import { DEFAULT_SUPPLEMENTS } from '../constants/supplements';
 import type { UserSupplement, SupplementLog } from '../types/database';
 
-export function useSupplements() {
+export function useSupplements(date?: Date) {
   const { user } = useAuth();
   const { isOnboarded } = useUserProfile();
   const [supplements, setSupplements] = useState<UserSupplement[]>([]);
   const [todaysLogs, setTodaysLogs] = useState<SupplementLog[]>([]);
   const [loading, setLoading] = useState(true);
   const seededRef = useRef(false);
+
+  // Use provided date or default to today
+  const targetDate = date ?? new Date();
+  const targetDateKey = toDateKey(targetDate);
 
   const takenCount = todaysLogs.filter((l) => l.taken).length;
   const totalCount = supplements.length;
@@ -83,14 +87,14 @@ export function useSupplements() {
         .from('supplement_logs')
         .select('*')
         .eq('user_id', user.id)
-        .eq('log_date', toDateKey(new Date()));
+        .eq('log_date', targetDateKey);
 
       if (error) throw error;
       setTodaysLogs((data as SupplementLog[]) ?? []);
-    } catch {
-      // silently fail on logs fetch
+    } catch (err) {
+      console.warn('Failed to fetch supplement logs:', err);
     }
-  }, [user]);
+  }, [user, targetDateKey]);
 
   useEffect(() => {
     fetchSupplements();
@@ -130,7 +134,7 @@ export function useSupplements() {
         const { error } = await (supabase.from('supplement_logs') as any).insert({
           user_id: user.id,
           user_supplement_id: userSupplementId,
-          log_date: toDateKey(new Date()),
+          log_date: targetDateKey,
           taken: newTaken,
           taken_at: newTaken ? new Date().toISOString() : null,
           notes: null,
@@ -143,6 +147,66 @@ export function useSupplements() {
     [user, todaysLogs, isSupplementTaken, fetchTodaysLogs],
   );
 
+  // ── CRUD Operations ──
+
+  const addSupplement = useCallback(
+    async (name: string, dosage: string, timeOfDay: string) => {
+      if (!user) return;
+
+      // Get next sort_order
+      const maxSort = supplements.reduce((max, s) => Math.max(max, s.sort_order), -1);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+      const { error } = await (supabase.from('user_supplements') as any).insert({
+        user_id: user.id,
+        supplement_name: name,
+        dosage: dosage || null,
+        frequency: 'daily',
+        time_of_day: timeOfDay,
+        notes: null,
+        is_active: true,
+        sort_order: maxSort + 1,
+      });
+
+      if (error) throw error;
+      await fetchSupplements();
+    },
+    [user, supplements, fetchSupplements],
+  );
+
+  const updateSupplement = useCallback(
+    async (id: string, updates: Partial<Pick<UserSupplement, 'supplement_name' | 'dosage' | 'time_of_day' | 'is_active'>>) => {
+      if (!user) return;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+      const { error } = await (supabase.from('user_supplements') as any)
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      await fetchSupplements();
+    },
+    [user, fetchSupplements],
+  );
+
+  const deleteSupplement = useCallback(
+    async (id: string) => {
+      if (!user) return;
+
+      // Soft delete — set is_active = false
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+      const { error } = await (supabase.from('user_supplements') as any)
+        .update({ is_active: false })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      await fetchSupplements();
+    },
+    [user, fetchSupplements],
+  );
+
   return {
     supplements,
     morningSupplements,
@@ -153,6 +217,9 @@ export function useSupplements() {
     loading,
     isSupplementTaken,
     toggleSupplement,
+    addSupplement,
+    updateSupplement,
+    deleteSupplement,
     refetch: async () => {
       await fetchSupplements();
       await fetchTodaysLogs();

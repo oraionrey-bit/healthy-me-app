@@ -107,14 +107,14 @@ export function useHealthTrends(): HealthTrendsReturn {
     const { start, end } = getDateRange(range);
 
     try {
-      const [moodRes, foodRes, symptomRes, weightRes] = await Promise.all([
+      // Fetch symptoms once for both mood/energy and frequency data
+      const [symptomRes, foodRes, weightRes] = await Promise.all([
         supabase
           .from('symptoms')
           .select('*')
           .eq('user_id', user.id)
           .gte('log_date', start)
           .lte('log_date', end)
-          .not('mood', 'is', null)
           .order('log_date', { ascending: true }),
         supabase
           .from('food_logs')
@@ -124,12 +124,6 @@ export function useHealthTrends(): HealthTrendsReturn {
           .lte('log_date', end)
           .order('log_date', { ascending: true }),
         supabase
-          .from('symptoms')
-          .select('*')
-          .eq('user_id', user.id)
-          .gte('log_date', start)
-          .lte('log_date', end),
-        supabase
           .from('weight_logs')
           .select('*')
           .eq('user_id', user.id)
@@ -138,17 +132,21 @@ export function useHealthTrends(): HealthTrendsReturn {
           .order('log_date', { ascending: true }),
       ]);
 
-      const moodData = (moodRes.data ?? []) as Symptom[];
+      const allSymptoms = (symptomRes.data ?? []) as Symptom[];
+
+      // Filter for mood/energy entries (mood is set)
       setMoodEnergy(
-        moodData.map((r) => ({
-          date: r.log_date,
-          mood: r.mood,
-          energy: r.energy_level,
-        }))
+        allSymptoms
+          .filter((r) => r.mood != null)
+          .map((r) => ({
+            date: r.log_date,
+            mood: r.mood,
+            energy: r.energy_level,
+          }))
       );
 
       setNutrition(aggregateNutritionByDay((foodRes.data ?? []) as FoodLog[]));
-      setSymptomFrequency(aggregateSymptomFrequency((symptomRes.data ?? []) as Symptom[]));
+      setSymptomFrequency(aggregateSymptomFrequency(allSymptoms));
 
       const weightData = (weightRes.data ?? []) as WeightLog[];
       setWeight(

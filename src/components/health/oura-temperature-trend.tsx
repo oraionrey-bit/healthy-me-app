@@ -5,6 +5,7 @@ import { Colors, Fonts, FontSizes, Spacing } from '../../constants/theme';
 import { HealthCard, EmptyState } from './health-card';
 import { useChartWidth } from './use-chart-width';
 import { chartLabelStyle } from '../../utils/chart-helpers';
+import { getTemperatureInsight } from '../../utils/chart-insights';
 import type { OuraDaily } from '../../types/database';
 import type { TimeRange } from '../../hooks/use-health-trends';
 import { format, parseISO } from 'date-fns';
@@ -20,7 +21,7 @@ export const OuraTemperatureTrend = React.memo(function OuraTemperatureTrend({
 }: Props) {
   const chartWidth = useChartWidth();
 
-  const { chartData, avgTemp } = useMemo(() => {
+  const { chartData, avgTemp, insight, stepValue, yAxisOffset, maxValue } = useMemo(() => {
     const filtered = data.filter((d) => d.temperature_deviation != null);
     const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
     const cutoff = new Date();
@@ -30,20 +31,42 @@ export const OuraTemperatureTrend = React.memo(function OuraTemperatureTrend({
 
     const labelInterval = Math.max(1, Math.floor(rangeData.length / 6));
 
+    const points = rangeData.map((d, i) => ({
+      value: Number(d.temperature_deviation) ?? 0,
+      label: i % labelInterval === 0 ? format(parseISO(d.log_date), 'd') : '',
+    }));
+
+    const values = points.map((p) => p.value);
+    const min = values.length ? Math.min(...values) : 0;
+    const max = values.length ? Math.max(...values) : 0;
+    const dataRange = max - min;
+
+    // Ensure meaningful Y-axis range: at least 0.2° spread
+    const effectiveRange = Math.max(dataRange, 0.2);
+    const padding = effectiveRange * 0.2;
+    const yMin = Math.floor((min - padding) * 100) / 100;
+    const yMax = Math.ceil((max + padding) * 100) / 100;
+    const totalRange = yMax - yMin;
+    const sections = 4;
+    const step = Math.ceil((totalRange / sections) * 100) / 100;
+
+    const avgVal =
+      rangeData.length > 0
+        ? (
+            rangeData.reduce(
+              (sum, d) => sum + Number(d.temperature_deviation ?? 0),
+              0,
+            ) / rangeData.length
+          ).toFixed(2)
+        : null;
+
     return {
-      chartData: rangeData.map((d, i) => ({
-        value: Number(d.temperature_deviation) ?? 0,
-        label: i % labelInterval === 0 ? format(parseISO(d.log_date), 'd') : '',
-      })),
-      avgTemp:
-        rangeData.length > 0
-          ? (
-              rangeData.reduce(
-                (sum, d) => sum + Number(d.temperature_deviation ?? 0),
-                0,
-              ) / rangeData.length
-            ).toFixed(2)
-          : null,
+      chartData: points,
+      avgTemp: avgVal,
+      insight: getTemperatureInsight(points),
+      stepValue: step || 0.05,
+      yAxisOffset: yMin,
+      maxValue: yMin + step * sections,
     };
   }, [data, range]);
 
@@ -63,6 +86,10 @@ export const OuraTemperatureTrend = React.memo(function OuraTemperatureTrend({
             dataPointsRadius1={3}
             thickness={2}
             noOfSections={4}
+            stepValue={stepValue}
+            yAxisOffset={yAxisOffset}
+            maxValue={maxValue}
+            formatYLabel={(val: string) => `${parseFloat(val).toFixed(2)}°`}
             yAxisTextStyle={chartLabelStyle}
             xAxisLabelTextStyle={chartLabelStyle}
             rulesColor={Colors.tabBarBorder}
@@ -73,7 +100,6 @@ export const OuraTemperatureTrend = React.memo(function OuraTemperatureTrend({
             disableScroll
             initialSpacing={8}
             endSpacing={8}
-            yAxisLabelSuffix="°"
             showReferenceLine1
             referenceLine1Position={0}
             referenceLine1Config={{
@@ -86,10 +112,10 @@ export const OuraTemperatureTrend = React.memo(function OuraTemperatureTrend({
             {avgTemp != null && (
               <Text style={styles.summaryText}>Avg: {avgTemp}°</Text>
             )}
-            <Text style={styles.hintText}>
-              Temperature shifts may correlate with cycle phases 🌸
-            </Text>
           </View>
+          {insight.length > 0 && (
+            <Text style={styles.insightText}>{insight}</Text>
+          )}
         </>
       )}
     </HealthCard>
@@ -107,11 +133,13 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.bodyXs,
     color: Colors.textSecondary,
   },
-  hintText: {
+  insightText: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyXs,
+    fontSize: FontSizes.bodySm,
     color: Colors.textMuted,
     fontStyle: 'italic',
     textAlign: 'center',
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
   },
 });
