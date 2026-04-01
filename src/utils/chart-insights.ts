@@ -40,7 +40,7 @@ export function getSleepInsight(data: DataPoint[]): string {
           : '.';
     return `Sleep averaging ${average}/100${trendNote} Aim for 85+ to optimize hormone balance.`;
   } else {
-    return `Sleep averaging ${average}/100 — lower scores can disrupt cortisol and insulin. Try consistent bedtimes and reducing screen time.`;
+    return `Sleep averaging ${average}/100 — try consistent bedtimes and reducing screen time for better recovery.`;
   }
 }
 
@@ -95,9 +95,9 @@ export function getWeightInsight(
   const changeStr = `${change > 0 ? '+' : ''}${change.toFixed(1)} ${unit}`;
 
   if (Math.abs(change) < 0.5) {
-    return `Weight stable (${changeStr}) — consistency is great for managing PCOS symptoms.`;
+    return `Weight stable (${changeStr}) — consistency is great for your health goals.`;
   } else if (direction === 'down') {
-    return `Weight ${changeStr} — gradual loss supports insulin sensitivity and hormone balance.`;
+    return `Weight ${changeStr} — gradual loss supports your overall health.`;
   } else {
     return `Weight ${changeStr} — monitor alongside cycle phase. Hormonal fluctuations can cause temporary shifts.`;
   }

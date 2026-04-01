@@ -103,14 +103,19 @@ export function useSavedMeals() {
   );
 
   const deleteSavedMeal = useCallback(
-    async (id: string): Promise<void> => {
-      if (!user) return;
+    async (id: string): Promise<{ error?: Error }> => {
+      if (!user) return { error: new Error('Not authenticated') };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- saved_meals not in generated types yet
       const { error } = await (supabase.from('saved_meals') as any)
         .delete()
         .eq('id', id)
         .eq('user_id', user.id);
-      if (!error) await fetchSavedMeals();
+      if (error) {
+        console.warn('Failed to delete saved meal:', error);
+        return { error: new Error(error.message) };
+      }
+      await fetchSavedMeals();
+      return {};
     },
     [user, fetchSavedMeals],
   );

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { useUserProfile } from './use-user-profile';
 import { toDateKey } from '../utils/storage';
 
 export interface WeeklyInsight {
@@ -75,7 +76,7 @@ function generateInsights(data: {
   if (data.proteinGoalDays >= 5) {
     insights.push({
       emoji: '💪',
-      text: `You hit your protein goal ${data.proteinGoalDays}/7 days — great for insulin sensitivity!`,
+      text: `You hit your protein goal ${data.proteinGoalDays}/7 days — great for your health!`,
       category: 'nutrition',
     });
   } else if (data.proteinGoalDays >= 3) {
@@ -103,7 +104,7 @@ function generateInsights(data: {
     } else if (data.avgSleepScore >= 70) {
       insights.push({
         emoji: '🌙',
-        text: `Sleep score at ${Math.round(data.avgSleepScore)} — solid foundation for your PCOS management!`,
+        text: `Sleep score at ${Math.round(data.avgSleepScore)} — solid foundation for your health!`,
         category: 'sleep',
       });
     }
@@ -119,13 +120,13 @@ function generateInsights(data: {
   } else if (data.supplementAdherencePct >= 50) {
     insights.push({
       emoji: '💊',
-      text: `Supplement adherence was ${data.supplementAdherencePct}% — try to keep Ovasitol consistent!`,
+      text: `Supplement adherence was ${data.supplementAdherencePct}% — consistency is key!`,
       category: 'supplements',
     });
   } else if (data.supplementAdherencePct > 0) {
     insights.push({
       emoji: '🌟',
-      text: `Every supplement you take counts! Even small consistency improvements help with PCOS.`,
+      text: `Every supplement you take counts! Even small consistency improvements make a difference.`,
       category: 'supplements',
     });
   }
@@ -165,6 +166,7 @@ function generateInsights(data: {
 
 export function useWeeklyInsights() {
   const { user } = useAuth();
+  const { proteinTarget } = useUserProfile();
   const [data, setData] = useState<WeeklyInsightsData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -251,9 +253,8 @@ export function useWeeklyInsights() {
       const avgCalories = foodDays > 0 ? Math.round(totalCal / foodDays) : 0;
       const avgProtein = foodDays > 0 ? Math.round(totalProt / foodDays) : 0;
 
-      // Protein goal days (assuming 80g target)
-      const PROTEIN_GOAL = 80;
-      const proteinGoalDays = Array.from(foodByDay.values()).filter((v) => v.prot >= PROTEIN_GOAL).length;
+      // Protein goal days — uses profile target instead of hardcoded value
+      const proteinGoalDays = Array.from(foodByDay.values()).filter((v) => v.prot >= proteinTarget).length;
 
       // Supplements adherence
       const totalSupps = suppRes.data?.length ?? 0;

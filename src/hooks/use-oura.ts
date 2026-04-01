@@ -14,6 +14,7 @@ interface UseOuraReturn {
   todayData: OuraDaily | null;
   recentData: OuraDaily[];
   activityFromYesterday: boolean;
+  activityIsLive: boolean;
   connectOura: () => Promise<void>;
   disconnectOura: () => Promise<void>;
   syncOura: (startDate?: string, endDate?: string) => Promise<void>;
@@ -56,6 +57,7 @@ export function useOura(): UseOuraReturn {
 
   // Fetch today's Oura data
   const [activityFromYesterday, setActivityFromYesterday] = useState(false);
+  const [activityIsLive, setActivityIsLive] = useState(false);
 
   const fetchTodayData = useCallback(async () => {
     if (!user) return;
@@ -70,8 +72,18 @@ export function useOura(): UseOuraReturn {
 
     if (!error && data) {
       const ouraData = data as OuraDaily;
-      // If today's activity is null, merge yesterday's activity fields
-      if (ouraData.activity_score == null && ouraData.steps == null) {
+      // Check if today has ANY activity data (steps, active_calories, or total_calories)
+      const hasAnyActivityToday =
+        ouraData.steps != null ||
+        ouraData.active_calories != null ||
+        ouraData.total_calories != null;
+
+      if (hasAnyActivityToday) {
+        // Today has live/partial activity data — use it even without a score
+        setActivityFromYesterday(false);
+        setActivityIsLive(ouraData.activity_score == null);
+      } else {
+        // No activity data at all today — fall back to yesterday
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const { data: ydayData } = await supabase
@@ -93,8 +105,7 @@ export function useOura(): UseOuraReturn {
           ouraData.high_activity_minutes = yday.high_activity_minutes;
           setActivityFromYesterday(true);
         }
-      } else {
-        setActivityFromYesterday(false);
+        setActivityIsLive(false);
       }
       setTodayData(ouraData);
     }
@@ -125,12 +136,20 @@ export function useOura(): UseOuraReturn {
     fetchConnectionStatus();
   }, [fetchConnectionStatus]);
 
+  // Sync first on mount, then fetch from DB for fresh data
   useEffect(() => {
     if (isConnected) {
-      fetchTodayData();
-      fetchRecentData();
+      const today = toDateKey(new Date());
+      // Trigger a sync first, then read from DB
+      syncOura(today, today)
+        .catch(() => {/* ignore sync errors, still read from DB */})
+        .finally(() => {
+          fetchTodayData();
+          fetchRecentData();
+        });
     }
-  }, [isConnected, fetchTodayData, fetchRecentData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected]);
 
   // Initiate OAuth flow
   const connectOura = useCallback(async () => {
@@ -217,6 +236,7 @@ export function useOura(): UseOuraReturn {
     todayData,
     recentData,
     activityFromYesterday,
+    activityIsLive,
     connectOura,
     disconnectOura,
     syncOura,

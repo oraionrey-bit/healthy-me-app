@@ -20,6 +20,7 @@ import { useMoodEnergy } from '../../hooks/use-mood-energy';
 import { useSymptomLog } from '../../hooks/use-symptom-log';
 import { useDailyLog } from '../../hooks/use-daily-log';
 import { useDailyScore } from '../../hooks/use-daily-score';
+import type { ScoreBreakdown } from '../../hooks/use-daily-score';
 import { useStreak } from '../../hooks/use-streak';
 import { useWeeklySummary } from '../../hooks/use-weekly-summary';
 import { toDateKey, formatDate } from '../../utils/storage';
@@ -31,6 +32,16 @@ import { WaterTracker } from '../../components/home/water-tracker';
 import { useOura } from '../../hooks/use-oura';
 import { useWeeklyInsights } from '../../hooks/use-weekly-insights';
 import type { UserSupplement, SymptomType } from '../../types/database';
+
+function formatSyncTime(date: Date): string {
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'just now';
+  if (diffMin === 1) return '1 min ago';
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  return `${diffHr}h ago`;
+}
 
 // ── Helpers ──
 
@@ -263,10 +274,12 @@ export default function HomeScreen() {
   const { mood: savedMood, energy: savedEnergy, saveMoodEnergy } = useMoodEnergy();
   const { symptomLogs, addSymptom, removeSymptom } = useSymptomLog();
   const { dailyLog, saveDailyLog } = useDailyLog();
-  const { score: dailyScore } = useDailyScore();
+  const { score: dailyScoreValue, breakdown: dailyBreakdown, tips: dailyTips } = useDailyScore();
+  const [scoreExpanded, setScoreExpanded] = useState(false);
   const { currentStreak, isMilestone } = useStreak();
   const { summary: weeklySummary } = useWeeklySummary();
-  const { isConnected: ouraConnected, todayData: ouraToday } = useOura();
+  const { isConnected: ouraConnected, todayData: ouraToday, activityIsLive, syncOura, syncing } = useOura();
+  const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const { data: weeklyInsights } = useWeeklyInsights();
   const [showInsights, setShowInsights] = useState(false);
 
@@ -290,8 +303,13 @@ export default function HomeScreen() {
   React.useEffect(() => {
     if (symptomLogs.length > 0) {
       const map = new Map<SymptomType, number>();
+      // DB stores severity as text ('mild'/'moderate'/'severe'), UI uses numbers 1-5
+      const textToNum: Record<string, number> = { mild: 2, moderate: 3, severe: 4 };
       for (const log of symptomLogs) {
-        map.set(log.symptom_type as SymptomType, log.severity);
+        const numSeverity = typeof log.severity === 'number'
+          ? log.severity
+          : (textToNum[String(log.severity)] ?? 3);
+        map.set(log.symptom_type as SymptomType, numSeverity);
       }
       setSelectedSymptoms(map);
     }
@@ -368,24 +386,28 @@ export default function HomeScreen() {
         }
       }
 
-      // Sync symptoms: remove old, add current
-      for (const log of symptomLogs) {
-        if (!selectedSymptoms.has(log.symptom_type as SymptomType)) {
-          await removeSymptom(log.id);
-        }
-      }
-      const existingTypes = new Set(symptomLogs.map((l) => l.symptom_type));
-      for (const [type, severity] of selectedSymptoms) {
-        if (!existingTypes.has(type)) {
-          await addSymptom({ symptom_type: type, severity });
-        }
-      }
-
-      // Save notes to daily_logs
+      // Save notes to daily_logs FIRST (most important — don't lose user's text)
       await saveDailyLog({
         health_notes: notes || undefined,
         period: periodStatus !== 'off' ? periodStatus : undefined,
       });
+
+      // Sync symptoms: remove old, add current (non-blocking — errors won't lose notes)
+      try {
+        for (const log of symptomLogs) {
+          if (!selectedSymptoms.has(log.symptom_type as SymptomType)) {
+            await removeSymptom(log.id);
+          }
+        }
+        const existingTypes = new Set(symptomLogs.map((l) => l.symptom_type));
+        for (const [type, severity] of selectedSymptoms) {
+          if (!existingTypes.has(type)) {
+            await addSymptom({ symptom_type: type, severity, notes: notes || undefined });
+          }
+        }
+      } catch (symptomErr) {
+        console.warn('Symptom save error (notes still saved):', symptomErr);
+      }
 
       // Collapse after save
       setCheckinOpen(false);
@@ -440,28 +462,70 @@ export default function HomeScreen() {
             </View>
 
             {/* Streak + Score Display */}
-            {(currentStreak > 0 || (dailyScore && dailyScore.total > 0)) && (
+            {(currentStreak > 0 || dailyScoreValue > 0) && (
               <View style={styles.streakCard}>
                 {currentStreak > 0 && (
                   <Text style={styles.streakText}>
                     🔥 {currentStreak} Day Streak!
                   </Text>
                 )}
-                {dailyScore && dailyScore.total > 0 && (
-                  <View style={styles.scoreRow}>
-                    <Text style={styles.scoreLabel}>Today</Text>
-                    <View style={styles.scoreBarOuter}>
-                      <View
-                        style={[
-                          styles.scoreBarInner,
-                          { width: `${Math.min(dailyScore.total, 100)}%` },
-                          dailyScore.total >= 50
-                            ? styles.scoreBarGood
-                            : styles.scoreBarLow,
-                        ]}
-                      />
+                {dailyScoreValue > 0 && (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setScoreExpanded(!scoreExpanded)}
+                    style={styles.scoreTouchable}
+                  >
+                    <View style={styles.scoreRow}>
+                      <Text style={styles.scoreLabel}>Today</Text>
+                      <View style={styles.scoreBarOuter}>
+                        <View
+                          style={[
+                            styles.scoreBarInner,
+                            { width: `${Math.min(dailyScoreValue, 100)}%` },
+                            dailyScoreValue >= 50
+                              ? styles.scoreBarGood
+                              : styles.scoreBarLow,
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.scoreValue}>{dailyScoreValue}</Text>
+                      <Text style={styles.collapseIcon}>
+                        {scoreExpanded ? '▲' : '▼'}
+                      </Text>
                     </View>
-                    <Text style={styles.scoreValue}>{dailyScore.total}</Text>
+                  </TouchableOpacity>
+                )}
+                {scoreExpanded && dailyBreakdown && (
+                  <View style={styles.scoreBreakdown}>
+                    {(
+                      ['protein', 'calories', 'supplements', 'water', 'exercise', 'sleep', 'checkin'] as Array<keyof Omit<ScoreBreakdown, 'total'>>
+                    ).map((key) => {
+                      const cat = dailyBreakdown[key];
+                      if (typeof cat === 'number' || cat.weight === 0) return null;
+                      return (
+                        <View key={key} style={styles.breakdownRow}>
+                          <Text style={styles.breakdownEmoji}>{cat.emoji}</Text>
+                          <Text style={styles.breakdownLabel}>{cat.label}</Text>
+                          <View style={styles.breakdownBarOuter}>
+                            <View
+                              style={[
+                                styles.breakdownBarInner,
+                                { width: `${cat.raw}%` },
+                                cat.raw >= 70 ? styles.scoreBarGood : cat.raw >= 40 ? styles.scoreBarLow : styles.breakdownBarLow,
+                              ]}
+                            />
+                          </View>
+                          <Text style={styles.breakdownValue}>+{cat.contribution}</Text>
+                        </View>
+                      );
+                    })}
+                    {dailyTips.length > 0 && (
+                      <View style={styles.tipsWrap}>
+                        {dailyTips.map((tip, i) => (
+                          <Text key={i} style={styles.tipText}>{tip}</Text>
+                        ))}
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
@@ -470,7 +534,29 @@ export default function HomeScreen() {
             {/* Oura Ring Summary */}
             {ouraConnected && ouraToday && (
               <View style={[styles.accentCard, styles.accentPurple, { marginBottom: Spacing.md }]}>
-                <Text style={styles.sectionTitle}>💍 Oura Ring</Text>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>💍 Oura Ring</Text>
+                  <View style={styles.ouraSyncRow}>
+                    {lastSynced && !syncing && (
+                      <Text style={styles.syncedTimeText}>{formatSyncTime(lastSynced)}</Text>
+                    )}
+                    {syncing && <Text style={styles.syncedTimeText}>syncing...</Text>}
+                    <TouchableOpacity
+                      onPress={() => {
+                        const today = toDateKey(new Date());
+                        syncOura(today, today).then(() => setLastSynced(new Date())).catch(() => {});
+                      }}
+                      disabled={syncing}
+                      style={styles.syncButton}
+                      activeOpacity={0.6}
+                    >
+                      <Text style={[styles.syncButtonText, syncing && { opacity: 0.4 }]}>🔄</Text>
+                    </TouchableOpacity>
+                    {activityIsLive && (
+                      <Text style={styles.progress}>📶 Live</Text>
+                    )}
+                  </View>
+                </View>
                 <View style={styles.weeklyGrid}>
                   {ouraToday.sleep_score != null && (
                     <View style={styles.weeklyStatRow}>
@@ -504,16 +590,21 @@ export default function HomeScreen() {
                   )}
                   {ouraToday.active_calories != null && (
                     <View style={styles.weeklyStatRow}>
-                      <Text style={styles.weeklyStatLabel}>Active Cal</Text>
+                      <Text style={styles.weeklyStatLabel}>🔥 Burned</Text>
                       <Text style={styles.weeklyStatValue}>{Math.round(ouraToday.active_calories)}</Text>
                     </View>
                   )}
-                  {ouraToday.activity_score != null && (
+                  {ouraToday.activity_score != null ? (
                     <View style={styles.weeklyStatRow}>
                       <Text style={styles.weeklyStatLabel}>Activity</Text>
                       <Text style={styles.weeklyStatValue}>{Math.round(ouraToday.activity_score)}/100</Text>
                     </View>
-                  )}
+                  ) : (ouraToday.steps != null || ouraToday.active_calories != null) ? (
+                    <View style={styles.weeklyStatRow}>
+                      <Text style={styles.weeklyStatLabel}>Activity</Text>
+                      <Text style={[styles.weeklyStatValue, { color: Colors.textMuted }]}>Score updates tonight</Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>
             )}
@@ -965,6 +1056,65 @@ const styles = StyleSheet.create({
     width: 28,
     textAlign: 'right',
   },
+  scoreTouchable: {
+    width: '100%',
+  },
+  scoreBreakdown: {
+    width: '100%',
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.tabBarBorder,
+    gap: Spacing.xs,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  breakdownEmoji: {
+    fontSize: 14,
+    width: 20,
+    textAlign: 'center',
+  },
+  breakdownLabel: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textSecondary,
+    width: 70,
+  },
+  breakdownBarOuter: {
+    flex: 1,
+    height: 6,
+    backgroundColor: '#F0EAF8',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  breakdownBarInner: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  breakdownBarLow: {
+    backgroundColor: Colors.error,
+  },
+  breakdownValue: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.purple,
+    width: 24,
+    textAlign: 'right',
+  },
+  tipsWrap: {
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  tipText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.purple,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
 
   // Weekly Insights
   insightsMetricsRow: {
@@ -1052,6 +1202,27 @@ const styles = StyleSheet.create({
   },
   accentPurple: {
     borderLeftColor: Colors.purple,
+  },
+
+  // Oura sync
+  ouraSyncRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  syncedTimeText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+  },
+  syncButton: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  syncButtonText: {
+    fontSize: 16,
   },
 
   // Weekly summary

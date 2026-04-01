@@ -300,8 +300,8 @@ describe("Tina vs non-Tina routing", () => {
   });
 
   it("would route non-Tina through Gemini only", () => {
-    const userId = "some-other-user-id";
-    const isTina = userId === TINA_USER_ID;
+    const userId: string = "some-other-user-id";
+    const isTina = userId === (TINA_USER_ID as string);
     expect(isTina).toBe(false);
     // In actual code: Gemini only
   });

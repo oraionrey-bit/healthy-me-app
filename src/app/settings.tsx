@@ -124,7 +124,10 @@ export default function SettingsScreen() {
           <SettingsSection title="👤 Profile">
             <InfoRow label="Name" value={profile?.display_name} />
             <InfoRow label="Email" value={user?.email} />
-            <InfoRow label="PCOS Type" value={pcosLabel} />
+            <InfoRow label="Health Focus" value={profile?.health_condition === 'pcos' ? 'PCOS' : profile?.health_condition ?? 'General'} />
+            {profile?.health_condition === 'pcos' && (
+              <InfoRow label="PCOS Type" value={pcosLabel} />
+            )}
             <InfoRow label="Age" value={profile?.age} />
             <InfoRow label="Height" value={heightDisplay} />
             <InfoRow label="Weight" value={weightDisplay} />
@@ -227,7 +230,7 @@ export default function SettingsScreen() {
           {/* App Info */}
           <View style={styles.appInfo}>
             <Text style={styles.appVersion}>Healthy Me v1.0.0</Text>
-            <Text style={styles.appTagline}>Made with 💜 for PCOS warriors</Text>
+            <Text style={styles.appTagline}>Made with 💜 for your health journey</Text>
           </View>
         </View>
       </ScrollView>

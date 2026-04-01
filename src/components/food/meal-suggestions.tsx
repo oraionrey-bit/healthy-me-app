@@ -8,18 +8,20 @@ interface MealSuggestion {
   calories: number;
   protein: number;
   emoji: string;
+  /** Optional cuisine tags for filtering */
+  cuisines?: string[];
 }
 
-interface PcosTip {
+interface HealthTip {
   text: string;
   emoji: string;
 }
 
 const HIGH_PROTEIN_MEALS: MealSuggestion[] = [
   { name: 'Greek Yogurt Bowl', description: 'Greek yogurt with berries and nuts', calories: 250, protein: 20, emoji: '🥣' },
-  { name: 'Grilled Chicken Breast', description: 'Grilled chicken breast with veggies', calories: 300, protein: 35, emoji: '🍗' },
+  { name: 'Grilled Chicken Breast', description: 'Grilled chicken breast with veggies', calories: 300, protein: 35, emoji: '🍗', cuisines: ['American'] },
   { name: 'Scrambled Eggs', description: '3 scrambled eggs with spinach', calories: 280, protein: 22, emoji: '🥚' },
-  { name: 'Edamame Bowl', description: 'Steamed edamame with sea salt', calories: 190, protein: 18, emoji: '🫛' },
+  { name: 'Edamame Bowl', description: 'Steamed edamame with sea salt', calories: 190, protein: 18, emoji: '🫛', cuisines: ['Japanese'] },
   { name: 'Tuna Salad', description: 'Tuna salad on greens', calories: 250, protein: 30, emoji: '🐟' },
   { name: 'Grilled Fish', description: 'Grilled salmon or white fish', calories: 320, protein: 35, emoji: '🐠' },
 ];
@@ -28,8 +30,11 @@ const BALANCED_MEALS: MealSuggestion[] = [
   { name: 'Salmon & Veggies', description: 'Baked salmon with roasted vegetables', calories: 450, protein: 35, emoji: '🐟' },
   { name: 'Chicken Stir-Fry', description: 'Chicken stir-fry with mixed vegetables', calories: 400, protein: 30, emoji: '🥘' },
   { name: 'Lentil Soup', description: 'Hearty lentil soup with herbs', calories: 350, protein: 20, emoji: '🥣' },
-  { name: 'Bibimbap (Low Rice)', description: 'Bibimbap with extra veggies, less rice', calories: 420, protein: 25, emoji: '🍚' },
-  { name: 'Kimchi Jjigae', description: 'Kimchi stew with tofu and pork', calories: 380, protein: 28, emoji: '🍲' },
+  { name: 'Bibimbap', description: 'Mixed rice bowl with veggies and egg', calories: 420, protein: 25, emoji: '🍚', cuisines: ['Korean'] },
+  { name: 'Kimchi Jjigae', description: 'Kimchi stew with tofu and pork', calories: 380, protein: 28, emoji: '🍲', cuisines: ['Korean'] },
+  { name: 'Chicken Burrito Bowl', description: 'Rice, beans, chicken, salsa, guac', calories: 500, protein: 35, emoji: '🌯', cuisines: ['Mexican'] },
+  { name: 'Pasta Primavera', description: 'Pasta with seasonal vegetables', calories: 420, protein: 15, emoji: '🍝', cuisines: ['Italian'] },
+  { name: 'Teriyaki Salmon Bowl', description: 'Salmon over rice with teriyaki glaze', calories: 480, protein: 32, emoji: '🍣', cuisines: ['Japanese'] },
 ];
 
 const LIGHT_SNACKS: MealSuggestion[] = [
@@ -40,7 +45,7 @@ const LIGHT_SNACKS: MealSuggestion[] = [
   { name: 'Protein Shake', description: 'Whey protein shake with almond milk', calories: 180, protein: 25, emoji: '🥤' },
 ];
 
-const PCOS_TIPS: PcosTip[] = [
+const PCOS_TIPS: HealthTip[] = [
   { text: 'Pairing protein with every meal helps stabilize blood sugar — great for PCOS!', emoji: '💪' },
   { text: 'Anti-inflammatory foods like salmon and leafy greens can help reduce PCOS symptoms.', emoji: '🌿' },
   { text: 'Eating at regular intervals helps maintain steady insulin levels.', emoji: '⏰' },
@@ -51,6 +56,17 @@ const PCOS_TIPS: PcosTip[] = [
   { text: 'Mindful eating can reduce cortisol levels, which affects PCOS hormones.', emoji: '🧘' },
 ];
 
+const GENERAL_TIPS: HealthTip[] = [
+  { text: 'Pairing protein with every meal helps keep you full and supports muscle health.', emoji: '💪' },
+  { text: 'Colorful plates mean diverse nutrients — aim for 5 different colors daily.', emoji: '🌈' },
+  { text: 'Eating at regular intervals helps maintain steady energy levels.', emoji: '⏰' },
+  { text: 'Whole grains and fiber keep you satisfied longer and support gut health.', emoji: '🌾' },
+  { text: 'Staying hydrated helps your body process nutrients more efficiently.', emoji: '💧' },
+  { text: 'Mindful eating helps you enjoy food more and recognize fullness cues.', emoji: '🧘' },
+  { text: 'Lean proteins like fish, chicken, and legumes are great for balanced meals.', emoji: '🐟' },
+  { text: 'Consistent meal timing can help regulate your metabolism.', emoji: '✨' },
+];
+
 function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' {
   const hour = new Date().getHours();
   if (hour < 12) return 'morning';
@@ -58,13 +74,29 @@ function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' {
   return 'evening';
 }
 
+/** Filter meals to prefer user's cuisine preferences */
+function filterByCuisine(meals: MealSuggestion[], cuisinePrefs: string[]): MealSuggestion[] {
+  if (cuisinePrefs.length === 0) return meals;
+  // Score meals: prefer ones that match user cuisine prefs, then generic (no cuisine tag)
+  const scored = meals.map((m) => {
+    if (!m.cuisines || m.cuisines.length === 0) return { meal: m, score: 1 }; // generic = neutral
+    const matches = m.cuisines.some((c) => cuisinePrefs.includes(c));
+    return { meal: m, score: matches ? 2 : 0 };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.map((s) => s.meal);
+}
+
 function getSuggestions(
   remainingCalories: number,
   remainingProtein: number,
-): { meals: MealSuggestion[]; message: string; tip: PcosTip } {
+  isPcos: boolean,
+  cuisinePrefs: string[],
+): { meals: MealSuggestion[]; message: string; tip: HealthTip } {
   const timeOfDay = getTimeOfDay();
-  const tipIndex = new Date().getDate() % PCOS_TIPS.length;
-  const tip = PCOS_TIPS[tipIndex];
+  const tips = isPcos ? PCOS_TIPS : GENERAL_TIPS;
+  const tipIndex = new Date().getDate() % tips.length;
+  const tip = tips[tipIndex];
 
   // On track — nearly met targets
   if (remainingCalories < 200 && remainingProtein <= 10) {
@@ -87,9 +119,10 @@ function getSuggestions(
 
   // Evening + protein needed → protein-rich dinner
   if (timeOfDay === 'evening' && remainingProtein > 20) {
-    const dinnerOptions = [...HIGH_PROTEIN_MEALS, ...BALANCED_MEALS]
-      .filter((m) => m.protein >= 20)
-      .sort((a, b) => b.protein - a.protein);
+    const dinnerOptions = filterByCuisine(
+      [...HIGH_PROTEIN_MEALS, ...BALANCED_MEALS].filter((m) => m.protein >= 20),
+      cuisinePrefs,
+    ).sort((a, b) => b.protein - a.protein);
     return {
       meals: dinnerOptions.slice(0, 3),
       message: "Let's get that protein in before bed! 🌙",
@@ -100,20 +133,21 @@ function getSuggestions(
   // High protein remaining → high-protein meals
   if (remainingProtein > 30) {
     return {
-      meals: HIGH_PROTEIN_MEALS.slice(0, 3),
+      meals: filterByCuisine(HIGH_PROTEIN_MEALS, cuisinePrefs).slice(0, 3),
       message: 'Protein-packed options to hit your target! 🎯',
       tip,
     };
   }
 
   // Balanced — plenty of both remaining
-  const options = timeOfDay === 'morning'
-    ? BALANCED_MEALS.slice(0, 3)
-    : [...BALANCED_MEALS, ...HIGH_PROTEIN_MEALS].slice(0, 3);
+  const pool = timeOfDay === 'morning'
+    ? BALANCED_MEALS
+    : [...BALANCED_MEALS, ...HIGH_PROTEIN_MEALS];
+  const options = filterByCuisine(pool, cuisinePrefs).slice(0, 3);
 
   return {
     meals: options,
-    message: 'Here are some PCOS-friendly meal ideas ✨',
+    message: isPcos ? 'Here are some PCOS-friendly meal ideas ✨' : 'Here are some balanced meal ideas ✨',
     tip,
   };
 }
@@ -124,6 +158,8 @@ interface MealSuggestionsProps {
   caloriesConsumed: number;
   proteinConsumed: number;
   onSelectMeal: (description: string) => void;
+  isPcos?: boolean;
+  cuisinePreferences?: string[];
 }
 
 export function MealSuggestions({
@@ -132,6 +168,8 @@ export function MealSuggestions({
   caloriesConsumed,
   proteinConsumed,
   onSelectMeal,
+  isPcos = true,
+  cuisinePreferences = [],
 }: MealSuggestionsProps) {
   const remainingCalories = Math.max(calorieTarget - caloriesConsumed, 0);
   const remainingProtein = Math.max(proteinTarget - proteinConsumed, 0);
@@ -141,8 +179,8 @@ export function MealSuggestions({
   const allTargetsMet = targetsMetCal && targetsMetProtein;
 
   const { meals, message, tip } = useMemo(
-    () => getSuggestions(remainingCalories, remainingProtein),
-    [remainingCalories, remainingProtein],
+    () => getSuggestions(remainingCalories, remainingProtein, isPcos, cuisinePreferences),
+    [remainingCalories, remainingProtein, isPcos, cuisinePreferences],
   );
 
   if (allTargetsMet) {
@@ -150,7 +188,7 @@ export function MealSuggestions({
       <View style={styles.card}>
         <Text style={styles.celebrateText}>🎉 You hit your targets!</Text>
         <Text style={styles.celebrateSub}>
-          Amazing job today! Keep up the great work, warrior 💜
+          Amazing job today! Keep up the great work 💜
         </Text>
       </View>
     );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Text,
   View,
@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { ScreenWrapper, PixelCard, PixelButton } from '../../components/ui';
+import { useUserProfile } from '../../hooks/use-user-profile';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import {
   useExerciseLog,
@@ -18,6 +19,7 @@ import {
 import { useOuraWorkouts, useWeeklyOuraWorkouts, mapOuraActivity } from '../../hooks/use-oura-workouts';
 import { useOura } from '../../hooks/use-oura';
 import { toDateKey } from '../../utils/storage';
+import { useFocusEffect } from 'expo-router';
 
 const INTENSITY_OPTIONS: { key: Intensity; label: string; emoji: string }[] = [
   { key: 'low', label: 'Low', emoji: '🚶' },
@@ -98,13 +100,45 @@ function formatTime(iso: string | null): string {
   }
 }
 
+const GENERAL_RECOMMENDATIONS = [
+  {
+    title: 'Cardio',
+    frequency: '3-4x/week',
+    emoji: '🏃',
+    description:
+      'Running, cycling, or dance — aim for 150+ minutes per week of moderate activity.',
+  },
+  {
+    title: 'Strength Training',
+    frequency: '2-3x/week',
+    emoji: '🏋️',
+    description:
+      'Build lean muscle with compound movements. Great for metabolism and bone health.',
+  },
+  {
+    title: 'Walking',
+    frequency: 'Daily',
+    emoji: '🚶',
+    description:
+      'Low-impact, stress-reducing movement. Aim for 7,000+ steps.',
+  },
+  {
+    title: 'Flexibility / Recovery',
+    frequency: '1-2x/week',
+    emoji: '🧘',
+    description:
+      'Yoga, stretching, or foam rolling for recovery and mobility.',
+  },
+];
+
 export default function MoveScreen() {
+  const { isPcos } = useUserProfile();
   const dateKey = toDateKey(new Date());
   const { entries, loading, addEntry, deleteEntry, totals } = useExerciseLog(dateKey);
   const { weeklyTotals } = useWeeklyExerciseSummary();
   const { workouts: ouraWorkouts, totals: ouraTotals } = useOuraWorkouts(dateKey);
   const { weeklyTotals: ouraWeeklyTotals } = useWeeklyOuraWorkouts();
-  const { todayData, isConnected, syncOura, syncing, activityFromYesterday } = useOura();
+  const { todayData, isConnected, syncOura, syncing, activityFromYesterday, activityIsLive } = useOura();
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const syncedRef = useRef(false);
 
@@ -120,6 +154,19 @@ export default function MoveScreen() {
       });
     }
   }, [isConnected, syncOura]);
+
+  // Re-sync when tab gains focus (if last sync > 30 min ago)
+  useFocusEffect(
+    useCallback(() => {
+      if (!isConnected) return;
+      const thirtyMinMs = 30 * 60 * 1000;
+      if (lastSynced && Date.now() - lastSynced.getTime() < thirtyMinMs) return;
+      const today = toDateKey(new Date());
+      syncOura(today, today).then(() => {
+        setLastSynced(new Date());
+      }).catch(() => {});
+    }, [isConnected, lastSynced, syncOura])
+  );
 
   const [showForm, setShowForm] = useState(false);
   const [selectedType, setSelectedType] = useState<string>('Pilates');
@@ -221,42 +268,53 @@ export default function MoveScreen() {
           <View style={styles.activityHeader}>
             <Text style={styles.sectionTitle}>Daily Activity</Text>
             <View style={styles.activityBadgeRow}>
-              {syncing && <Text style={styles.syncingText}>🔄 Syncing...</Text>}
-              {!syncing && lastSynced && (
-                <Text style={styles.syncedText}>
-                  🔄 Synced {formatSyncTime(lastSynced)}
-                </Text>
+              {lastSynced && !syncing && (
+                <Text style={styles.syncedText}>{formatSyncTime(lastSynced)}</Text>
               )}
+              {syncing && <Text style={styles.syncingText}>syncing...</Text>}
+              <TouchableOpacity
+                onPress={() => {
+                  const today = toDateKey(new Date());
+                  syncOura(today, today).then(() => setLastSynced(new Date())).catch(() => {});
+                }}
+                disabled={syncing}
+                activeOpacity={0.6}
+              >
+                <Text style={{ fontSize: 16, opacity: syncing ? 0.4 : 1 }}>🔄</Text>
+              </TouchableOpacity>
               <Text style={styles.ouraRingBadge}>💍</Text>
             </View>
           </View>
           {activityFromYesterday && (
-            <Text style={styles.yesterdayNote}>📊 Showing yesterday's activity — today's data updates later</Text>
+            <Text style={styles.yesterdayNote}>📊 Showing yesterday&apos;s activity — today&apos;s data updates later</Text>
+          )}
+          {activityIsLive && !activityFromYesterday && (
+            <Text style={styles.liveBadge}>📶 Live — score updates tonight</Text>
           )}
           {todayData ? (
             <View style={styles.activityGrid}>
-              {todayData.activity_score != null && (
-                <View style={styles.activityItem}>
-                  <Text style={[styles.activityValue, styles.scoreValue]}>{Math.round(todayData.activity_score)}</Text>
-                  <Text style={styles.activityLabel}>Score</Text>
-                </View>
-              )}
+              <View style={styles.activityItem}>
+                <Text style={[styles.activityValue, styles.scoreValue]}>
+                  {todayData.activity_score != null ? Math.round(todayData.activity_score) : '—'}
+                </Text>
+                <Text style={styles.activityLabel}>Score</Text>
+              </View>
               {todayData.steps != null && (
                 <View style={styles.activityItem}>
                   <Text style={styles.activityValue}>{todayData.steps.toLocaleString()}</Text>
                   <Text style={styles.activityLabel}>Steps</Text>
                 </View>
               )}
-              {todayData.total_calories != null && (
-                <View style={styles.activityItem}>
-                  <Text style={styles.activityValue}>{Math.round(todayData.total_calories)}</Text>
-                  <Text style={styles.activityLabel}>Total Cal</Text>
-                </View>
-              )}
               {todayData.active_calories != null && (
                 <View style={styles.activityItem}>
                   <Text style={styles.activityValue}>{Math.round(todayData.active_calories)}</Text>
-                  <Text style={styles.activityLabel}>Active Cal</Text>
+                  <Text style={styles.activityLabel}>🔥 Burned</Text>
+                </View>
+              )}
+              {todayData.total_calories != null && (
+                <View style={styles.activityItem}>
+                  <Text style={[styles.activityValue, { opacity: 0.6 }]}>{Math.round(todayData.total_calories)}</Text>
+                  <Text style={[styles.activityLabel, { opacity: 0.6 }]}>Total (inc. resting)</Text>
                 </View>
               )}
               {todayData.high_activity_minutes != null && (
@@ -467,14 +525,18 @@ export default function MoveScreen() {
       )}
 
       {/* Today's totals (combined) */}
-      {(totals.sessions > 0 || ouraTotals.sessions > 0) && (
+      {(totals.sessions > 0 || ouraTotals.sessions > 0) ? (
         <View style={styles.todayTotals}>
           <Text style={styles.todayTotalsText}>
             Today: {totals.minutes + ouraTotals.minutes} min · {totals.sessions + ouraTotals.sessions} session{(totals.sessions + ouraTotals.sessions) !== 1 ? 's' : ''}
-            {(totals.calories + ouraTotals.calories) > 0 ? ` · ${totals.calories + ouraTotals.calories} cal` : ''}
+            {(totals.calories + ouraTotals.calories) > 0 ? ` · ${Math.round(totals.calories + ouraTotals.calories)} cal` : ''}
           </Text>
         </View>
-      )}
+      ) : !loading && !showForm ? (
+        <View style={styles.todayTotals}>
+          <Text style={styles.todayTotalsText}>No exercise logged today</Text>
+        </View>
+      ) : null}
 
       {!loading && entries.length === 0 && ouraWorkouts.length === 0 && !showForm && (
         <View style={styles.emptyWrap}>
@@ -486,11 +548,13 @@ export default function MoveScreen() {
 
       {/* Exercise Recommendations */}
       <Text style={styles.sectionTitle}>Recommended for You</Text>
-      <Text style={styles.sectionSubtitle}>
-        For PCOS (high androgen) + 태음인 body type
-      </Text>
+      {isPcos && (
+        <Text style={styles.sectionSubtitle}>
+          For PCOS (high androgen) + 태음인 body type
+        </Text>
+      )}
 
-      {PCOS_RECOMMENDATIONS.map((rec) => (
+      {(isPcos ? PCOS_RECOMMENDATIONS : GENERAL_RECOMMENDATIONS).map((rec) => (
         <PixelCard key={rec.title} style={styles.recCard}>
           <View style={styles.recHeader}>
             <Text style={styles.recEmoji}>{rec.emoji}</Text>
@@ -624,6 +688,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyXs,
     color: Colors.warning,
+    marginBottom: Spacing.sm,
+    fontStyle: 'italic',
+  },
+  liveBadge: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.success,
     marginBottom: Spacing.sm,
     fontStyle: 'italic',
   },

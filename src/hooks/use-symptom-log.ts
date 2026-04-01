@@ -42,17 +42,27 @@ export function useSymptomLog() {
     async (input: AddSymptomInput) => {
       if (!user) return;
 
+      // DB constraint: severity must be 'mild' | 'moderate' | 'severe'
+      // UI uses numbers 1-5, so map: 1-2 = mild, 3 = moderate, 4-5 = severe
+      const severityMap: Record<number, string> = {
+        1: 'mild', 2: 'mild', 3: 'moderate', 4: 'severe', 5: 'severe',
+      };
+      const severityText = severityMap[input.severity] ?? 'moderate';
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
       const { error } = await (supabase.from('symptom_logs') as any).insert({
         user_id: user.id,
         symptom_type: input.symptom_type,
-        severity: input.severity,
+        severity: severityText,
         notes: input.notes ?? null,
         triggers: input.triggers ?? null,
         log_date: toDateKey(new Date()),
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Failed to save symptom:', error.message);
+        throw error;
+      }
       await fetchSymptomLogs();
     },
     [user, fetchSymptomLogs],

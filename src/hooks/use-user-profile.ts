@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
-import type { UserProfile } from '../types/database';
+import type { UserProfile, HealthCondition } from '../types/database';
 
-const DEFAULT_CALORIE_TARGET = 1500;
-const DEFAULT_PROTEIN_TARGET = 80;
+const DEFAULT_CALORIE_TARGET = 1800;
+const DEFAULT_PROTEIN_TARGET = 50;
 
 interface UseUserProfileReturn {
   profile: UserProfile | null;
@@ -12,6 +12,8 @@ interface UseUserProfileReturn {
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   calorieTarget: number;
   proteinTarget: number;
+  healthCondition: HealthCondition;
+  isPcos: boolean;
   isOnboarded: boolean;
   refetch: () => Promise<void>;
 }
@@ -68,12 +70,16 @@ export function useUserProfile(): UseUserProfileReturn {
     [user],
   );
 
+  const healthCondition: HealthCondition = profile?.health_condition ?? 'general';
+
   return {
     profile,
     loading,
     updateProfile,
     calorieTarget: profile?.calorie_target ?? DEFAULT_CALORIE_TARGET,
     proteinTarget: profile?.protein_target ?? DEFAULT_PROTEIN_TARGET,
+    healthCondition,
+    isPcos: healthCondition === 'pcos',
     isOnboarded: profile?.onboarding_complete ?? false,
     refetch: fetchProfile,
   };

@@ -23,6 +23,12 @@ const OURA_TO_EXERCISE_MAP: Record<string, string> = {
   other: 'Other',
 };
 
+/** Activity types to exclude from the Move tab (auto-detected, not intentional exercise) */
+const EXCLUDED_ACTIVITY_TYPES = new Set([
+  'housework',
+  'house_work',
+]);
+
 export function mapOuraActivity(ouraType: string | null): string {
   if (!ouraType) return 'Other';
   const lower = ouraType.toLowerCase().replace(/\s+/g, '_');
@@ -46,7 +52,12 @@ export function useOuraWorkouts(date: string) {
       .order('start_time', { ascending: true });
 
     if (!error && data) {
-      setWorkouts(data as OuraWorkout[]);
+      // Filter out non-exercise auto-detected activities (e.g. housework)
+      const filtered = (data as OuraWorkout[]).filter((w) => {
+        const actType = (w.activity_type ?? '').toLowerCase().replace(/\s+/g, '_');
+        return !EXCLUDED_ACTIVITY_TYPES.has(actType);
+      });
+      setWorkouts(filtered);
     }
     setLoading(false);
   }, [user, date]);
@@ -99,7 +110,10 @@ export function useWeeklyOuraWorkouts() {
       .lte('log_date', sundayKey);
 
     if (!error && data) {
-      const entries = data as OuraWorkout[];
+      const entries = (data as OuraWorkout[]).filter((w) => {
+        const actType = (w.activity_type ?? '').toLowerCase().replace(/\s+/g, '_');
+        return !EXCLUDED_ACTIVITY_TYPES.has(actType);
+      });
       setWeeklyTotals({
         minutes: entries.reduce((sum, w) => sum + (w.duration_minutes ?? 0), 0),
         sessions: entries.length,

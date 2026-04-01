@@ -8,13 +8,18 @@ import { OnboardingCard } from '../../components/onboarding/onboarding-card';
 import { ProgressDots } from '../../components/onboarding/progress-dots';
 import { PixelBackButton } from '../../components/onboarding/pixel-back-button';
 import { useAuth } from '../../lib/auth';
+import { useUserProfile } from '../../hooks/use-user-profile';
 import { supabase } from '../../lib/supabase';
-import { DEFAULT_SUPPLEMENTS } from '../../constants/supplements';
+import { getSupplementsForCondition } from '../../constants/supplements';
 
 export default function SupplementsScreen() {
   const { user } = useAuth();
+  const { healthCondition } = useUserProfile();
+  const supplements = getSupplementsForCondition(healthCondition);
+  const isPcos = healthCondition === 'pcos';
+
   const [selected, setSelected] = useState<Set<number>>(
-    new Set(DEFAULT_SUPPLEMENTS.map((_, i) => i)),
+    new Set(supplements.map((_, i) => i)),
   );
   const [saving, setSaving] = useState(false);
 
@@ -30,6 +35,17 @@ export default function SupplementsScreen() {
     });
   };
 
+  const handleSkip = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      await supabase.from('user_supplements').delete().eq('user_id', user.id);
+      router.push('/(onboarding)/complete');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleNext = async () => {
     if (!user) return;
     setSaving(true);
@@ -37,7 +53,7 @@ export default function SupplementsScreen() {
       // Delete any existing supplements (from auto-seed) before inserting chosen ones
       await supabase.from('user_supplements').delete().eq('user_id', user.id);
 
-      const chosenSupplements = DEFAULT_SUPPLEMENTS.filter((_, i) => selected.has(i));
+      const chosenSupplements = supplements.filter((_, i) => selected.has(i));
       if (chosenSupplements.length > 0) {
         const rows = chosenSupplements.map((s) => ({
           user_id: user.id,
@@ -69,11 +85,13 @@ export default function SupplementsScreen() {
           <OnboardingCard>
             <Text style={styles.title}>SUPPLEMENTS 💊</Text>
             <Text style={styles.helper}>
-              Common PCOS supplements pre-selected. Uncheck any you don&apos;t take.
+              {isPcos
+                ? "Common PCOS supplements pre-selected. Uncheck any you don't take."
+                : "Common supplements pre-selected. Uncheck any you don't take."}
             </Text>
 
             <View style={styles.list}>
-              {DEFAULT_SUPPLEMENTS.map((supp, i) => {
+              {supplements.map((supp, i) => {
                 const isSelected = selected.has(i);
                 return (
                   <TouchableOpacity
@@ -99,7 +117,9 @@ export default function SupplementsScreen() {
             </View>
 
             <Text style={styles.tip}>
-              ℹ️ Pre-selected based on common PCOS protocols. You can add custom supplements later in settings.
+              {isPcos
+                ? 'ℹ️ Pre-selected based on common PCOS protocols. You can add custom supplements later in settings.'
+                : 'ℹ️ Common wellness supplements. You can customize in settings anytime.'}
             </Text>
 
             <PixelButton
@@ -107,6 +127,10 @@ export default function SupplementsScreen() {
               onPress={handleNext}
               disabled={saving}
             />
+
+            <TouchableOpacity onPress={handleSkip} disabled={saving} style={styles.skipBtn}>
+              <Text style={styles.skipText}>Skip — I don&apos;t take supplements</Text>
+            </TouchableOpacity>
           </OnboardingCard>
 
           <ProgressDots current={4} total={5} />
@@ -206,5 +230,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: Spacing.xl,
     fontStyle: 'italic',
+  },
+  skipBtn: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+  skipText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
 });

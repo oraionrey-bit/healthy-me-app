@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: 'https://oraionrey-bit.github.io/healthy-me-app/',
+        emailRedirectTo: 'https://app.withluna.dev/',
       },
     });
     return { error: error as Error | null };

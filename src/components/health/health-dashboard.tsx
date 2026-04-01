@@ -12,8 +12,9 @@ import { SymptomFrequencyCard } from './symptom-frequency';
 import { WeightTrend } from './weight-trend';
 import { OuraSleepTrend } from './oura-sleep-trend';
 import { OuraHrvTrend } from './oura-hrv-trend';
-import { OuraTemperatureTrend } from './oura-temperature-trend';
 import { useOura } from '../../hooks/use-oura';
+import { SupplementStreakCard } from './supplement-streak-card';
+import { LabDashboard } from './lab-dashboard';
 
 export function HealthDashboard() {
   const { moodEnergy, nutrition, symptomFrequency, weight, loading, range, setRange } =
@@ -38,7 +39,6 @@ export function HealthDashboard() {
         <>
           <OuraSleepTrend data={ouraData} range={range} />
           <OuraHrvTrend data={ouraData} range={range} />
-          <OuraTemperatureTrend data={ouraData} range={range} />
         </>
       )}
       <MoodEnergyTrend data={moodEnergy} range={range} />
@@ -48,8 +48,18 @@ export function HealthDashboard() {
         currentMonth={currentMonth}
         onMonthChange={setCurrentMonth}
       />
-      <SymptomFrequencyCard data={symptomFrequency} />
-      <WeightTrend data={weight} range={range} unit={profile?.weight_unit ?? 'lbs'} />
+      <View style={styles.sectionSpacing}>
+        <SupplementStreakCard />
+      </View>
+      <View style={styles.sectionSpacing}>
+        <SymptomFrequencyCard data={symptomFrequency} />
+      </View>
+      <View style={styles.sectionSpacing}>
+        <LabDashboard />
+      </View>
+      <View style={styles.sectionSpacing}>
+        <WeightTrend data={weight} range={range} unit={profile?.weight_unit ?? 'lbs'} />
+      </View>
     </View>
   );
 }
@@ -67,5 +77,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: Spacing.xxl,
+  },
+  sectionSpacing: {
+    marginTop: Spacing.lg,
   },
 });

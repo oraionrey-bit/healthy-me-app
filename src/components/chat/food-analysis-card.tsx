@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { PixelCard } from '../ui/pixel-card';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { useUserProfile } from '../../hooks/use-user-profile';
 import type { FoodAnalysis } from '../../types/database';
 
 interface FoodAnalysisCardProps {
@@ -22,6 +23,8 @@ function MacroBar({ label, value, unit, color }: { label: string; value: number;
 }
 
 export function FoodAnalysisCard({ analysis }: FoodAnalysisCardProps) {
+  const { isPcos } = useUserProfile();
+
   return (
     <PixelCard style={styles.card}>
       <Text style={styles.title}>🍽️ Nutrition Breakdown</Text>
@@ -50,7 +53,7 @@ export function FoodAnalysisCard({ analysis }: FoodAnalysisCardProps) {
 
       {analysis.pcos_notes && (
         <View style={styles.notesBox}>
-          <Text style={styles.notesTitle}>💜 PCOS Notes</Text>
+          <Text style={styles.notesTitle}>{isPcos ? '💜 PCOS Notes' : '💚 Health Notes'}</Text>
           <Text style={styles.notesText}>{analysis.pcos_notes}</Text>
         </View>
       )}

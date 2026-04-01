@@ -58,18 +58,23 @@ export function useWaterLog() {
         .eq('log_date', todayKey)
         .maybeSingle();
 
+      let error;
       if (existing) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
-        await (supabase.from('water_logs') as any)
+        ({ error } = await (supabase.from('water_logs') as any)
           .update({ glasses: newTotal })
-          .eq('id', (existing as { id: string }).id);
+          .eq('id', (existing as { id: string }).id));
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
-        await (supabase.from('water_logs') as any).insert({
+        ({ error } = await (supabase.from('water_logs') as any).insert({
           user_id: user.id,
           log_date: todayKey,
           glasses: newTotal,
-        });
+        }));
+      }
+      if (error) {
+        console.warn('Failed to save water log:', error);
+        setGlasses(glasses); // Revert optimistic update
       }
     },
     [user, glasses, todayKey],
@@ -88,11 +93,15 @@ export function useWaterLog() {
 
     if (existing) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
-      await (supabase.from('water_logs') as any)
+      const { error } = await (supabase.from('water_logs') as any)
         .update({ glasses: 0 })
         .eq('id', (existing as { id: string }).id);
+      if (error) {
+        console.warn('Failed to reset water log:', error);
+        await fetchWater(); // Re-fetch to get correct state
+      }
     }
-  }, [user, todayKey]);
+  }, [user, todayKey, fetchWater]);
 
   return {
     glasses,

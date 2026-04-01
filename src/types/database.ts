@@ -92,6 +92,11 @@ export interface Database {
         Insert: Omit<ChatMessage, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<ChatMessage>;
       };
+      saved_meals: {
+        Row: SavedMeal;
+        Insert: Omit<SavedMeal, 'id' | 'created_at'>;
+        Update: Partial<SavedMeal>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -100,6 +105,8 @@ export interface Database {
 }
 
 // Row types
+
+export type HealthCondition = 'pcos' | 'general' | 'weight_loss' | 'diabetes' | 'other';
 
 export interface UserProfile {
   id: string;
@@ -133,6 +140,9 @@ export interface UserProfile {
   oura_access_token: string | null;
   oura_refresh_token: string | null;
   oura_connected: boolean;
+  health_condition: HealthCondition;
+  dietary_preferences: string[];
+  cuisine_preferences: string[];
 }
 
 export interface FoodLog {
@@ -214,6 +224,19 @@ export interface HealthLab {
   reference_range_high: number | null;
   is_flagged: boolean;
   notes: string | null;
+  category: string;
+  status: string | null;
+  provider: string | null;
+}
+
+export interface LabPanel {
+  id: string;
+  user_id: string;
+  panel_date: string;
+  panel_name: string;
+  provider: string | null;
+  notes: string | null;
+  created_at: string;
 }
 
 export interface WeightLog {
@@ -376,6 +399,16 @@ export interface SavedMeal {
   use_count: number;
   last_used_at: string | null;
   created_at: string;
+  // Personal food dictionary fields
+  aliases: string[];
+  source: 'manual' | 'ai_analyzed' | 'user_created' | 'barcode';
+  serving_size: number | null;
+  serving_unit: string;
+  is_favorite: boolean;
+  original_ai_calories: number | null;
+  original_ai_protein: number | null;
+  original_ai_carbs: number | null;
+  original_ai_fat: number | null;
 }
 
 export type ChatMessageDirection = 'user' | 'oraion';

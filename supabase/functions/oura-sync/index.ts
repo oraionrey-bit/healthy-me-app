@@ -269,14 +269,19 @@ Deno.serve(async (req) => {
     const defaultStart = new Date(now);
     defaultStart.setDate(defaultStart.getDate() - 7);
 
-    // Extend range by 1 day back — Oura API can return empty for single-day queries
+    // Extend range by 1 day in both directions — Oura API can return empty for
+    // tight date ranges, especially for today's real-time activity data
     const requestedStart = start_date || toDateString(defaultStart);
     const extendedStart = new Date(requestedStart);
     extendedStart.setDate(extendedStart.getDate() - 1);
 
+    const requestedEnd = end_date || toDateString(now);
+    const extendedEnd = new Date(requestedEnd);
+    extendedEnd.setDate(extendedEnd.getDate() + 1);
+
     const dateParams = {
       start_date: toDateString(extendedStart),
-      end_date: end_date || toDateString(now),
+      end_date: toDateString(extendedEnd),
     };
 
     let currentToken = profile.oura_access_token as string;

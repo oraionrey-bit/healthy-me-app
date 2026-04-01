@@ -76,29 +76,31 @@ export function useStreak(
       const cursor = new Date(now);
       for (let i = 0; i < 31; i++) {
         const key = toDateKey(cursor);
+        const isToday = i === 0;
         const dayScore = scoreMap.get(key);
 
         if (dayScore === undefined) {
-          // No score logged for this day — streak broken
-          // But only break if it's not today (user might not have logged yet today)
-          if (i === 0) {
-            // Today with no score yet — check if yesterday continues
+          // No score logged for this day
+          if (isToday) {
+            // Today with no score yet — skip, check yesterday
             cursor.setDate(cursor.getDate() - 1);
             continue;
           }
           break;
         }
 
-        if (dayScore >= threshold) {
-          // Full day — counts
+        if (isToday && dayScore > 0) {
+          // Today has *some* activity (score > 0) — count it.
+          // The day isn't over, so don't penalize a low score.
+          streak++;
+        } else if (dayScore >= threshold) {
           streak++;
         } else if (dayScore >= gentleThreshold) {
-          // Rest day — still counts (gentle threshold)
           streak++;
         } else {
-          // Below gentle threshold — streak broken
-          if (i === 0) {
-            // Today's score is low but day isn't over — don't break
+          // Below threshold on a completed day — streak broken
+          if (isToday) {
+            // Today's score is 0 and below threshold — skip (no activity yet)
             cursor.setDate(cursor.getDate() - 1);
             continue;
           }

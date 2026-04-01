@@ -36,37 +36,63 @@ export interface SkinJournalEntry {
   createdAt: string;
 }
 
+export interface UpNextItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
 export interface SkinData {
   products: SkincareProduct[];
   routineSteps: RoutineStep[];
   routineChecks: Record<string, RoutineCheckState>; // keyed by date
   journal: SkinJournalEntry[];
+  upNext: UpNextItem[];
 }
 
 // ── Defaults ───────────────────────────────────────────────────────────
 
 const DEFAULT_PRODUCTS: SkincareProduct[] = [
+  // Safe products
   { id: 'p1', name: 'Laneige Cream Skin', status: 'safe' },
   { id: 'p2', name: 'Wellage HA Blue Ampoule', status: 'safe' },
   { id: 'p3', name: 'Aestura Atobarrier 365', status: 'safe' },
   { id: 'p4', name: 'Goodal Heartleaf SPF', status: 'safe' },
   { id: 'p5', name: 'Celimax Noni Ampoule', status: 'safe' },
   { id: 'p6', name: 'COSRX Propolis Lip Mask', status: 'safe' },
+  { id: 'p12', name: 'S-Nature Aqua Squalane', status: 'safe', notes: 'Lightweight oil, good for dry patches' },
+  { id: 'p13', name: 'Caudalie Vinoperfect Serum', status: 'safe', notes: 'Brightening, no irritation' },
+  { id: 'p14', name: 'LRP Anthelios UVMune 400', status: 'safe', notes: 'Europe SPF, high UVA protection' },
+  { id: 'p15', name: 'Acnon Spot Treatment', status: 'safe', notes: 'For active spots only' },
+  // Testing
   { id: 'p7', name: 'Madeca Cream', status: 'testing', notes: 'Testing as moisturizer replacement' },
-  { id: 'p8', name: 'Niacinamide (high %)', status: 'trigger' },
-  { id: 'p9', name: 'Snail Mucin', status: 'trigger' },
-  { id: 'p10', name: 'Laneige Lip Sleeping Mask', status: 'trigger' },
-  { id: 'p11', name: 'Vea Lipogel', status: 'trigger' },
+  // Triggers
+  { id: 'p8', name: 'Niacinamide (high %)', status: 'trigger', notes: 'High % confirmed trigger (Biodance 20%). Low % unknown' },
+  { id: 'p9', name: 'Snail Mucin', status: 'trigger', notes: 'COSRX caused breakout' },
+  { id: 'p10', name: 'Laneige Lip Sleeping Mask', status: 'trigger', notes: 'Wax/oils migrate above lips causing perioral bumps' },
+  { id: 'p11', name: 'Vea Lipogel', status: 'trigger', notes: 'Vitamin E breaks out perioral area — do NOT use near face' },
+  { id: 'p16', name: 'Dr. Reju-All Cream', status: 'trigger', notes: 'Contains niacinamide' },
+  { id: 'p17', name: 'Centellian 24 Madeca Cream (original)', status: 'trigger', notes: 'Niacinamide in some versions + comedone reports' },
+  { id: 'p18', name: "Mary Ruth's Probiotics", status: 'trigger', notes: 'Contains histamine-producing strains L. casei, L. bulgaricus' },
 ];
 
 const DEFAULT_ROUTINE: RoutineStep[] = [
+  // AM: Cream Skin → HA → Squalane (if dry) → Atobarrier/Madeca → Goodal SPF (or LRP)
   { id: 'r1', productName: 'Laneige Cream Skin', sortOrder: 1, time: 'both' },
   { id: 'r2', productName: 'Wellage HA Blue Ampoule', sortOrder: 2, time: 'both' },
+  { id: 'r8', productName: 'S-Nature Aqua Squalane (if dry)', sortOrder: 3, time: 'am' },
+  { id: 'r4', productName: 'Aestura Atobarrier 365 OR Madeca Cream', sortOrder: 4, time: 'am' },
+  { id: 'r6', productName: 'Goodal Heartleaf SPF (or LRP in summer)', sortOrder: 5, time: 'am' },
+  // PM: Cream Skin → HA → Noni → Caudalie Vinoperfect → Aestura/Madeca → Propolis Lip
   { id: 'r3', productName: 'Celimax Noni Ampoule', sortOrder: 3, time: 'pm' },
-  { id: 'r4', productName: 'Aestura Atobarrier 365', sortOrder: 4, time: 'both' },
-  { id: 'r5', productName: 'Madeca Cream', sortOrder: 5, time: 'both' },
-  { id: 'r6', productName: 'Goodal Heartleaf SPF', sortOrder: 6, time: 'am' },
-  { id: 'r7', productName: 'COSRX Propolis Lip Mask', sortOrder: 7, time: 'pm' },
+  { id: 'r9', productName: 'Caudalie Vinoperfect Serum', sortOrder: 4, time: 'pm' },
+  { id: 'r5', productName: 'Aestura Atobarrier 365 OR Madeca Cream', sortOrder: 5, time: 'pm' },
+  { id: 'r7', productName: 'COSRX Propolis Lip Mask', sortOrder: 6, time: 'pm' },
+];
+
+const DEFAULT_UP_NEXT: UpNextItem[] = [
+  { id: 'un1', text: 'Start azelaic acid (after skin reset stabilizes)', done: false },
+  { id: 'un2', text: 'Transition from Aestura to Madeca Cream (testing)', done: false },
 ];
 
 const DEFAULT_SKIN_DATA: SkinData = {
@@ -74,6 +100,7 @@ const DEFAULT_SKIN_DATA: SkinData = {
   routineSteps: DEFAULT_ROUTINE,
   routineChecks: {},
   journal: [],
+  upNext: DEFAULT_UP_NEXT,
 };
 
 // ── Hook ───────────────────────────────────────────────────────────────
@@ -272,6 +299,47 @@ export function useSkincare() {
     [skinData, persistSkinData],
   );
 
+  // ── Up Next ──
+
+  const addUpNextItem = useCallback(
+    async (text: string) => {
+      const newItem: UpNextItem = { id: `un-${Date.now()}`, text, done: false };
+      const newData: SkinData = {
+        ...skinData,
+        upNext: [...(skinData.upNext ?? []), newItem],
+      };
+      setSkinData(newData);
+      await persistSkinData(newData);
+    },
+    [skinData, persistSkinData],
+  );
+
+  const toggleUpNextItem = useCallback(
+    async (itemId: string) => {
+      const newData: SkinData = {
+        ...skinData,
+        upNext: (skinData.upNext ?? []).map((item) =>
+          item.id === itemId ? { ...item, done: !item.done } : item,
+        ),
+      };
+      setSkinData(newData);
+      await persistSkinData(newData);
+    },
+    [skinData, persistSkinData],
+  );
+
+  const removeUpNextItem = useCallback(
+    async (itemId: string) => {
+      const newData: SkinData = {
+        ...skinData,
+        upNext: (skinData.upNext ?? []).filter((item) => item.id !== itemId),
+      };
+      setSkinData(newData);
+      await persistSkinData(newData);
+    },
+    [skinData, persistSkinData],
+  );
+
   // Derived data
   const safeProducts = skinData.products.filter((p) => p.status === 'safe');
   const triggerProducts = skinData.products.filter((p) => p.status === 'trigger');
@@ -297,6 +365,11 @@ export function useSkincare() {
     testingProducts,
     addProduct,
     updateProductStatus,
+    // Up Next
+    upNext: skinData.upNext ?? [],
+    addUpNextItem,
+    toggleUpNextItem,
+    removeUpNextItem,
     // Refresh
     refetch: fetchSkinData,
   };

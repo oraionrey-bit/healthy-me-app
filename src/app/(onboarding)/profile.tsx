@@ -9,9 +9,17 @@ import { ProgressDots } from '../../components/onboarding/progress-dots';
 import { PixelBackButton } from '../../components/onboarding/pixel-back-button';
 import { useUserProfile } from '../../hooks/use-user-profile';
 import { useAuth } from '../../lib/auth';
-import type { UserProfile } from '../../types/database';
+import type { UserProfile, HealthCondition } from '../../types/database';
 
 type PcosType = NonNullable<UserProfile['pcos_type']>;
+
+const HEALTH_CONDITIONS: Array<{ value: HealthCondition; label: string; emoji: string }> = [
+  { value: 'pcos', label: 'PCOS', emoji: '🎀' },
+  { value: 'general', label: 'General Health', emoji: '💚' },
+  { value: 'weight_loss', label: 'Weight Loss', emoji: '⚖️' },
+  { value: 'diabetes', label: 'Diabetes / Pre-diabetes', emoji: '🩺' },
+  { value: 'other', label: 'Other', emoji: '✨' },
+];
 
 const PCOS_OPTIONS: Array<{ value: PcosType; label: string; emoji: string }> = [
   { value: 'insulin_resistant', label: 'Insulin Resistant', emoji: '🍬' },
@@ -31,6 +39,7 @@ export default function ProfileScreen() {
   const [heightFt, setHeightFt] = useState('');
   const [heightIn, setHeightIn] = useState('');
   const [weight, setWeight] = useState('');
+  const [healthCondition, setHealthCondition] = useState<HealthCondition>('general');
   const [pcosType, setPcosType] = useState<PcosType | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -45,7 +54,8 @@ export default function ProfileScreen() {
 
       await updateProfile({
         display_name: name.trim() || emailPrefix,
-        pcos_type: pcosType,
+        health_condition: healthCondition,
+        pcos_type: healthCondition === 'pcos' ? pcosType : null,
         age: parsedAge,
         height_cm: heightCm,
         current_weight: parsedWeight,
@@ -131,24 +141,47 @@ export default function ProfileScreen() {
               keyboardType="numeric"
             />
 
-            {/* PCOS Type */}
-            <Text style={styles.label}>Your PCOS type</Text>
+            {/* Health Condition */}
+            <Text style={styles.label}>Health Focus</Text>
             <Text style={styles.labelHint}>
-              This helps us tailor recommendations. Pick &quot;Not Sure&quot; if unsure!
+              This helps us tailor your experience and recommendations.
             </Text>
             <View style={styles.pillWrap}>
-              {PCOS_OPTIONS.map((opt) => (
+              {HEALTH_CONDITIONS.map((opt) => (
                 <TouchableOpacity
                   key={opt.value}
-                  onPress={() => setPcosType(opt.value)}
-                  style={[styles.pill, pcosType === opt.value && styles.pillActive]}
+                  onPress={() => setHealthCondition(opt.value)}
+                  style={[styles.pill, healthCondition === opt.value && styles.pillActive]}
                 >
-                  <Text style={[styles.pillText, pcosType === opt.value && styles.pillTextActive]}>
+                  <Text style={[styles.pillText, healthCondition === opt.value && styles.pillTextActive]}>
                     {opt.emoji} {opt.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* PCOS Type — only shown for PCOS users */}
+            {healthCondition === 'pcos' && (
+              <>
+                <Text style={styles.label}>Your PCOS type</Text>
+                <Text style={styles.labelHint}>
+                  This helps us tailor recommendations. Pick &quot;Not Sure&quot; if unsure!
+                </Text>
+                <View style={styles.pillWrap}>
+                  {PCOS_OPTIONS.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      onPress={() => setPcosType(opt.value)}
+                      style={[styles.pill, pcosType === opt.value && styles.pillActive]}
+                    >
+                      <Text style={[styles.pillText, pcosType === opt.value && styles.pillTextActive]}>
+                        {opt.emoji} {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
 
             <PixelButton
               title={saving ? 'Saving...' : 'Next →'}

@@ -16,6 +16,24 @@ const PROTEIN_MIN = 30;
 const PROTEIN_MAX = 250;
 const PROTEIN_STEP = 5;
 
+const DIETARY_OPTIONS = [
+  'No restrictions',
+  'Low carb',
+  'Dairy-free',
+  'Gluten-free',
+  'Vegetarian',
+  'Vegan',
+] as const;
+
+const CUISINE_OPTIONS = [
+  'Korean',
+  'Japanese',
+  'American',
+  'Mexican',
+  'Italian',
+  'Other',
+] as const;
+
 function Stepper({
   label,
   value,
@@ -59,14 +77,79 @@ function Stepper({
   );
 }
 
-export default function GoalsScreen() {
-  const { updateProfile } = useUserProfile();
+function CheckboxGroup({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  options: readonly string[];
+  selected: Set<string>;
+  onToggle: (item: string) => void;
+}) {
+  return (
+    <View style={styles.checkboxGroup}>
+      <Text style={styles.stepperLabel}>{label}</Text>
+      <View style={styles.pillWrap}>
+        {options.map((opt) => {
+          const isSelected = selected.has(opt);
+          return (
+            <TouchableOpacity
+              key={opt}
+              onPress={() => onToggle(opt)}
+              style={[styles.pill, isSelected && styles.pillActive]}
+            >
+              <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
+                {opt}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
 
-  const [calories, setCalories] = useState(1500);
-  const [protein, setProtein] = useState(80);
+export default function GoalsScreen() {
+  const { updateProfile, healthCondition } = useUserProfile();
+  const isPcos = healthCondition === 'pcos';
+
+  // Smart defaults based on health condition
+  const defaultCalories = isPcos ? 1500 : 1800;
+  const defaultProtein = isPcos ? 80 : 50;
+
+  const [calories, setCalories] = useState(defaultCalories);
+  const [protein, setProtein] = useState(defaultProtein);
   const [weight, setWeight] = useState('');
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
+  const [dietaryPrefs, setDietaryPrefs] = useState<Set<string>>(new Set());
+  const [cuisinePrefs, setCuisinePrefs] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+
+  const toggleDietary = (item: string) => {
+    setDietaryPrefs((prev) => {
+      const next = new Set(prev);
+      if (item === 'No restrictions') {
+        // If selecting "No restrictions", clear everything else
+        return next.has(item) ? new Set() : new Set([item]);
+      }
+      // If selecting anything else, remove "No restrictions"
+      next.delete('No restrictions');
+      if (next.has(item)) next.delete(item);
+      else next.add(item);
+      return next;
+    });
+  };
+
+  const toggleCuisine = (item: string) => {
+    setCuisinePrefs((prev) => {
+      const next = new Set(prev);
+      if (next.has(item)) next.delete(item);
+      else next.add(item);
+      return next;
+    });
+  };
 
   const handleNext = async () => {
     setSaving(true);
@@ -77,12 +160,18 @@ export default function GoalsScreen() {
         protein_target: protein,
         goal_weight: goalWeight && !isNaN(goalWeight) ? goalWeight : null,
         weight_unit: weightUnit,
+        dietary_preferences: Array.from(dietaryPrefs),
+        cuisine_preferences: Array.from(cuisinePrefs),
       });
       router.push('/(onboarding)/supplements');
     } finally {
       setSaving(false);
     }
   };
+
+  const tipText = isPcos
+    ? '💡 Common PCOS targets: 1200–1500 cal, 80–120g protein for weight management'
+    : '💡 Adjust targets based on your activity level and goals';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -142,9 +231,21 @@ export default function GoalsScreen() {
               </View>
             </View>
 
-            <Text style={styles.tip}>
-              💡 Common PCOS targets: 1200–1500 cal, 80–120g protein for weight management
-            </Text>
+            <CheckboxGroup
+              label="🥗 Dietary Preferences"
+              options={DIETARY_OPTIONS}
+              selected={dietaryPrefs}
+              onToggle={toggleDietary}
+            />
+
+            <CheckboxGroup
+              label="🍽️ Cuisine Preferences"
+              options={CUISINE_OPTIONS}
+              selected={cuisinePrefs}
+              onToggle={toggleCuisine}
+            />
+
+            <Text style={styles.tip}>{tipText}</Text>
 
             <PixelButton
               title={saving ? 'Saving...' : 'Next →'}
@@ -285,6 +386,34 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   unitTextActive: {
+    color: Colors.textOnDark,
+  },
+  checkboxGroup: {
+    marginBottom: Spacing.xl,
+  },
+  pillWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  pill: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+  },
+  pillActive: {
+    backgroundColor: Colors.purple,
+    borderColor: Colors.purple,
+  },
+  pillText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textSecondary,
+  },
+  pillTextActive: {
     color: Colors.textOnDark,
   },
   tip: {

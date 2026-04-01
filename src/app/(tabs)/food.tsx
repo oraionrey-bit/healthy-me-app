@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Text,
   View,
@@ -13,15 +13,51 @@ import {
 import { ScreenWrapper, PixelCard, PixelButton } from '../../components/ui';
 import { AskOraionFAB, AskOraionModal } from '../../components/chat';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../lib/auth';
 import { useFoodLog } from '../../hooks/use-food-log';
 import { useFoodCalendar } from '../../hooks/use-food-calendar';
 import { useUserProfile } from '../../hooks/use-user-profile';
 import { useSavedMeals } from '../../hooks/use-saved-meals';
+import { usePersonalFoods } from '../../hooks/use-personal-foods';
 import { FoodCalendar } from '../../components/food/food-calendar';
 import { DaySummaryCard } from '../../components/food/day-summary-card';
 import { MealSuggestions } from '../../components/food/meal-suggestions';
+import { FoodTrends } from '../../components/food/food-trends';
+import { FoodAutoSuggest } from '../../components/food/food-auto-suggest';
 import { formatDate, toDateKey } from '../../utils/storage';
-import type { FoodLog } from '../../types/database';
+import type { FoodLog, SavedMeal } from '../../types/database';
+
+// ── Quick-Add Parser ──
+
+interface ParsedMacros {
+  calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+}
+
+function parseQuickAddText(text: string): ParsedMacros {
+  const result: ParsedMacros = { calories: null, protein: null, carbs: null, fat: null };
+
+  const calMatch = text.match(/(\d+)\s*cal/i);
+  if (calMatch) result.calories = parseInt(calMatch[1], 10);
+
+  const protMatch = text.match(/(\d+)\s*g?\s*protein/i);
+  if (protMatch) result.protein = parseInt(protMatch[1], 10);
+
+  const carbMatch = text.match(/(\d+)\s*g?\s*carb/i);
+  if (carbMatch) result.carbs = parseInt(carbMatch[1], 10);
+
+  const fatMatch = text.match(/(\d+)\s*g?\s*fat/i);
+  if (fatMatch) result.fat = parseInt(fatMatch[1], 10);
+
+  return result;
+}
+
+function hasParsedMacros(macros: ParsedMacros): boolean {
+  return macros.calories !== null || macros.protein !== null;
+}
 
 type MealType = FoodLog['meal_type'];
 
@@ -49,20 +85,6 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-function saveLocalPhotos(dateKey: string, entryId: string, photos: string[]): void {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(`hm-photos-${dateKey}-${entryId}`, JSON.stringify(photos));
-  } catch {}
-}
-
-function removeLocalPhotos(dateKey: string, entryId: string): void {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
-  try {
-    localStorage.removeItem(`hm-photos-${dateKey}-${entryId}`);
-  } catch {}
-}
-
 function getSmartMealType(): MealType {
   const hour = new Date().getHours();
   if (hour < 11) return 'breakfast';
@@ -75,17 +97,22 @@ function FoodEntry({
   entry,
   onDelete,
   onUpdateMealType,
+  onUpdateEntry,
   onAddLeftovers,
   onSaveAsFavorite,
 }: {
   entry: FoodLog;
   onDelete: () => void;
   onUpdateMealType: (mealType: MealType) => void;
+  onUpdateEntry: (updates: Partial<Pick<FoodLog, 'description' | 'calories' | 'protein' | 'carbs' | 'fat' | 'fiber'>>) => void;
   onAddLeftovers: (file: File) => void;
   onSaveAsFavorite: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [editDesc, setEditDesc] = useState(entry.description ?? '');
+  const [editCal, setEditCal] = useState(String(entry.calories ?? ''));
+  const [editProtein, setEditProtein] = useState(String(entry.protein ?? ''));
   const leftoversInputRef = useRef<HTMLInputElement | null>(null);
   const mealInfo = MEAL_LABELS.find((m) => m.key === entry.meal_type) ?? MEAL_LABELS[0];
   const hasAnalysis = entry.ai_analyzed && entry.calories !== null;
@@ -120,6 +147,11 @@ function FoodEntry({
               </Text>
               {isAdjusted && (
                 <Text style={styles.entryLeftoversNote}>🍽️ Adjusted for leftovers</Text>
+              )}
+              {entry.notes && !isAdjusted && (
+                <Text style={[styles.entryLeftoversNote, { opacity: 0.5 }]}>
+                  {entry.notes.includes('claude') ? '🤖 Claude' : entry.notes.includes('gemini') ? '🤖 Gemini' : ''}
+                </Text>
               )}
               {entry.ai_pcos_notes ? (
                 <Text style={styles.entryPcosNote} numberOfLines={expanded ? undefined : 2}>
@@ -198,6 +230,59 @@ function FoodEntry({
         </View>
       )}
 
+      {/* Inline description + nutrition editor */}
+      {editing && (
+        <View style={styles.editFieldsRow}>
+          <Text style={styles.editFieldLabel}>Description</Text>
+          <TextInput
+            style={styles.editTextInput}
+            value={editDesc}
+            onChangeText={setEditDesc}
+            placeholder="What did you eat?"
+            multiline
+          />
+          <View style={styles.editNutritionRow}>
+            <View style={styles.editNutritionField}>
+              <Text style={styles.editFieldLabel}>Calories</Text>
+              <TextInput
+                style={styles.editNumberInput}
+                value={editCal}
+                onChangeText={setEditCal}
+                keyboardType="numeric"
+                placeholder="0"
+              />
+            </View>
+            <View style={styles.editNutritionField}>
+              <Text style={styles.editFieldLabel}>Protein (g)</Text>
+              <TextInput
+                style={styles.editNumberInput}
+                value={editProtein}
+                onChangeText={setEditProtein}
+                keyboardType="numeric"
+                placeholder="0"
+              />
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.editSaveBtn}
+            onPress={() => {
+              const updates: Record<string, unknown> = {};
+              if (editDesc !== (entry.description ?? '')) updates.description = editDesc;
+              const newCal = parseFloat(editCal);
+              if (!isNaN(newCal) && newCal !== entry.calories) updates.calories = Math.round(newCal);
+              const newPro = parseFloat(editProtein);
+              if (!isNaN(newPro) && newPro !== entry.protein) updates.protein = Math.round(newPro * 10) / 10;
+              if (Object.keys(updates).length > 0) {
+                onUpdateEntry(updates as Partial<Pick<FoodLog, 'description' | 'calories' | 'protein'>>);
+              }
+              setEditing(false);
+            }}
+          >
+            <Text style={styles.editSaveBtnText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Leftovers button — only for analyzed meals */}
       {hasAnalysis && !isAdjusted && (
         <TouchableOpacity
@@ -226,7 +311,8 @@ function FoodEntry({
 }
 
 export default function FoodScreen() {
-  const { calorieTarget, proteinTarget } = useUserProfile();
+  const { user } = useAuth();
+  const { calorieTarget, proteinTarget, isPcos, profile } = useUserProfile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<MealType>(getSmartMealType());
@@ -240,14 +326,34 @@ export default function FoodScreen() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const leftoversInputRef = useRef<HTMLInputElement | null>(null);
   const [askOraionVisible, setAskOraionVisible] = useState(false);
+  const [showTrends, setShowTrends] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickAddText, setQuickAddText] = useState('');
+  const [quickAddSaving, setQuickAddSaving] = useState(false);
 
   const calendar = useFoodCalendar();
   const { savedMeals, saveMeal, logSavedMeal, deleteSavedMeal } = useSavedMeals();
+  const { searchFoods, recentFoods, frequentFoods, autoSaveFromAnalysis, updateFromUserEdit } = usePersonalFoods();
   const [favSaved, setFavSaved] = useState(false);
+  const prevEntriesRef = useRef<FoodLog[]>([]);
 
   const dateKey = toDateKey(currentDate);
   const isToday = isSameDay(currentDate, new Date());
-  const { entries, loading, addEntry, deleteEntry, updateMealType, addLeftoversPhoto, totals } = useFoodLog(dateKey);
+  const { entries, loading, addEntry, deleteEntry, updateMealType, updateEntry, addLeftoversPhoto, totals, refresh: fetchEntries } = useFoodLog(dateKey);
+
+  // Auto-save to personal food dictionary when AI analysis completes
+  useEffect(() => {
+    const prevEntries = prevEntriesRef.current;
+    for (const entry of entries) {
+      if (!entry.ai_analyzed || entry.calories == null) continue;
+      const prev = prevEntries.find((p) => p.id === entry.id);
+      // New analysis just completed (was not analyzed before, now is)
+      if (!prev || (!prev.ai_analyzed && entry.ai_analyzed)) {
+        autoSaveFromAnalysis(entry);
+      }
+    }
+    prevEntriesRef.current = entries;
+  }, [entries, autoSaveFromAnalysis]);
 
   const calProgress = Math.min(totals.calories / calorieTarget, 1);
   const proteinProgress = Math.min(totals.protein / proteinTarget, 1);
@@ -361,7 +467,6 @@ export default function FoodScreen() {
   };
 
   const handleDelete = async (entry: FoodLog) => {
-    removeLocalPhotos(dateKey, entry.id);
     await deleteEntry(entry.id);
   };
 
@@ -371,6 +476,87 @@ export default function FoodScreen() {
     setPhotos([]);
     setLeftoversPhotos([]);
     setSelectedMeal(getSmartMealType());
+  };
+
+  const handleSelectPersonalFood = async (meal: SavedMeal) => {
+    setQuickAddSaving(true);
+    // Log directly from personal food — skip AI analysis
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.from('food_logs') as any).insert({
+      user_id: user?.id,
+      log_date: dateKey,
+      meal_type: meal.meal_type ?? getSmartMealType(),
+      description: meal.name,
+      calories: meal.calories,
+      protein: meal.protein,
+      carbs: meal.carbs,
+      fat: meal.fat,
+      fiber: meal.fiber,
+      sugar: null,
+      ai_analyzed: true,
+      ai_confidence: 1.0,
+      ai_pcos_notes: meal.pcos_notes,
+      photo_url: null,
+      photo_urls: null,
+      user_edited: false,
+      notes: meal.source === 'ai_analyzed' ? 'from_personal_food|ai' : 'from_personal_food',
+    });
+
+    if (!error) {
+      // Increment use_count on the personal food
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('saved_meals') as any)
+        .update({
+          use_count: (meal.use_count ?? 0) + 1,
+          last_used_at: new Date().toISOString(),
+        })
+        .eq('id', meal.id);
+
+      setQuickAddText('');
+      setShowQuickAdd(false);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+      // Refresh food log
+      await fetchEntries();
+    }
+    setQuickAddSaving(false);
+  };
+
+  const handleQuickAdd = async () => {
+    const trimmed = quickAddText.trim();
+    if (!trimmed) return;
+    setQuickAddSaving(true);
+
+    const parsed = parseQuickAddText(trimmed);
+    const hasMacros = hasParsedMacros(parsed);
+
+    // Remove macro text to get clean description
+    let desc = trimmed
+      .replace(/\d+\s*cal(ories?)?/gi, '')
+      .replace(/\d+\s*g?\s*protein/gi, '')
+      .replace(/\d+\s*g?\s*carb(s|ohydrate)?/gi, '')
+      .replace(/\d+\s*g?\s*fat/gi, '')
+      .replace(/[,;]+\s*/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!desc) desc = trimmed;
+
+    const result = await addEntry({
+      meal_type: getSmartMealType(),
+      description: desc,
+      calories: hasMacros ? parsed.calories : null,
+      protein: hasMacros ? parsed.protein : null,
+      carbs: hasMacros ? parsed.carbs : null,
+      fat: hasMacros ? parsed.fat : null,
+    });
+
+    if (!result?.error) {
+      setQuickAddText('');
+      setShowQuickAdd(false);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+    }
+    setQuickAddSaving(false);
   };
 
   // Group entries by meal type
@@ -398,13 +584,28 @@ export default function FoodScreen() {
         <TouchableOpacity
           onPress={() => {
             setCalendarOpen((v) => !v);
+            setShowTrends(false);
             if (!calendarOpen) setSelectedCalDate(null);
           }}
           style={[styles.navArrow, calendarOpen && styles.calToggleActive]}
         >
           <Text style={styles.navArrowText}>📅</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            setShowTrends((v) => !v);
+            setCalendarOpen(false);
+          }}
+          style={[styles.navArrow, showTrends && styles.calToggleActive]}
+        >
+          <Text style={styles.navArrowText}>📊</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Trends View */}
+      {showTrends && (
+        <FoodTrends onClose={() => setShowTrends(false)} />
+      )}
 
       {/* Calendar View */}
       {calendarOpen && (
@@ -430,8 +631,8 @@ export default function FoodScreen() {
         </View>
       )}
 
-      {/* Day View — hidden when calendar is open */}
-      {!calendarOpen && (<>
+      {/* Day View — hidden when calendar or trends is open */}
+      {!calendarOpen && !showTrends && (<>
       {/* Success Toast */}
       {showSuccess && (
         <View style={styles.toast}>
@@ -476,6 +677,8 @@ export default function FoodScreen() {
             setShowForm(true);
             setSelectedMeal(getSmartMealType());
           }}
+          isPcos={isPcos}
+          cuisinePreferences={profile?.cuisine_preferences ?? []}
         />
       )}
 
@@ -518,8 +721,31 @@ export default function FoodScreen() {
 
       {savedMeals.length === 0 && entries.length > 0 && (
         <View style={styles.favHintWrap}>
-          <Text style={styles.favHintText}>💡 Save your frequent meals for quick re-logging!</Text>
+          <Text style={styles.favHintText}>💡 Your foods auto-save after AI analysis for quick re-logging!</Text>
         </View>
+      )}
+
+      {/* 🔄 Recent Foods Quick Re-log */}
+      {recentFoods.length > 0 && !calendarOpen && !showTrends && (
+        <PixelCard style={styles.favoritesCard}>
+          <Text style={styles.favoritesTitle}>🕐 Recent</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.favoritesScroll}>
+            <View style={styles.favoritesRow}>
+              {recentFoods.slice(0, 6).map((meal) => (
+                <TouchableOpacity
+                  key={`recent-${meal.id}`}
+                  style={styles.recentChip}
+                  onPress={() => handleSelectPersonalFood(meal)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.recentChipName} numberOfLines={1}>{meal.name}</Text>
+                  <Text style={styles.recentChipCal}>{meal.calories ?? 0} cal</Text>
+                  {meal.source === 'ai_analyzed' && <Text style={styles.recentAiBadge}>🤖</Text>}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </PixelCard>
       )}
 
       {/* Fav saved toast */}
@@ -529,11 +755,44 @@ export default function FoodScreen() {
         </View>
       )}
 
+      {/* Quick Add with Auto-Suggest */}
+      {showQuickAdd && (
+        <PixelCard style={styles.quickAddCard}>
+          <Text style={styles.quickAddTitle}>⚡ Quick Add</Text>
+          <FoodAutoSuggest
+            value={quickAddText}
+            onChangeText={setQuickAddText}
+            onSelectFood={handleSelectPersonalFood}
+            onSubmit={handleQuickAdd}
+            searchFoods={searchFoods}
+            autoFocus
+            saving={quickAddSaving}
+          />
+          <View style={styles.quickAddRow}>
+            <TouchableOpacity onPress={() => { setShowQuickAdd(false); setQuickAddText(''); }} style={styles.quickAddCancel}>
+              <Text style={styles.quickAddCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <PixelButton
+              title={quickAddSaving ? 'Saving...' : 'Save'}
+              onPress={handleQuickAdd}
+              disabled={quickAddSaving || !quickAddText.trim()}
+            />
+          </View>
+        </PixelCard>
+      )}
+
       {/* Add Meal Button / Form */}
       {!showForm ? (
-        <TouchableOpacity style={styles.addMealBtn} onPress={() => setShowForm(true)}>
-          <Text style={styles.addMealText}>+ Add Meal</Text>
-        </TouchableOpacity>
+        <View style={styles.addMealRow}>
+          <TouchableOpacity style={styles.addMealBtn} onPress={() => setShowForm(true)}>
+            <Text style={styles.addMealText}>+ Add Meal</Text>
+          </TouchableOpacity>
+          {!showQuickAdd && (
+            <TouchableOpacity style={styles.quickAddBtn} onPress={() => setShowQuickAdd(true)}>
+              <Text style={styles.quickAddBtnText}>⚡ Quick Add</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       ) : (
         <PixelCard style={styles.formCard}>
           {/* Meal type pills */}
@@ -671,6 +930,11 @@ export default function FoodScreen() {
                     entry={entry}
                     onDelete={() => handleDelete(entry)}
                     onUpdateMealType={(mealType) => updateMealType(entry.id, mealType)}
+                    onUpdateEntry={(updates) => {
+                      updateEntry(entry.id, updates);
+                      // Also update personal food dictionary with corrected values
+                      updateFromUserEdit({ ...entry, ...updates, user_edited: true } as FoodLog);
+                    }}
                     onAddLeftovers={(file) => addLeftoversPhoto(entry.id, file)}
                     onSaveAsFavorite={async () => {
                       await saveMeal(entry);
@@ -804,17 +1068,68 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.purple,
     borderRadius: 3,
   },
+  addMealRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
   addMealBtn: {
+    flex: 1,
     backgroundColor: Colors.purple,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     alignItems: 'center',
-    marginBottom: Spacing.lg,
   },
   addMealText: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
     color: Colors.textOnDark,
+  },
+  quickAddBtn: {
+    backgroundColor: Colors.warning,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickAddBtnText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textOnDark,
+  },
+  quickAddCard: {
+    marginBottom: Spacing.md,
+  },
+  quickAddTitle: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  quickAddInput: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    padding: Spacing.md,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  quickAddRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  quickAddCancel: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  quickAddCancelText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
   },
   formCard: {
     marginBottom: Spacing.lg,
@@ -1045,6 +1360,62 @@ const styles = StyleSheet.create({
   editPillTextActive: {
     color: Colors.textOnDark,
   },
+  editFieldsRow: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  editFieldLabel: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textSecondary,
+    marginBottom: 2,
+  },
+  editTextInput: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textPrimary,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    minHeight: 40,
+  },
+  editNutritionRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  editNutritionField: {
+    flex: 1,
+  },
+  editNumberInput: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textPrimary,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    height: 36,
+  },
+  editSaveBtn: {
+    backgroundColor: Colors.purple,
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+    alignSelf: 'flex-end',
+    marginTop: Spacing.xs,
+  },
+  editSaveBtnText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textOnDark,
+    fontWeight: '600',
+  },
   leftoversBtn: {
     marginTop: Spacing.sm,
     paddingVertical: Spacing.xs,
@@ -1185,5 +1556,35 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodySm,
     color: Colors.textMuted,
+  },
+  // Recent foods section
+  recentChip: {
+    backgroundColor: Colors.cream,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    minWidth: 100,
+    maxWidth: 160,
+    alignItems: 'center',
+  },
+  recentChipName: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  recentChipCal: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  recentAiBadge: {
+    fontSize: 8,
+    position: 'absolute',
+    top: 2,
+    right: 4,
   },
 });

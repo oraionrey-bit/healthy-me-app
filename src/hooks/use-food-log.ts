@@ -112,17 +112,68 @@ export function useFoodLog(date: string) {
     };
   }, [hasPending, fetchEntries]);
 
+  /**
+   * Compress an image file to stay under maxSizeKB using canvas resize.
+   * Returns a Blob (JPEG) that fits within the size limit.
+   */
+  const compressImage = async (file: File, maxSizeKB = 4000): Promise<Blob> => {
+    // If already small enough, return as-is
+    if (file.size <= maxSizeKB * 1024) return file;
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        // Calculate target dimensions — scale down proportionally
+        let { width, height } = img;
+        const maxDim = 2048; // Max dimension for food photos (plenty for AI analysis)
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(file); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Try progressively lower quality until under size limit
+        const tryQuality = (quality: number) => {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) { resolve(file); return; }
+              if (blob.size <= maxSizeKB * 1024 || quality <= 0.3) {
+                resolve(blob);
+              } else {
+                tryQuality(quality - 0.1);
+              }
+            },
+            'image/jpeg',
+            quality,
+          );
+        };
+        tryQuality(0.85);
+      };
+      img.onerror = () => reject(new Error('Failed to load image for compression'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const uploadPhotos = async (files: File[]): Promise<string[]> => {
     if (!user || files.length === 0) return [];
     const urls: string[] = [];
     const timestamp = Date.now();
 
     for (let i = 0; i < files.length; i++) {
+      // Compress images >4MB to stay under Claude's 5MB base64 limit
+      const compressed = await compressImage(files[i], 4000);
       const filePath = `${user.id}/${date}/${timestamp}-${i}.jpg`;
       const { error } = await supabase.storage
         .from('food-photos')
-        .upload(filePath, files[i], {
-          contentType: files[i].type || 'image/jpeg',
+        .upload(filePath, compressed, {
+          contentType: 'image/jpeg',
           upsert: false,
         });
 
@@ -238,5 +289,16 @@ export function useFoodLog(date: string) {
     { calories: 0, protein: 0 },
   );
 
-  return { entries, loading, addEntry, deleteEntry, updateMealType, addLeftoversPhoto, totals, refresh: fetchEntries };
+  const updateEntry = async (id: string, updates: Partial<Pick<FoodLog, 'description' | 'calories' | 'protein' | 'carbs' | 'fat' | 'fiber'>>) => {
+    if (!user) return;
+    const payload: Record<string, unknown> = { ...updates, user_edited: true };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+    const { error } = await (supabase.from('food_logs') as any)
+      .update(payload)
+      .eq('id', id)
+      .eq('user_id', user.id);
+    if (!error) await fetchEntries();
+  };
+
+  return { entries, loading, addEntry, deleteEntry, updateMealType, updateEntry, addLeftoversPhoto, totals, refresh: fetchEntries };
 }

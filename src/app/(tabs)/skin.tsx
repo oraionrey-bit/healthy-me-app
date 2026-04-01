@@ -21,7 +21,17 @@ import {
   useSkincare,
   type RoutineStep,
   type ProductStatus,
+  type UpNextItem,
 } from '../../hooks/use-skincare';
+import { useSkinPhotos } from '../../hooks/use-skin-photos';
+import { useSkinPlan } from '../../hooks/use-skin-plan';
+import { SkinPhotoCapture } from '../../components/skin/skin-photo-capture';
+import { SkinPhotoGallery } from '../../components/skin/skin-photo-gallery';
+import { PhaseTimeline } from '../../components/skin/phase-timeline';
+import { DailyRoutineCard } from '../../components/skin/daily-routine-card';
+import { RoutineCalendar } from '../../components/skin/routine-calendar';
+import { PhaseTransitionModal } from '../../components/skin/phase-transition-modal';
+import type { SkinPhoto } from '../../types/database';
 
 // ── Severity display ───────────────────────────────────────────────────
 
@@ -177,6 +187,9 @@ const KNOWN_TRIGGERS = [
   'Snail Mucin',
   'Laneige Lip Sleeping Mask',
   'Vea Lipogel',
+  'Dr. Reju-All Cream',
+  'Centellian 24 Madeca Cream',
+  "Mary Ruth's Probiotics",
   'New product',
   'Stress',
   'Diet',
@@ -204,6 +217,10 @@ export default function SkinScreen() {
     testingProducts,
     addProduct,
     updateProductStatus,
+    upNext,
+    addUpNextItem,
+    toggleUpNextItem,
+    removeUpNextItem,
   } = useSkincare();
 
   // ── Journal form state ──
@@ -223,10 +240,21 @@ export default function SkinScreen() {
   const [newProductStatus, setNewProductStatus] =
     useState<ProductStatus>('testing');
 
+  // ── Skin photos ──
+  const { photos: skinPhotos, uploading: photoUploading, addPhoto, deletePhoto: deleteSkinPhoto } = useSkinPhotos();
+
+  // ── Skin plan ──
+  const { plan: skinPlan, loading: planLoading, advancePhase, revertPhase, getTodayRoutine, getPhaseProgress } = useSkinPlan();
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [showPhaseModal, setShowPhaseModal] = useState(false);
+
   // ── Active section (tab-like) ──
   const [activeSection, setActiveSection] = useState<
-    'routine' | 'journal' | 'products'
+    'routine' | 'journal' | 'photos' | 'products' | 'plan'
   >('routine');
+
+  // ── Up Next ──
+  const [newUpNextText, setNewUpNextText] = useState('');
 
   // ── Ask Oraion ──
   const [askOraionVisible, setAskOraionVisible] = useState(false);
@@ -301,7 +329,9 @@ export default function SkinScreen() {
           [
             { key: 'routine', label: 'Routine' },
             { key: 'journal', label: 'Journal' },
+            { key: 'photos', label: 'Photos' },
             { key: 'products', label: 'Products' },
+            { key: 'plan', label: 'Plan' },
           ] as const
         ).map((tab) => (
           <TouchableOpacity
@@ -355,6 +385,49 @@ export default function SkinScreen() {
             isStepDone={isStepDone}
             onToggle={toggleRoutineStep}
           />
+
+          {/* Up Next */}
+          <PixelCard>
+            <Text style={styles.watchlistTitle}>📋 Up Next</Text>
+            <View style={styles.listGap}>
+              {upNext.map((item) => (
+                <View key={item.id} style={styles.upNextRow}>
+                  <TouchableOpacity onPress={() => toggleUpNextItem(item.id)} activeOpacity={0.7}>
+                    <View style={[styles.checkbox, item.done && styles.checkboxDone]}>
+                      {item.done && <Text style={styles.checkmark}>✓</Text>}
+                    </View>
+                  </TouchableOpacity>
+                  <Text style={[styles.upNextText, item.done && styles.upNextTextDone]}>
+                    {item.text}
+                  </Text>
+                  <TouchableOpacity onPress={() => removeUpNextItem(item.id)} activeOpacity={0.7}>
+                    <Text style={styles.upNextRemove}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+            <View style={styles.upNextInputRow}>
+              <TextInput
+                style={styles.upNextInput}
+                value={newUpNextText}
+                onChangeText={setNewUpNextText}
+                placeholder="Add a skincare goal..."
+                placeholderTextColor={Colors.textMuted}
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  if (newUpNextText.trim()) {
+                    addUpNextItem(newUpNextText.trim());
+                    setNewUpNextText('');
+                  }
+                }}
+                style={styles.upNextAddBtn}
+                disabled={!newUpNextText.trim()}
+              >
+                <Text style={styles.upNextAddText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </PixelCard>
         </View>
       )}
 
@@ -563,6 +636,22 @@ export default function SkinScreen() {
         </View>
       )}
 
+      {/* ══════════════ PHOTOS TAB ══════════════ */}
+      {activeSection === 'photos' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📸 Skin Progress</Text>
+          <View style={styles.sectionGap}>
+            <SkinPhotoCapture
+              onCapture={async (file: File, notes: string, angle: NonNullable<SkinPhoto['angle']>) => {
+                await addPhoto({ photoFile: file, notes, angle });
+              }}
+              uploading={photoUploading}
+            />
+          </View>
+          <SkinPhotoGallery photos={skinPhotos} onDelete={deleteSkinPhoto} />
+        </View>
+      )}
+
       {/* ══════════════ PRODUCTS TAB ══════════════ */}
       {activeSection === 'products' && (
         <View style={styles.section}>
@@ -691,6 +780,89 @@ export default function SkinScreen() {
           </Modal>
         </View>
       )}
+      {/* ══════════════ PLAN TAB ══════════════ */}
+      {activeSection === 'plan' && (
+        <View style={styles.section}>
+          {planLoading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading plan...</Text>
+            </View>
+          ) : !skinPlan ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyEmoji}>📋</Text>
+              <Text style={styles.emptyText}>No active skin plan</Text>
+              <Text style={styles.emptySubtext}>
+                A personalized plan will appear here
+              </Text>
+            </View>
+          ) : (
+            <>
+              {/* Calendar toggle */}
+              <View style={styles.planHeaderRow}>
+                <Text style={styles.sectionTitle}>{skinPlan.planName}</Text>
+                <TouchableOpacity
+                  style={styles.calendarToggle}
+                  onPress={() => setShowCalendar(!showCalendar)}
+                >
+                  <Text style={styles.calendarToggleText}>
+                    {showCalendar ? '📋 Plan' : '📅 Calendar'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {showCalendar ? (
+                <RoutineCalendar activePhase={skinPlan.phases[skinPlan.activePhaseIndex]} />
+              ) : (
+                <>
+                  <View style={styles.sectionGap}>
+                    <PhaseTimeline
+                      phases={skinPlan.phases}
+                      activePhaseIndex={skinPlan.activePhaseIndex}
+                      progress={getPhaseProgress(skinPlan)}
+                    />
+                  </View>
+
+                  <DailyRoutineCard
+                    amSteps={getTodayRoutine(skinPlan).am}
+                    pmSteps={getTodayRoutine(skinPlan).pm}
+                    phaseStartDate={skinPlan.phases[skinPlan.activePhaseIndex]?.startDate ?? null}
+                  />
+
+                  {/* Phase advance button */}
+                  {skinPlan.activePhaseIndex < skinPlan.phases.length - 1 && (
+                    <View style={styles.advanceBtnWrap}>
+                      <TouchableOpacity
+                        style={styles.advanceBtn}
+                        onPress={() => setShowPhaseModal(true)}
+                      >
+                        <Text style={styles.advanceBtnText}>
+                          🎯 Ready for next phase?
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              )}
+
+              {/* Phase transition modal */}
+              <PhaseTransitionModal
+                visible={showPhaseModal}
+                currentPhase={skinPlan.phases[skinPlan.activePhaseIndex]}
+                nextPhase={
+                  skinPlan.activePhaseIndex < skinPlan.phases.length - 1
+                    ? skinPlan.phases[skinPlan.activePhaseIndex + 1]
+                    : null
+                }
+                onAdvance={async () => {
+                  await advancePhase();
+                  setShowPhaseModal(false);
+                }}
+                onStay={() => setShowPhaseModal(false)}
+              />
+            </>
+          )}
+        </View>
+      )}
     </ScreenWrapper>
     <AskOraionFAB onPress={() => setAskOraionVisible(true)} />
     <AskOraionModal visible={askOraionVisible} onClose={() => setAskOraionVisible(false)} />
@@ -773,16 +945,18 @@ const styles = StyleSheet.create({
   tabRow: {
     flexDirection: 'row',
     marginBottom: Spacing.lg,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   tabBtn: {
     flex: 1,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: 2,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.cardBackground,
     borderWidth: 1,
     borderColor: Colors.tabBarBorder,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   tabBtnActive: {
     backgroundColor: Colors.purple,
@@ -790,7 +964,7 @@ const styles = StyleSheet.create({
   },
   tabBtnText: {
     fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyMd,
+    fontSize: FontSizes.bodySm,
     color: Colors.textSecondary,
   },
   tabBtnTextActive: {
@@ -1133,6 +1307,60 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
 
+  // Up Next
+  upNextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  upNextText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  upNextTextDone: {
+    color: Colors.textMuted,
+    textDecorationLine: 'line-through',
+  },
+  upNextRemove: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+    padding: Spacing.xs,
+  },
+  upNextInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  upNextInput: {
+    flex: 1,
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    padding: Spacing.sm,
+    color: Colors.textPrimary,
+  },
+  upNextAddBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.purple,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upNextAddText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textOnDark,
+  },
+
   // Products
   productGroup: {
     marginBottom: Spacing.lg,
@@ -1250,5 +1478,43 @@ const styles = StyleSheet.create({
     borderColor: Colors.tabBarBorder,
     padding: Spacing.md,
     color: Colors.textPrimary,
+  },
+
+  // Plan tab
+  planHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  calendarToggle: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+  },
+  calendarToggleText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.purple,
+  },
+  advanceBtnWrap: {
+    marginTop: Spacing.lg,
+    alignItems: 'center',
+  },
+  advanceBtn: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(124, 77, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: Colors.purple,
+  },
+  advanceBtnText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.purple,
   },
 });

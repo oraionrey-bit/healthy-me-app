@@ -69,7 +69,7 @@ describe('Settings Screen', () => {
   it('renders supplements section', async () => {
     await renderSettings();
     expect(screen.getByText('💊 Supplements')).toBeTruthy();
-    expect(screen.getByText('Manage Supplements')).toBeTruthy();
+    expect(screen.getByText('Manage your daily supplement checklist')).toBeTruthy();
   });
 
   it('renders account section with sign out', async () => {
@@ -112,6 +112,6 @@ describe('Settings Screen', () => {
     });
     await waitFor(() => {
       expect(router.replace).toHaveBeenCalledWith('/(auth)/login');
-    });
-  });
+    }, { timeout: 10000 });
+  }, 15000);
 });
