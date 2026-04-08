@@ -18,6 +18,7 @@ import { useAuth } from '../../lib/auth';
 import { useFoodLog } from '../../hooks/use-food-log';
 import { useFoodCalendar } from '../../hooks/use-food-calendar';
 import { useUserProfile } from '../../hooks/use-user-profile';
+import { useSavedMeals } from '../../hooks/use-saved-meals';
 import { usePersonalFoods } from '../../hooks/use-personal-foods';
 import { usePantry } from '../../hooks/use-pantry';
 import { PantrySection } from '../../components/food/pantry-section';
@@ -331,8 +332,10 @@ export default function FoodScreen() {
   const [quickAddSaving, setQuickAddSaving] = useState(false);
 
   const calendar = useFoodCalendar();
-  const { searchFoods, autoSaveFromAnalysis, updateFromUserEdit } = usePersonalFoods();
-  const { pantryItems } = usePantry();
+  const { savedMeals, saveMeal, logSavedMeal, deleteSavedMeal } = useSavedMeals();
+  const { searchFoods, recentFoods, frequentFoods, autoSaveFromAnalysis, updateFromUserEdit } = usePersonalFoods();
+  const { pantryItems, loading: pantryLoading, addToPantry, removeFromPantry, logFromPantry } = usePantry();
+  const [favSaved, setFavSaved] = useState(false);
   const prevEntriesRef = useRef<FoodLog[]>([]);
 
   const dateKey = toDateKey(currentDate);
@@ -684,7 +687,86 @@ export default function FoodScreen() {
       {!calendarOpen && !showTrends && (
         <PantrySection
           items={pantryItems}
+          loading={pantryLoading}
+          onLogItem={async (meal) => {
+            await logFromPantry(meal, dateKey);
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 2000);
+          }}
+          onRemoveItem={(id) => removeFromPantry(id)}
+          onAddItem={(meal) => addToPantry(meal)}
         />
+      )}
+
+      {/* Favorites Section */}
+      {savedMeals.length > 0 && (
+        <PixelCard style={styles.favoritesCard}>
+          <Text style={styles.favoritesTitle}>⭐ Favorites</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.favoritesScroll}>
+            <View style={styles.favoritesRow}>
+              {savedMeals.map((meal) => (
+                <TouchableOpacity
+                  key={meal.id}
+                  style={styles.favoriteChip}
+                  onPress={async () => {
+                    await logSavedMeal(meal.id, dateKey);
+                    setShowSuccess(true);
+                    setTimeout(() => setShowSuccess(false), 2000);
+                  }}
+                  onLongPress={() => deleteSavedMeal(meal.id)}
+                  activeOpacity={0.7}
+                >
+                  {meal.meal_type && (
+                    <Image source={MEAL_ICON_MAP[meal.meal_type]} style={styles.favChipIcon} />
+                  )}
+                  <View style={styles.favChipContent}>
+                    <Text style={styles.favChipName} numberOfLines={1}>{meal.name}</Text>
+                    <Text style={styles.favChipMacros}>
+                      {meal.calories ?? 0} cal · {meal.protein ?? 0}g P
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+          <Text style={styles.favoritesHint}>Tap to log · Long press to remove</Text>
+        </PixelCard>
+      )}
+
+      {savedMeals.length === 0 && entries.length > 0 && (
+        <View style={styles.favHintWrap}>
+          <Text style={styles.favHintText}>💡 Your foods auto-save after AI analysis for quick re-logging!</Text>
+        </View>
+      )}
+
+      {/* Recent Foods Quick Re-log */}
+      {recentFoods.length > 0 && !calendarOpen && !showTrends && (
+        <PixelCard style={styles.favoritesCard}>
+          <Text style={styles.favoritesTitle}>🕐 Recent</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.favoritesScroll}>
+            <View style={styles.favoritesRow}>
+              {recentFoods.slice(0, 6).map((meal) => (
+                <TouchableOpacity
+                  key={`recent-${meal.id}`}
+                  style={styles.recentChip}
+                  onPress={() => handleSelectPersonalFood(meal)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.recentChipName} numberOfLines={1}>{meal.name}</Text>
+                  <Text style={styles.recentChipCal}>{meal.calories ?? 0} cal</Text>
+                  {meal.source === 'ai_analyzed' && <Text style={styles.recentAiBadge}>🤖</Text>}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </PixelCard>
+      )}
+
+      {/* Fav saved toast */}
+      {favSaved && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>⭐ Saved to favorites!</Text>
+        </View>
       )}
 
       {/* Quick Add with Auto-Suggest */}
@@ -868,7 +950,11 @@ export default function FoodScreen() {
                       updateFromUserEdit({ ...entry, ...updates, user_edited: true } as FoodLog);
                     }}
                     onAddLeftovers={(file) => addLeftoversPhoto(entry.id, file)}
-                    onSaveAsFavorite={() => {}}
+                    onSaveAsFavorite={async () => {
+                      await saveMeal(entry);
+                      setFavSaved(true);
+                      setTimeout(() => setFavSaved(false), 2000);
+                    }}
                   />
                 ))}
               </View>
@@ -1365,6 +1451,103 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   // Favorites section
+  favoritesCard: {
+    marginBottom: Spacing.md,
+  },
+  favoritesTitle: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.purple,
+    marginBottom: Spacing.sm,
+  },
+  favoritesScroll: {
+    flexGrow: 0,
+  },
+  favoritesRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  favoriteChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.softPurple,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.purple,
+    minWidth: 140,
+    maxWidth: 200,
+    gap: Spacing.sm,
+  },
+  favChipIcon: {
+    width: 20,
+    height: 20,
+  },
+  favChipContent: {
+    flex: 1,
+  },
+  favChipName: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
+  },
+  favChipMacros: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  favoritesHint: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+    marginTop: Spacing.xs,
+  },
+  favHintWrap: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.cream,
+    borderRadius: BorderRadius.md,
+  },
+  favHintText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  // Recent foods section
+  recentChip: {
+    backgroundColor: Colors.cream,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+    minWidth: 100,
+    maxWidth: 160,
+    alignItems: 'center',
+  },
+  recentChipName: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  recentChipCal: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  recentAiBadge: {
+    fontSize: 8,
+    position: 'absolute',
+    top: 2,
+    right: 4,
+  },
   // Star button on entry
   starBtn: {
     width: 28,
