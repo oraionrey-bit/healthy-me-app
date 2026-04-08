@@ -9,6 +9,7 @@ import {
   Modal,
   ActivityIndicator,
   Image,
+  Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -355,7 +356,7 @@ export default function SkinScreen() {
 
   // ── Active section (tab-like) ──
   const [activeSection, setActiveSection] = useState<
-    'routine' | 'journal' | 'photos' | 'products' | 'plan'
+    'routine' | 'journal' | 'products' | 'plan'
   >('routine');
 
   // ── Up Next ──
@@ -562,7 +563,6 @@ export default function SkinScreen() {
           [
             { key: 'routine', label: 'Routine' },
             { key: 'journal', label: 'Journal' },
-            { key: 'photos', label: 'Photos' },
             { key: 'products', label: 'Products' },
             { key: 'plan', label: pendingCount > 0 ? `Plan (${pendingCount})` : 'Plan' },
           ] as const
@@ -890,13 +890,11 @@ export default function SkinScreen() {
               </View>
             )
           )}
-        </View>
-      )}
 
-      {/* ══════════════ PHOTOS TAB ══════════════ */}
-      {activeSection === 'photos' && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📸 Skin Progress</Text>
+          {/* ── Photos section (integrated) ── */}
+          <View style={styles.sectionGap}>
+            <Text style={styles.sectionTitle}>📸 Skin Progress</Text>
+          </View>
           <View style={styles.sectionGap}>
             <SkinPhotoCapture
               onCapture={async (file: File, notes: string, angle: NonNullable<SkinPhoto['angle']>) => {
@@ -936,6 +934,7 @@ export default function SkinScreen() {
                     onStatusChange={(s) => updateProductStatus(p.id, s)}
                     onLogUsage={(rating, note) => logProductUsage(p.id, rating, note)}
                     onViewDetail={() => setDetailProductId(p.id)}
+                    onDelete={() => deleteProduct(p.id)}
                   />
                 ))}
               </View>
@@ -956,6 +955,7 @@ export default function SkinScreen() {
                     onStatusChange={(s) => updateProductStatus(p.id, s)}
                     onLogUsage={(rating, note) => logProductUsage(p.id, rating, note)}
                     onViewDetail={() => setDetailProductId(p.id)}
+                    onDelete={() => deleteProduct(p.id)}
                   />
                 ))}
               </View>
@@ -976,6 +976,7 @@ export default function SkinScreen() {
                     onStatusChange={(s) => updateProductStatus(p.id, s)}
                     onLogUsage={(rating, note) => logProductUsage(p.id, rating, note)}
                     onViewDetail={() => setDetailProductId(p.id)}
+                    onDelete={() => deleteProduct(p.id)}
                   />
                 ))}
               </View>
@@ -1399,6 +1400,7 @@ function ProductRow({
   onStatusChange,
   onLogUsage,
   onViewDetail,
+  onDelete,
 }: {
   product: SkincareProduct;
   todayUsage?: ProductUsageEntry;
@@ -1406,6 +1408,7 @@ function ProductRow({
   onStatusChange: (s: ProductStatus) => void;
   onLogUsage: (rating: ReactionRating, note?: string) => void;
   onViewDetail: () => void;
+  onDelete: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [reactionNote, setReactionNote] = useState('');
@@ -1491,6 +1494,24 @@ function ProductRow({
               <Text style={styles.viewHistoryText}>📊 View History ({usageCount})</Text>
             </TouchableOpacity>
           )}
+
+          {/* Delete product */}
+          <TouchableOpacity
+            onPress={() => {
+              Alert.alert(
+                'Remove Product',
+                `Remove "${name}" from your products?`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Remove', style: 'destructive', onPress: onDelete },
+                ],
+              );
+            }}
+            style={styles.inlineDeleteBtn}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.inlineDeleteText}>🗑 Remove</Text>
+          </TouchableOpacity>
         </View>
       )}
     </PixelCard>
@@ -2338,6 +2359,18 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.tabBarBorder,
   },
   deleteProductText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.error,
+  },
+  inlineDeleteBtn: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: Colors.tabBarBorder,
+  },
+  inlineDeleteText: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodySm,
     color: Colors.error,
