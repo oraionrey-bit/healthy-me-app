@@ -74,6 +74,28 @@ export interface TesterSummary {
   suggestion: 'consider-safe' | 'consider-trigger' | null;
 }
 
+export interface SkincareLogEntry {
+  log_date: string;
+  products_used: string[];
+  am_routine_done: boolean;
+  pm_routine_done: boolean;
+  am_steps_completed: string[];
+  pm_steps_completed: string[];
+  skin_score: number | null;
+  breakouts: 'none' | 'mild' | 'moderate' | 'severe' | null;
+  breakout_locations: string[];
+  dryness: 'none' | 'low' | 'medium' | 'high' | null;
+  oiliness: 'none' | 'low' | 'medium' | 'high' | null;
+  sensitivity: 'none' | 'mild' | 'moderate' | 'severe' | null;
+  texture: 'smooth' | 'rough' | 'bumpy' | 'flaky' | null;
+  testing_product: string | null;
+  test_reaction: 'none' | 'mild' | 'moderate' | 'severe' | null;
+  test_day: number | null;
+  cycle_day: number | null;
+  photo_urls: string[];
+  notes: string | null;
+}
+
 export interface SkinData {
   products: SkincareProduct[];
   routineSteps: RoutineStep[];
@@ -671,6 +693,95 @@ export function useSkincare() {
     })
     .sort((a, b) => b.dayCount - a.dayCount); // longest testing first
 
+  // ── Skincare Log (new table) ──
+
+  const [skincareLog, setSkincareLog] = useState<SkincareLogEntry | null>(null);
+
+  // Fetch today's skincare log
+  const fetchSkincareLog = useCallback(async () => {
+    if (!user) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase.from('skincare_logs') as any)
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('log_date', today)
+      .maybeSingle();
+    if (data) setSkincareLog(data);
+  }, [user, today]);
+
+  useEffect(() => { fetchSkincareLog(); }, [fetchSkincareLog]);
+
+  // Save/update today's skincare log
+  const saveSkincareLog = useCallback(
+    async (entry: Partial<SkincareLogEntry>) => {
+      if (!user) return;
+
+      // Build the products_used from today's routine checks
+      const usedProducts = skinData.products
+        .filter(p => {
+          const usageToday = p.usageLog?.find(e => e.date === today);
+          return usageToday != null;
+        })
+        .map(p => p.name);
+
+      // Build routine completion from checks
+      const amCompleted = amSteps.filter(s => isStepDone(`am-${s.id}`)).map(s => s.productName);
+      const pmCompleted = pmSteps.filter(s => isStepDone(`pm-${s.id}`)).map(s => s.productName);
+      const AM_THRESHOLD = 0.8;
+      const PM_THRESHOLD = 0.8;
+
+      const fullEntry = {
+        user_id: user.id,
+        log_date: today,
+        products_used: usedProducts,
+        am_routine_done: amSteps.length > 0 && amCompleted.length / amSteps.length >= AM_THRESHOLD,
+        pm_routine_done: pmSteps.length > 0 && pmCompleted.length / pmSteps.length >= PM_THRESHOLD,
+        am_steps_completed: amCompleted,
+        pm_steps_completed: pmCompleted,
+        ...entry,
+        updated_at: new Date().toISOString(),
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: existing } = await (supabase.from('skincare_logs') as any)
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('log_date', today)
+        .maybeSingle();
+
+      if (existing) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('skincare_logs') as any)
+          .update(fullEntry)
+          .eq('id', existing.id);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('skincare_logs') as any)
+          .insert(fullEntry);
+      }
+
+      setSkincareLog(fullEntry as SkincareLogEntry);
+    },
+    [user, today, skinData, amSteps, pmSteps, isStepDone],
+  );
+
+  // Fetch skincare log history for trends
+  const fetchSkincareHistory = useCallback(
+    async (days: number = 30): Promise<SkincareLogEntry[]> => {
+      if (!user) return [];
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase.from('skincare_logs') as any)
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('log_date', toDateKey(startDate))
+        .order('log_date', { ascending: false });
+      return data ?? [];
+    },
+    [user],
+  );
+
   return {
     skinData,
     loading,
@@ -710,6 +821,10 @@ export function useSkincare() {
     // Analytics
     routineInsights,
     testerSummaries,
+    // Skincare Log (daily tracking table)
+    skincareLog,
+    saveSkincareLog,
+    fetchSkincareHistory,
     // Refresh
     refetch: fetchSkinData,
   };
