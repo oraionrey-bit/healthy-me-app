@@ -226,7 +226,14 @@ exports[`Snapshot: Food Screen matches snapshot 1`] = `
               class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93"
               dir="auto"
             >
-              🏪 My Pantry
+              <div
+                class="css-view-g5y9jx r-flexBasis-1mlwlqe r-overflow-1udh08x r-zIndex-417010 r-display-xoduu5 r-height-1hjwoze r-width-12ym1je"
+              >
+                <div
+                  class="css-view-g5y9jx r-display-xoduu5 r-backgroundColor-1niwhzg r-backgroundPosition-vvn4in r-backgroundRepeat-u6sd8q r-bottom-1p0dtai r-height-1pi2tsx r-left-1d2f490 r-position-u8s1d r-right-zchlnj r-top-ipm5af r-width-13qz1uu r-zIndex-1wyyakw r-backgroundSize-4gszlv"
+                />
+              </div>
+               My Pantry
             </div>
             <div
               class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
@@ -415,7 +422,7 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
               class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst r-marginBottom-5oul0u"
               dir="auto"
             >
-              🩸 Period Tracker
+              Period Tracker
             </div>
             <div
               class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-zo2zu6"
@@ -424,7 +431,7 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                 class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-textAlign-q4m81j"
                 dir="auto"
               >
-                Tap a day to start tracking your period 🩸
+                Tap a day to start tracking your period
               </div>
             </div>
             <div
@@ -1568,7 +1575,14 @@ exports[`Snapshot: PantrySection matches snapshot 1`] = `
         class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93"
         dir="auto"
       >
-        🏪 My Pantry
+        <div
+          class="css-view-g5y9jx r-flexBasis-1mlwlqe r-overflow-1udh08x r-zIndex-417010 r-display-xoduu5 r-height-1hjwoze r-width-12ym1je"
+        >
+          <div
+            class="css-view-g5y9jx r-display-xoduu5 r-backgroundColor-1niwhzg r-backgroundPosition-vvn4in r-backgroundRepeat-u6sd8q r-bottom-1p0dtai r-height-1pi2tsx r-left-1d2f490 r-position-u8s1d r-right-zchlnj r-top-ipm5af r-width-13qz1uu r-zIndex-1wyyakw r-backgroundSize-4gszlv"
+          />
+        </div>
+         My Pantry
       </div>
       <div
         class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"

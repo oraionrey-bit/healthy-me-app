@@ -7,6 +7,7 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { PixelCard } from '../ui/pixel-card';
 import { PixelButton } from '../ui/pixel-button';
@@ -69,7 +70,7 @@ export function PantrySection({ items, loading, onLogItem, onRemoveItem, onAddIt
   if (loading) {
     return (
       <PixelCard style={styles.card}>
-        <Text style={styles.title}>{'🏪 My Pantry'}</Text>
+        <Text style={styles.title}><Image source={require('../../../assets/images/icons/pantry.png')} style={styles.pantryIcon} />{' My Pantry'}</Text>
         <ActivityIndicator color={Colors.purple} style={styles.loader} />
       </PixelCard>
     );
@@ -78,7 +79,7 @@ export function PantrySection({ items, loading, onLogItem, onRemoveItem, onAddIt
   return (
     <PixelCard style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>{'🏪 My Pantry'}</Text>
+        <Text style={styles.title}><Image source={require('../../../assets/images/icons/pantry.png')} style={styles.pantryIcon} />{' My Pantry'}</Text>
         <TouchableOpacity onPress={() => setShowForm(!showForm)} activeOpacity={0.7}>
           <Text style={styles.addToggle}>{showForm ? '✕' : '+ Add'}</Text>
         </TouchableOpacity>
@@ -206,6 +207,10 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
     color: Colors.textPrimary,
+  },
+  pantryIcon: {
+    width: 18,
+    height: 18,
   },
   addToggle: {
     fontFamily: Fonts.body,

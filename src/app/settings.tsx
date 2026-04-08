@@ -6,6 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
+  ImageSourcePropType,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -20,6 +22,17 @@ import { useExportData } from '../hooks/use-export-data';
 import { WeightEntry } from '../components/health/weight-entry';
 import { useWeight } from '../hooks/use-weight';
 
+// Pixel art icons for section headers
+const SECTION_ICONS: Record<string, ImageSourcePropType> = {
+  profile: require('../../assets/images/icons/profile.png'),
+  target: require('../../assets/images/icons/target.png'),
+  pill: require('../../assets/images/icons/pill.png'),
+  ring: require('../../assets/images/icons/ring.png'),
+  scale: require('../../assets/images/icons/scale.png'),
+  chart: require('../../assets/images/icons/chart.png'),
+  lock: require('../../assets/images/icons/lock.png'),
+};
+
 const PCOS_TYPE_LABELS: Record<string, string> = {
   insulin_resistant: 'Insulin Resistant',
   post_pill: 'Post-Pill',
@@ -30,14 +43,21 @@ const PCOS_TYPE_LABELS: Record<string, string> = {
 
 function SettingsSection({
   title,
+  icon,
   children,
 }: {
   title: string;
+  icon?: ImageSourcePropType;
   children: React.ReactNode;
 }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionTitleRow}>
+        {icon && (
+          <Image source={icon} style={styles.sectionIcon} />
+        )}
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
       <View style={styles.sectionCard}>{children}</View>
     </View>
   );
@@ -126,7 +146,7 @@ export default function SettingsScreen() {
           </View>
 
           {/* Profile */}
-          <SettingsSection title="👤 Profile">
+          <SettingsSection title="Profile" icon={SECTION_ICONS.profile}>
             <InfoRow label="Name" value={profile?.display_name} />
             <InfoRow label="Email" value={user?.email} />
             <InfoRow label="Health Focus" value={profile?.health_condition === 'pcos' ? 'PCOS' : profile?.health_condition ?? 'General'} />
@@ -146,7 +166,7 @@ export default function SettingsScreen() {
           </SettingsSection>
 
           {/* Targets */}
-          <SettingsSection title="🎯 Targets">
+          <SettingsSection title="Targets" icon={SECTION_ICONS.target}>
             <InfoRow
               label="Calorie Target"
               value={profile?.calorie_target ? `${profile.calorie_target} cal` : null}
@@ -166,7 +186,7 @@ export default function SettingsScreen() {
           </SettingsSection>
 
           {/* Supplements */}
-          <SettingsSection title="💊 Supplements">
+          <SettingsSection title="Supplements" icon={SECTION_ICONS.pill}>
             <Text style={styles.sectionDescription}>
               Manage your daily supplement checklist
             </Text>
@@ -180,7 +200,7 @@ export default function SettingsScreen() {
           </SettingsSection>
 
           {/* Oura Ring */}
-          <SettingsSection title="💍 Oura Ring">
+          <SettingsSection title="Oura Ring" icon={SECTION_ICONS.ring}>
             {ouraLoading ? (
               <ActivityIndicator color={Colors.purple} />
             ) : ouraConnected ? (
@@ -221,7 +241,7 @@ export default function SettingsScreen() {
           </SettingsSection>
 
           {/* Weight */}
-          <SettingsSection title="⚖️ Weight">
+          <SettingsSection title="Weight" icon={SECTION_ICONS.scale}>
             <Text style={styles.sectionDescription}>
               Log your daily weight to track progress over time.
             </Text>
@@ -245,7 +265,7 @@ export default function SettingsScreen() {
           </SettingsSection>
 
           {/* Data */}
-          <SettingsSection title="📊 Data">
+          <SettingsSection title="Data" icon={SECTION_ICONS.chart}>
             <Text style={styles.sectionDescription}>
               Export your health data from the last 30 days as a CSV file.
             </Text>
@@ -269,7 +289,7 @@ export default function SettingsScreen() {
           </SettingsSection>
 
           {/* Account */}
-          <SettingsSection title="🔒 Account">
+          <SettingsSection title="Account" icon={SECTION_ICONS.lock}>
             <InfoRow label="Email" value={user?.email} />
             <View style={styles.editButtonWrap}>
               <PixelButton
@@ -343,11 +363,20 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  sectionIcon: {
+    width: 20,
+    height: 20,
+    marginRight: Spacing.xs,
+  },
   sectionTitle: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyLg,
     color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
   },
   sectionCard: {
     backgroundColor: Colors.cardBackground,

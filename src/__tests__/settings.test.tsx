@@ -37,7 +37,7 @@ describe('Settings Screen', () => {
 
   it('renders profile section with user name', async () => {
     await renderSettings();
-    expect(screen.getByText('👤 Profile')).toBeTruthy();
+    expect(screen.getByText('Profile')).toBeTruthy();
     expect(screen.getByText('Tina')).toBeTruthy();
   });
 
@@ -60,7 +60,7 @@ describe('Settings Screen', () => {
 
   it('renders targets section', async () => {
     await renderSettings();
-    expect(screen.getByText('🎯 Targets')).toBeTruthy();
+    expect(screen.getByText('Targets')).toBeTruthy();
     expect(screen.getByText('1500 cal')).toBeTruthy();
     expect(screen.getByText('80g')).toBeTruthy();
     expect(screen.getByText('125 lbs')).toBeTruthy();
@@ -68,13 +68,13 @@ describe('Settings Screen', () => {
 
   it('renders supplements section', async () => {
     await renderSettings();
-    expect(screen.getByText('💊 Supplements')).toBeTruthy();
+    expect(screen.getByText('Supplements')).toBeTruthy();
     expect(screen.getByText('Manage your daily supplement checklist')).toBeTruthy();
   });
 
   it('renders account section with sign out', async () => {
     await renderSettings();
-    expect(screen.getByText('🔒 Account')).toBeTruthy();
+    expect(screen.getByText('Account')).toBeTruthy();
     expect(screen.getByText('Sign Out')).toBeTruthy();
   });
 

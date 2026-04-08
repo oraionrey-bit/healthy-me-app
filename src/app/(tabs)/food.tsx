@@ -223,7 +223,7 @@ function FoodEntry({
                   entry.meal_type === meal.key && styles.editPillTextActive,
                 ]}
               >
-                {meal.emoji} {meal.label}
+                {meal.label}
               </Text>
             </TouchableOpacity>
           ))}
@@ -701,7 +701,10 @@ export default function FoodScreen() {
       {/* Favorites Section */}
       {savedMeals.length > 0 && (
         <PixelCard style={styles.favoritesCard}>
-          <Text style={styles.favoritesTitle}>⭐ Favorites</Text>
+          <View style={styles.favoritesTitleRow}>
+            <Image source={require('../../../assets/images/icons/star.png')} style={styles.favoritesTitleIcon} />
+            <Text style={styles.favoritesTitle}>Favorites</Text>
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.favoritesScroll}>
             <View style={styles.favoritesRow}>
               {savedMeals.map((meal) => (
@@ -934,9 +937,12 @@ export default function FoodScreen() {
         <View style={styles.entriesSection}>
           {groupedEntries.map((group) => (
             <View key={group.key} style={styles.mealGroup}>
-              <Text style={styles.groupTitle}>
-                {group.emoji} {group.label}
-              </Text>
+              <View style={styles.groupTitleRow}>
+                <Image source={MEAL_ICON_MAP[group.key]} style={styles.groupTitleIcon} />
+                <Text style={styles.groupTitle}>
+                  {group.label}
+                </Text>
+              </View>
               <View style={styles.entriesGap}>
                 {group.items.map((entry) => (
                   <FoodEntry
@@ -1261,11 +1267,20 @@ const styles = StyleSheet.create({
   mealGroup: {
     marginBottom: Spacing.lg,
   },
+  groupTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  groupTitleIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 6,
+  },
   groupTitle: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
     color: Colors.purple,
-    marginBottom: Spacing.sm,
   },
   entriesGap: {
     gap: Spacing.sm,
@@ -1454,11 +1469,20 @@ const styles = StyleSheet.create({
   favoritesCard: {
     marginBottom: Spacing.md,
   },
+  favoritesTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  favoritesTitleIcon: {
+    width: 18,
+    height: 18,
+    marginRight: 6,
+  },
   favoritesTitle: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
     color: Colors.purple,
-    marginBottom: Spacing.sm,
   },
   favoritesScroll: {
     flexGrow: 0,
