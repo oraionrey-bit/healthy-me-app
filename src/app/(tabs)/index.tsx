@@ -265,6 +265,7 @@ export default function HomeScreen() {
     loading: supplementsLoading,
     isSupplementTaken,
     toggleSupplement,
+    addSupplement,
   } = useSupplements(suppDate);
   const { mood: savedMood, energy: savedEnergy, saveMoodEnergy } = useMoodEnergy();
   const { symptomLogs, addSymptom, removeSymptom, updateSymptomLog } = useSymptomLog();
@@ -284,6 +285,27 @@ export default function HomeScreen() {
   }, [ouraToday, lastSynced]);
   const { data: weeklyInsights } = useWeeklyInsights();
   const [showInsights, setShowInsights] = useState(false);
+
+  // Quick-add supplement state
+  const [suppQuickAdd, setSuppQuickAdd] = useState(false);
+  const [suppName, setSuppName] = useState('');
+  const [suppDosage, setSuppDosage] = useState('');
+  const [suppTime, setSuppTime] = useState('morning');
+  const [suppSaving, setSuppSaving] = useState(false);
+
+  const handleQuickAddSupplement = async () => {
+    if (!suppName.trim()) return;
+    setSuppSaving(true);
+    try {
+      await addSupplement(suppName.trim(), suppDosage.trim(), suppTime);
+      setSuppName('');
+      setSuppDosage('');
+      setSuppTime('morning');
+      setSuppQuickAdd(false);
+    } finally {
+      setSuppSaving(false);
+    }
+  };
 
   // Check-in state
   const [checkinOpen, setCheckinOpen] = useState(false);
@@ -837,6 +859,78 @@ export default function HomeScreen() {
                       isChecked={isSupplementTaken}
                       onToggle={toggleSupplement}
                     />
+
+                    {suppQuickAdd ? (
+                      <View style={styles.quickAddForm}>
+                        <TextInput
+                          style={styles.quickAddInput}
+                          value={suppName}
+                          onChangeText={setSuppName}
+                          placeholder="Name (e.g. Vitamin D)"
+                          placeholderTextColor={Colors.textMuted}
+                          autoFocus
+                        />
+                        <TextInput
+                          style={styles.quickAddInput}
+                          value={suppDosage}
+                          onChangeText={setSuppDosage}
+                          placeholder="Dosage (e.g. 500mg)"
+                          placeholderTextColor={Colors.textMuted}
+                        />
+                        <View style={styles.quickAddTimeRow}>
+                          <TouchableOpacity
+                            style={[styles.quickAddTimePill, suppTime === 'morning' && styles.quickAddTimePillActive]}
+                            onPress={() => setSuppTime('morning')}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[styles.quickAddTimePillText, suppTime === 'morning' && styles.quickAddTimePillTextActive]}>
+                              ☀️ Morning
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.quickAddTimePill, suppTime === 'evening' && styles.quickAddTimePillActive]}
+                            onPress={() => setSuppTime('evening')}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[styles.quickAddTimePillText, suppTime === 'evening' && styles.quickAddTimePillTextActive]}>
+                              🌙 Evening
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                        <View style={styles.quickAddButtons}>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setSuppQuickAdd(false);
+                              setSuppName('');
+                              setSuppDosage('');
+                              setSuppTime('morning');
+                            }}
+                            style={styles.quickAddCancel}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.quickAddCancelText}>Cancel</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={handleQuickAddSupplement}
+                            disabled={suppSaving || !suppName.trim()}
+                            style={[styles.quickAddSave, (!suppName.trim() || suppSaving) && styles.quickAddSaveDisabled]}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.quickAddSaveText}>
+                              {suppSaving ? 'Adding...' : 'Add'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={() => setSuppQuickAdd(true)}
+                        style={styles.quickAddTrigger}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.quickAddTriggerText}>+ Add</Text>
+                      </TouchableOpacity>
+                    )}
                   </>
                 )}
             </View>
@@ -1621,6 +1715,96 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   severityDotTextActive: {
+    color: Colors.textOnDark,
+  },
+
+  // Quick-add supplement
+  quickAddTrigger: {
+    marginTop: Spacing.sm,
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.purple,
+    backgroundColor: 'transparent',
+  },
+  quickAddTriggerText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.purple,
+  },
+  quickAddForm: {
+    marginTop: Spacing.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+  },
+  quickAddInput: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
+    backgroundColor: Colors.cardBackground,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    padding: Spacing.sm,
+  },
+  quickAddTimeRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  quickAddTimePill: {
+    flex: 1,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    alignItems: 'center',
+  },
+  quickAddTimePillActive: {
+    backgroundColor: Colors.purple,
+    borderColor: Colors.purple,
+  },
+  quickAddTimePillText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textSecondary,
+  },
+  quickAddTimePillTextActive: {
+    color: Colors.textOnDark,
+  },
+  quickAddButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  quickAddCancel: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+  },
+  quickAddCancelText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+  },
+  quickAddSave: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.purple,
+    borderRadius: BorderRadius.full,
+  },
+  quickAddSaveDisabled: {
+    opacity: 0.4,
+  },
+  quickAddSaveText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
     color: Colors.textOnDark,
   },
 
