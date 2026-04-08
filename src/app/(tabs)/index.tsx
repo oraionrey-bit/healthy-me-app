@@ -677,7 +677,12 @@ export default function HomeScreen() {
 
 
             {/* Calorie Balance */}
-            <CalorieBalanceCard />
+            <CalorieBalanceCard
+              calories={totals.calories}
+              calorieTarget={calorieTarget}
+              protein={totals.protein}
+              proteinTarget={proteinTarget}
+            />
 
             {/* Weekly Summary */}
             {weeklySummary && weeklySummary.daysTracked > 0 && (
