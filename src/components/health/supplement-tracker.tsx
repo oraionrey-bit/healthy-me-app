@@ -39,9 +39,26 @@ function SupplementForm({
 }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [dosage, setDosage] = useState(initial?.dosage ?? '');
-  const [timeOfDay, setTimeOfDay] = useState(initial?.timeOfDay ?? 'morning');
+  const [selectedTimes, setSelectedTimes] = useState<Set<string>>(() => {
+    const initialTod = initial?.timeOfDay ?? 'morning';
+    return new Set(initialTod.split(','));
+  });
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [saving, setSaving] = useState(false);
+
+  const toggleTime = (value: string) => {
+    setSelectedTimes((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) {
+        if (next.size > 1) next.delete(value);
+      } else {
+        next.add(value);
+      }
+      return next;
+    });
+  };
+
+  const timeOfDay = ['morning', 'evening'].filter((t) => selectedTimes.has(t)).join(',');
 
   const handleSubmit = async () => {
     if (!name.trim()) return;
@@ -81,11 +98,11 @@ function SupplementForm({
           {TIME_OPTIONS.map((opt) => (
             <TouchableOpacity
               key={opt.value}
-              style={[styles.timePill, timeOfDay === opt.value && styles.timePillActive]}
-              onPress={() => setTimeOfDay(opt.value)}
+              style={[styles.timePill, selectedTimes.has(opt.value) && styles.timePillActive]}
+              onPress={() => toggleTime(opt.value)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.timePillText, timeOfDay === opt.value && styles.timePillTextActive]}>
+              <Text style={[styles.timePillText, selectedTimes.has(opt.value) && styles.timePillTextActive]}>
                 {opt.label}
               </Text>
             </TouchableOpacity>
@@ -163,8 +180,8 @@ function SupplementRow({
         <View style={styles.suppInfo}>
           <Text style={styles.suppName}>{supplement.supplement_name}</Text>
           <Text style={styles.suppMeta}>
-            {supplement.dosage ?? '\u2014'} \u00B7 {supplement.time_of_day === 'morning' ? '\u2600\uFE0F' : '\u{1F319}'}
-            {feeling ? ` \u00B7 ${FEELING_OPTIONS.find((f) => f.value === feeling.feeling)?.emoji ?? ''}` : ''}
+            {supplement.dosage ?? '\u2014'} · {supplement.time_of_day.includes('morning') ? '\u2600\uFE0F' : ''}{supplement.time_of_day.includes('evening') ? '\u{1F319}' : ''}
+            {feeling ? ` · ${FEELING_OPTIONS.find((f) => f.value === feeling.feeling)?.emoji ?? ''}` : ''}
           </Text>
         </View>
         <Text style={styles.expandIcon}>{expanded ? '\u25B2' : '\u25BC'}</Text>

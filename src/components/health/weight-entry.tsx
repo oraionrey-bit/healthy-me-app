@@ -66,11 +66,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
   inputWrap: {
     flex: 1,
-    minWidth: 150,
+    minWidth: 120,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',

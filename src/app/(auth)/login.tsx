@@ -116,10 +116,12 @@ const styles = StyleSheet.create({
   },
   formArea: {
     width: '100%',
+    alignItems: 'center',
   },
   form: {
     width: '100%',
     gap: Spacing.md,
+    alignItems: 'stretch',
   },
   input: {
     fontFamily: Fonts.body,
@@ -131,6 +133,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     borderWidth: 2,
     borderColor: Colors.lavender,
+    textAlign: 'center',
   },
   button: {
     backgroundColor: Colors.purple,
