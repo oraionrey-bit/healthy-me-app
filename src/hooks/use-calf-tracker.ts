@@ -28,38 +28,6 @@ const EMPTY_LOG: CalfDailyLog = {
   notes: '',
 };
 
-const STORAGE_KEY = 'calfTracker';
-
-// ── Parse/encode from daily_logs.health_notes ──
-
-function parseCalfData(healthNotes: string | null): CalfDailyLog | null {
-  if (!healthNotes) return null;
-  try {
-    const parsed = JSON.parse(healthNotes);
-    if (parsed && typeof parsed === 'object' && parsed[STORAGE_KEY]) {
-      return parsed[STORAGE_KEY] as CalfDailyLog;
-    }
-  } catch {
-    // Not JSON or no calf data
-  }
-  return null;
-}
-
-function mergeCalfIntoNotes(existing: string | null, calf: CalfDailyLog): string {
-  let obj: Record<string, unknown> = {};
-  if (existing) {
-    try {
-      const parsed = JSON.parse(existing);
-      if (parsed && typeof parsed === 'object') obj = parsed;
-    } catch {
-      // Plain text — preserve it
-      obj = { text: existing };
-    }
-  }
-  obj[STORAGE_KEY] = calf;
-  return JSON.stringify(obj);
-}
-
 // ── Hook ──
 
 export function useCalfTracker(date?: Date) {
@@ -67,31 +35,32 @@ export function useCalfTracker(date?: Date) {
   const [dailyLog, setDailyLog] = useState<CalfDailyLog>(EMPTY_LOG);
   const [measurements, setMeasurements] = useState<CalfMeasurement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [rawHealthNotes, setRawHealthNotes] = useState<string | null>(null);
   const [dailyLogId, setDailyLogId] = useState<string | null>(null);
 
   const targetDate = date ?? new Date();
   const dateKey = toDateKey(targetDate);
 
-  // Fetch daily log
+  // Fetch daily log — read calf columns directly from daily_logs
   const fetchDailyLog = useCallback(async () => {
     if (!user) return;
     try {
       const { data } = await supabase
         .from('daily_logs')
-        .select('id, health_notes')
+        .select('id, wore_compression_socks, wore_calf_sleeves, stretched_minutes, calf_notes')
         .eq('user_id', user.id)
         .eq('log_date', dateKey)
         .maybeSingle();
 
       if (data) {
         setDailyLogId(data.id);
-        setRawHealthNotes(data.health_notes);
-        const parsed = parseCalfData(data.health_notes);
-        setDailyLog(parsed ?? EMPTY_LOG);
+        setDailyLog({
+          woreCompressionSocks: (data as any).wore_compression_socks ?? false,
+          woreCalfSleeves: (data as any).wore_calf_sleeves ?? false,
+          stretchedMinutes: (data as any).stretched_minutes ?? 0,
+          notes: (data as any).calf_notes ?? '',
+        });
       } else {
         setDailyLogId(null);
-        setRawHealthNotes(null);
         setDailyLog(EMPTY_LOG);
       }
     } catch (err) {
@@ -99,34 +68,24 @@ export function useCalfTracker(date?: Date) {
     }
   }, [user, dateKey]);
 
-  // Fetch measurements (all-time, sorted by date)
+  // Fetch measurements from dedicated calf_measurements table
   const fetchMeasurements = useCallback(async () => {
     if (!user) return;
     try {
-      // Measurements stored in a JSON file since we don't have a dedicated table
-      // Use daily_logs entries that have calfMeasurement in health_notes
-      const { data } = await supabase
-        .from('daily_logs')
-        .select('id, log_date, health_notes')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase.from('calf_measurements') as any)
+        .select('id, measure_date, left_calf_cm, right_calf_cm, ankle_flexion_degrees, notes')
         .eq('user_id', user.id)
-        .order('log_date', { ascending: true });
+        .order('measure_date', { ascending: true });
 
-      const ms: CalfMeasurement[] = [];
-      for (const row of data ?? []) {
-        if (!row.health_notes) continue;
-        try {
-          const parsed = JSON.parse(row.health_notes);
-          if (parsed?.calfMeasurement) {
-            ms.push({
-              id: row.id,
-              date: row.log_date,
-              ...parsed.calfMeasurement,
-            });
-          }
-        } catch {
-          // skip
-        }
-      }
+      const ms: CalfMeasurement[] = (data ?? []).map((row: any) => ({
+        id: row.id,
+        date: row.measure_date,
+        leftCalf: Number(row.left_calf_cm),
+        rightCalf: Number(row.right_calf_cm),
+        ankleFlexion: Number(row.ankle_flexion_degrees ?? 0),
+        notes: row.notes ?? '',
+      }));
       setMeasurements(ms);
     } catch (err) {
       console.warn('Failed to fetch calf measurements:', err);
@@ -138,19 +97,24 @@ export function useCalfTracker(date?: Date) {
     Promise.all([fetchDailyLog(), fetchMeasurements()]).finally(() => setLoading(false));
   }, [fetchDailyLog, fetchMeasurements]);
 
-  // Save daily log
+  // Save daily log — write to dedicated columns
   const saveDailyLog = useCallback(
     async (update: Partial<CalfDailyLog>) => {
       if (!user) return;
       const newLog = { ...dailyLog, ...update };
       setDailyLog(newLog);
 
-      const healthNotes = mergeCalfIntoNotes(rawHealthNotes, newLog);
+      const dbFields = {
+        wore_compression_socks: newLog.woreCompressionSocks,
+        wore_calf_sleeves: newLog.woreCalfSleeves,
+        stretched_minutes: newLog.stretchedMinutes,
+        calf_notes: newLog.notes || null,
+      };
 
       if (dailyLogId) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (supabase.from('daily_logs') as any)
-          .update({ health_notes: healthNotes })
+          .update(dbFields)
           .eq('id', dailyLogId);
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -158,59 +122,35 @@ export function useCalfTracker(date?: Date) {
           .insert({
             user_id: user.id,
             log_date: dateKey,
-            health_notes: healthNotes,
+            ...dbFields,
           })
           .select('id')
           .single();
         if (data) setDailyLogId(data.id);
       }
-      setRawHealthNotes(healthNotes);
     },
-    [user, dailyLog, rawHealthNotes, dailyLogId, dateKey],
+    [user, dailyLog, dailyLogId, dateKey],
   );
 
-  // Save a measurement
+  // Save a measurement to calf_measurements table
   const saveMeasurement = useCallback(
     async (m: Omit<CalfMeasurement, 'id' | 'date'>) => {
       if (!user) return;
 
-      // Merge measurement into today's health_notes
-      let obj: Record<string, unknown> = {};
-      if (rawHealthNotes) {
-        try {
-          const parsed = JSON.parse(rawHealthNotes);
-          if (parsed && typeof parsed === 'object') obj = parsed;
-        } catch {
-          obj = { text: rawHealthNotes };
-        }
-      }
-      obj.calfMeasurement = m;
-      // Also preserve calf tracker data
-      obj[STORAGE_KEY] = dailyLog;
-      const healthNotes = JSON.stringify(obj);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('calf_measurements') as any)
+        .upsert({
+          user_id: user.id,
+          measure_date: dateKey,
+          left_calf_cm: m.leftCalf,
+          right_calf_cm: m.rightCalf,
+          ankle_flexion_degrees: m.ankleFlexion,
+          notes: m.notes || null,
+        }, { onConflict: 'user_id,measure_date' });
 
-      if (dailyLogId) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.from('daily_logs') as any)
-          .update({ health_notes: healthNotes })
-          .eq('id', dailyLogId);
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data } = await (supabase.from('daily_logs') as any)
-          .insert({
-            user_id: user.id,
-            log_date: dateKey,
-            health_notes: healthNotes,
-          })
-          .select('id')
-          .single();
-        if (data) setDailyLogId(data.id);
-      }
-
-      setRawHealthNotes(healthNotes);
       await fetchMeasurements();
     },
-    [user, rawHealthNotes, dailyLog, dailyLogId, dateKey, fetchMeasurements],
+    [user, dateKey, fetchMeasurements],
   );
 
   // Computed stats
