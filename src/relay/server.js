@@ -22,13 +22,29 @@ const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const CLAWROUTER_API_KEY = process.env.CLAWROUTER_API_KEY || '';
 const TINA_CHAT_ID = '5052308275';
 const TINA_USER_ID = 'e454325f-b8e6-4251-9a49-9d706eef99c3';
+
+// ── AI Analysis System Prompts ──────────────────────────────────────────────
+
+const ANALYSIS_PROMPTS = {
+  skin_analysis: 'You are a skincare expert. Analyze the products/skin shown in the photos. Consider the user\'s context: Korean skin (Fitzpatrick III-IV), PCOS, history of sensitivity to niacinamide and snail mucin. Give specific, actionable advice. Keep response concise.',
+  supplement_check: 'You are a nutrition expert specializing in PCOS. Analyze the supplement shown. Check for interactions, quality, and relevance to PCOS management. Keep response concise.',
+  lab_analysis: 'You are a medical analyst. Analyze the lab results shown. Flag any values outside normal range, especially relevant to PCOS (testosterone, SHBG, HbA1c, insulin). Keep response concise.',
+  menu_analysis: 'You are a nutrition expert for PCOS. Analyze this restaurant menu and suggest the best options for someone targeting 1400-1600 cal/day, 80-100g protein, protein-first eating. Keep response concise.',
+  fridge_analysis: 'You are a nutrition expert for PCOS. Look at what\'s in the fridge/pantry and suggest meal ideas targeting high protein, moderate calories. Keep response concise.',
+  food_analysis: 'You are a nutrition expert for PCOS. Analyze the food shown in the photo. Estimate calories, protein, and macros. Suggest improvements for someone targeting 1400-1600 cal/day, 80-100g protein. Keep response concise.',
+  nutrition_label: 'You are a nutrition label reader. Extract the following from the nutrition label photo and return ONLY valid JSON (no markdown, no explanation):\n{"name": "product name", "brand": "brand name", "serving_size": "e.g. 1 cup (55g)", "serving_unit": "e.g. cup, bar, oz", "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "fiber": 0}\nUse integers for numbers. If a field is not visible, use null. Read the label carefully.',
+  skincare_product: 'You are a skincare product analyst. Analyze this skincare product photo. Extract:\n- Product name\n- Brand\n- Key active ingredients (list the main ones)\n- Product type (cleanser, toner, serum, moisturizer, sunscreen, treatment, lip, oil, other)\n- Flag any of these known triggers if found in ingredients: niacinamide, snail mucin/snail secretion filtrate, vitamin E/tocopherol (when main ingredient), isostearic acid\n\nReturn ONLY valid JSON (no markdown, no explanation):\n{"name": "...", "brand": "...", "ingredients": ["..."], "product_type": "...", "triggers_found": ["..."], "notes": "brief ingredient analysis"}',
+};
+
+const AI_TIMEOUT_MS = 30000;
 
 const MAX_TEXT_LENGTH = 5000;
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-const VALID_MESSAGE_TYPES = ['chat', 'food_analysis', 'skin_analysis', 'supplement_check', 'lab_analysis', 'menu_analysis', 'fridge_analysis'];
+const VALID_MESSAGE_TYPES = ['chat', 'food_analysis', 'skin_analysis', 'supplement_check', 'lab_analysis', 'menu_analysis', 'fridge_analysis', 'nutrition_label', 'skincare_product'];
 
 // Rate limiting
 const rateLimits = new Map(); // key -> { count, resetTime }
@@ -152,6 +168,129 @@ async function uploadPhotoToSupabase(buffer, filename, mimeType) {
   return urlData.publicUrl;
 }
 
+// ── AI Auto-Processing ──────────────────────────────────────────────────────
+
+async function callClawRouter(systemPrompt, photos, userText) {
+  if (!CLAWROUTER_API_KEY) {
+    throw new Error('CLAWROUTER_API_KEY not configured');
+  }
+
+  // Build user content: images as base64 + text
+  const userContent = [];
+  for (const photo of photos) {
+    userContent.push({
+      type: 'image_url',
+      image_url: { url: `data:${photo.mimeType};base64,${photo.buffer.toString('base64')}` },
+    });
+  }
+  if (userText) {
+    userContent.push({ type: 'text', text: userText });
+  } else {
+    userContent.push({ type: 'text', text: 'Please analyze this image.' });
+  }
+
+  const payload = JSON.stringify({
+    model: 'standard',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userContent },
+    ],
+    max_tokens: 1500,
+  });
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.clawrouter.app',
+      path: '/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${CLAWROUTER_API_KEY}`,
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    };
+
+    let timer;
+    const apiReq = https.request(options, (apiRes) => {
+      let data = '';
+      apiRes.on('data', (c) => (data += c));
+      apiRes.on('end', () => {
+        clearTimeout(timer);
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.choices && parsed.choices[0] && parsed.choices[0].message) {
+            resolve(parsed.choices[0].message.content);
+          } else {
+            reject(new Error(`Unexpected API response: ${data.slice(0, 200)}`));
+          }
+        } catch (e) {
+          reject(new Error(`Failed to parse API response: ${e.message}`));
+        }
+      });
+    });
+
+    apiReq.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    timer = setTimeout(() => {
+      apiReq.destroy();
+      reject(new Error('AI request timed out'));
+    }, AI_TIMEOUT_MS);
+
+    apiReq.write(payload);
+    apiReq.end();
+  });
+}
+
+async function autoProcessAnalysis(messageId, messageType, description, photos) {
+  const systemPrompt = ANALYSIS_PROMPTS[messageType];
+  if (!systemPrompt) {
+    console.log(`[relay] No AI prompt for type "${messageType}" — skipping auto-process`);
+    return false;
+  }
+
+  try {
+    console.log(`[relay] Auto-processing ${messageType} for message ${messageId} (${photos.length} photos)...`);
+    const aiResponse = await callClawRouter(systemPrompt, photos, description);
+
+    // Insert AI response as Oraion's message
+    const { data: responseMsg, error: insertError } = await supabase
+      .from('chat_messages')
+      .insert({
+        user_id: TINA_USER_ID,
+        direction: 'oraion',
+        content: aiResponse,
+        message_type: messageType,
+        status: 'complete',
+      })
+      .select('id')
+      .single();
+
+    if (insertError) {
+      console.error(`[relay] Failed to insert AI response: ${insertError.message}`);
+      return false;
+    }
+
+    // Update original message status to complete
+    const { error: updateError } = await supabase
+      .from('chat_messages')
+      .update({ status: 'complete' })
+      .eq('id', messageId);
+
+    if (updateError) {
+      console.error(`[relay] Failed to update message status: ${updateError.message}`);
+    }
+
+    console.log(`[relay] AI response saved: ${responseMsg.id} for message ${messageId}`);
+    return true;
+  } catch (err) {
+    console.error(`[relay] AI auto-process failed for ${messageId}: ${err.message}`);
+    return false;
+  }
+}
+
 // ── Route Handlers ──────────────────────────────────────────────────────────
 
 async function handleAnalyze(req, res) {
@@ -203,6 +342,9 @@ async function handleAnalyze(req, res) {
           return;
         }
 
+        // Keep photo buffers for AI processing before uploading
+        const photoBuffers = photos.map((p) => ({ buffer: p.buffer, mimeType: p.mimeType }));
+
         // Upload photos to Supabase Storage
         const photoUrls = [];
         for (const photo of photos) {
@@ -231,11 +373,26 @@ async function handleAnalyze(req, res) {
           return;
         }
 
-        // Notify Oraion
-        notifyOraion(data.id, messageType, description).catch(() => {});
+        // Auto-process with AI (don't block response to client)
+        const messageId = data.id;
+        const aiProcessing = autoProcessAnalysis(messageId, messageType, description, photoBuffers);
 
-        sendJson(res, 200, { id: data.id, status: 'pending', photo_urls: photoUrls });
-        console.log(`[relay] Analyze request saved: ${data.id} (${messageType}, ${photos.length} photos)`);
+        // Respond to client immediately with pending status
+        sendJson(res, 200, { id: messageId, status: 'pending', photo_urls: photoUrls });
+        console.log(`[relay] Analyze request saved: ${messageId} (${messageType}, ${photos.length} photos)`);
+
+        // Wait for AI processing, then notify Telegram
+        aiProcessing.then((success) => {
+          if (success) {
+            notifyOraion(messageId, messageType, description + ' [✅ AI auto-processed]').catch(() => {});
+          } else {
+            // AI failed — notify for manual processing
+            notifyOraion(messageId, messageType, description + ' [⚠️ AI failed — needs manual response]').catch(() => {});
+          }
+        }).catch(() => {
+          notifyOraion(messageId, messageType, description + ' [⚠️ AI failed — needs manual response]').catch(() => {});
+        });
+
         resolve();
       } catch (err) {
         console.error('[relay] Analyze error:', err.message);

@@ -365,6 +365,8 @@ export interface OuraDaily {
   equivalent_walking_distance: number | null;
   non_wear_minutes: number | null;
   resting_minutes: number | null;
+  activity_timestamp: string | null;
+  estimated_steps: number | null;
   created_at: string;
 }
 
@@ -402,13 +404,18 @@ export interface SavedMeal {
   // Personal food dictionary fields
   aliases: string[];
   source: 'manual' | 'ai_analyzed' | 'user_created' | 'barcode';
-  serving_size: number | null;
+  serving_size: string | null;
   serving_unit: string;
   is_favorite: boolean;
   original_ai_calories: number | null;
   original_ai_protein: number | null;
   original_ai_carbs: number | null;
   original_ai_fat: number | null;
+  // Pantry fields
+  brand: string | null;
+  is_pantry: boolean;
+  photo_url: string | null;
+  barcode: string | null;
 }
 
 export type ChatMessageDirection = 'user' | 'oraion';

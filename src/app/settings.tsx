@@ -16,6 +16,9 @@ import { useUserProfile } from '../hooks/use-user-profile';
 import { useSupplements } from '../hooks/use-supplements';
 import { SupplementManager } from '../components/settings/supplement-manager';
 import { useOura } from '../hooks/use-oura';
+import { useExportData } from '../hooks/use-export-data';
+import { WeightEntry } from '../components/health/weight-entry';
+import { useWeight } from '../hooks/use-weight';
 
 const PCOS_TYPE_LABELS: Record<string, string> = {
   insulin_resistant: 'Insulin Resistant',
@@ -67,6 +70,8 @@ export default function SettingsScreen() {
     deleteSupplement,
   } = useSupplements();
   const { isConnected: ouraConnected, loading: ouraLoading, connectOura, disconnectOura, syncing: ouraSyncing, syncOura } = useOura();
+  const { loading: exportLoading, error: exportError, success: exportSuccess, exportData } = useExportData(user?.id);
+  const { recentWeights } = useWeight();
 
   const handleSignOut = async () => {
     await signOut();
@@ -215,6 +220,54 @@ export default function SettingsScreen() {
             )}
           </SettingsSection>
 
+          {/* Weight */}
+          <SettingsSection title="⚖️ Weight">
+            <Text style={styles.sectionDescription}>
+              Log your daily weight to track progress over time.
+            </Text>
+            <WeightEntry />
+            {recentWeights.length > 0 && (
+              <View style={styles.weightHistory}>
+                <Text style={styles.weightHistoryTitle}>Recent Entries</Text>
+                {recentWeights.map((entry) => (
+                  <View key={entry.id} style={styles.weightHistoryRow}>
+                    <Text style={styles.weightHistoryDate}>
+                      {new Date(entry.log_date + 'T00:00:00').toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </Text>
+                    <Text style={styles.weightHistoryValue}>{entry.weight} lbs</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </SettingsSection>
+
+          {/* Data */}
+          <SettingsSection title="📊 Data">
+            <Text style={styles.sectionDescription}>
+              Export your health data from the last 30 days as a CSV file.
+            </Text>
+            <View style={styles.editButtonWrap}>
+              {exportLoading ? (
+                <ActivityIndicator color={Colors.purple} />
+              ) : (
+                <PixelButton
+                  title="Export Health Data (CSV)"
+                  variant="outline"
+                  onPress={exportData}
+                />
+              )}
+            </View>
+            {exportSuccess && (
+              <Text style={styles.exportSuccess}>✓ Export downloaded!</Text>
+            )}
+            {exportError != null && (
+              <Text style={styles.exportError}>{exportError}</Text>
+            )}
+          </SettingsSection>
+
           {/* Account */}
           <SettingsSection title="🔒 Account">
             <InfoRow label="Email" value={user?.email} />
@@ -332,6 +385,51 @@ const styles = StyleSheet.create({
   // Edit button
   editButtonWrap: {
     marginTop: Spacing.md,
+  },
+
+  // Export feedback
+  exportSuccess: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.success,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+  },
+  exportError: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.error,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+  },
+
+  // Weight history
+  weightHistory: {
+    marginTop: Spacing.md,
+  },
+  weightHistoryTitle: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+  weightHistoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(179, 136, 255, 0.08)',
+  },
+  weightHistoryDate: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textSecondary,
+  },
+  weightHistoryValue: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
   },
 
   // App info

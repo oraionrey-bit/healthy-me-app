@@ -27,10 +27,11 @@ import { toDateKey, formatDate } from '../../utils/storage';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { useUserProfile } from '../../hooks/use-user-profile';
-import { WeightEntry } from '../../components/health/weight-entry';
 import { WaterTracker } from '../../components/home/water-tracker';
-import { useOura } from '../../hooks/use-oura';
+import { CalfTrackerCard } from '../../components/home/calf-tracker-card';
+import { useOura, getBestSteps } from '../../hooks/use-oura';
 import { useWeeklyInsights } from '../../hooks/use-weekly-insights';
+import { CalorieBalanceCard } from '../../components/home/calorie-balance-card';
 import type { UserSupplement, SymptomType } from '../../types/database';
 
 function formatSyncTime(date: Date): string {
@@ -52,12 +53,6 @@ function formatDisplayDate(): string {
     day: 'numeric',
   });
 }
-
-// Using toDateKey from utils/storage
-
-// ── Constants ──
-
-// Targets now come from useUserProfile() in HomeScreen
 
 const MOOD_OPTIONS: Array<{ value: number; emoji: string }> = [
   { value: 1, emoji: '😢' },
@@ -272,7 +267,7 @@ export default function HomeScreen() {
     toggleSupplement,
   } = useSupplements(suppDate);
   const { mood: savedMood, energy: savedEnergy, saveMoodEnergy } = useMoodEnergy();
-  const { symptomLogs, addSymptom, removeSymptom } = useSymptomLog();
+  const { symptomLogs, addSymptom, removeSymptom, updateSymptomLog } = useSymptomLog();
   const { dailyLog, saveDailyLog } = useDailyLog();
   const { score: dailyScoreValue, breakdown: dailyBreakdown, tips: dailyTips } = useDailyScore();
   const [scoreExpanded, setScoreExpanded] = useState(false);
@@ -280,12 +275,18 @@ export default function HomeScreen() {
   const { summary: weeklySummary } = useWeeklySummary();
   const { isConnected: ouraConnected, todayData: ouraToday, activityIsLive, syncOura, syncing } = useOura();
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
+
+  // Initialize lastSynced from Oura data's created_at when data first loads
+  React.useEffect(() => {
+    if (ouraToday?.created_at && !lastSynced) {
+      setLastSynced(new Date(ouraToday.created_at));
+    }
+  }, [ouraToday, lastSynced]);
   const { data: weeklyInsights } = useWeeklyInsights();
   const [showInsights, setShowInsights] = useState(false);
 
   // Check-in state
   const [checkinOpen, setCheckinOpen] = useState(false);
-  const [weightOpen, setWeightOpen] = useState(false);
   const [mood, setMood] = useState<number | null>(savedMood);
   const [energy, setEnergy] = useState<number | null>(savedEnergy);
   const [periodStatus, setPeriodStatus] = useState<string>('off');
@@ -318,7 +319,22 @@ export default function HomeScreen() {
   // Sync daily log data
   React.useEffect(() => {
     if (dailyLog) {
-      if (dailyLog.health_notes) setNotes(dailyLog.health_notes);
+      if (dailyLog.health_notes) {
+        const hn = dailyLog.health_notes;
+        if (!hn.startsWith('{') || !hn.includes('"skincare"')) {
+          setNotes(hn);
+        } else {
+          // Extract userNotes from skincare JSON
+          try {
+            const parsed = JSON.parse(hn);
+            if (parsed.userNotes) {
+              setNotes(parsed.userNotes);
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
+      }
       if (dailyLog.period) {
         setPeriodStatus(dailyLog.period);
       }
@@ -387,21 +403,53 @@ export default function HomeScreen() {
       }
 
       // Save notes to daily_logs FIRST (most important — don't lose user's text)
+      // Preserve skincare JSON if it exists in health_notes
+      let healthNotesToSave = notes || undefined;
+      if (healthNotesToSave) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: existingLog } = await (supabase.from('daily_logs') as any)
+          .select('health_notes')
+          .eq('user_id', user.id)
+          .eq('log_date', toDateKey(new Date()))
+          .maybeSingle();
+        if (existingLog?.health_notes) {
+          try {
+            const parsed = JSON.parse(existingLog.health_notes as string);
+            if (parsed.skincare) {
+              // Merge: keep skincare data, add user notes
+              parsed.userNotes = healthNotesToSave;
+              healthNotesToSave = JSON.stringify(parsed);
+            }
+          } catch {
+            // Not JSON, just use plain text
+          }
+        }
+      }
       await saveDailyLog({
-        health_notes: notes || undefined,
+        health_notes: healthNotesToSave,
         period: periodStatus !== 'off' ? periodStatus : undefined,
       });
 
-      // Sync symptoms: remove old, add current (non-blocking — errors won't lose notes)
+      // Sync symptoms: remove deselected, update existing, add new (non-blocking)
       try {
+        const existingByType = new Map(
+          symptomLogs.map((l) => [l.symptom_type as SymptomType, l]),
+        );
+
+        // Remove deselected symptoms
         for (const log of symptomLogs) {
           if (!selectedSymptoms.has(log.symptom_type as SymptomType)) {
             await removeSymptom(log.id);
           }
         }
-        const existingTypes = new Set(symptomLogs.map((l) => l.symptom_type));
+
+        // Add new or update existing symptoms (including notes)
         for (const [type, severity] of selectedSymptoms) {
-          if (!existingTypes.has(type)) {
+          const existing = existingByType.get(type);
+          if (existing) {
+            // Update severity and notes on existing symptom
+            await updateSymptomLog(existing.id, { severity, notes: notes || undefined });
+          } else {
             await addSymptom({ symptom_type: type, severity, notes: notes || undefined });
           }
         }
@@ -416,7 +464,7 @@ export default function HomeScreen() {
     }
   }, [
     user, mood, energy, periodStatus, selectedSymptoms, notes,
-    saveMoodEnergy, symptomLogs, removeSymptom, addSymptom, saveDailyLog,
+    saveMoodEnergy, symptomLogs, removeSymptom, addSymptom, updateSymptomLog, saveDailyLog,
   ]);
 
   const hasFoodData = totals.calories > 0 || totals.protein > 0;
@@ -582,12 +630,17 @@ export default function HomeScreen() {
                       <Text style={styles.weeklyStatValue}>{Math.round(ouraToday.resting_hr)} bpm</Text>
                     </View>
                   )}
-                  {ouraToday.steps != null && (
-                    <View style={styles.weeklyStatRow}>
-                      <Text style={styles.weeklyStatLabel}>Steps</Text>
-                      <Text style={styles.weeklyStatValue}>{ouraToday.steps.toLocaleString()}</Text>
-                    </View>
-                  )}
+                  {(() => {
+                    const { steps: bestSteps, isEstimated } = getBestSteps(ouraToday);
+                    return bestSteps != null ? (
+                      <View style={styles.weeklyStatRow}>
+                        <Text style={styles.weeklyStatLabel}>Steps</Text>
+                        <Text style={styles.weeklyStatValue}>
+                          {isEstimated ? '~' : ''}{bestSteps.toLocaleString()}
+                        </Text>
+                      </View>
+                    ) : null;
+                  })()}
                   {ouraToday.active_calories != null && (
                     <View style={styles.weeklyStatRow}>
                       <Text style={styles.weeklyStatLabel}>🔥 Burned</Text>
@@ -605,9 +658,26 @@ export default function HomeScreen() {
                       <Text style={[styles.weeklyStatValue, { color: Colors.textMuted }]}>Score updates tonight</Text>
                     </View>
                   ) : null}
+
                 </View>
+                {lastSynced && (
+                  <Text style={styles.ouraUpdatedText}>
+                    Updated: {lastSynced.toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true,
+                    })}
+                  </Text>
+                )}
               </View>
             )}
+
+
+
+            {/* Calorie Balance */}
+            <CalorieBalanceCard />
 
             {/* Weekly Summary */}
             {weeklySummary && weeklySummary.daysTracked > 0 && (
@@ -766,6 +836,9 @@ export default function HomeScreen() {
                 )}
             </View>
 
+            {/* Calf Recovery Tracker */}
+            <CalfTrackerCard />
+
             {/* Food Summary */}
             <View style={[styles.accentCard, styles.accentOrange]}>
               <View style={styles.sectionHeader}>
@@ -793,25 +866,6 @@ export default function HomeScreen() {
                 </View>
               ) : (
                 <Text style={styles.emptyText}>No meals logged yet 🍽️</Text>
-              )}
-            </View>
-
-            {/* Weight (collapsed by default) */}
-            <View style={[styles.accentCard, styles.accentBlue]}>
-              <TouchableOpacity
-                onPress={() => setWeightOpen(!weightOpen)}
-                activeOpacity={0.7}
-                style={styles.checkinHeader}
-              >
-                <Text style={styles.sectionTitle}>⚖️ Weight</Text>
-                <Text style={styles.collapseIcon}>
-                  {weightOpen ? '▲' : '▼'}
-                </Text>
-              </TouchableOpacity>
-              {weightOpen && (
-                <View style={styles.weightEntryWrap}>
-                  <WeightEntry />
-                </View>
               )}
             </View>
 
@@ -1224,6 +1278,13 @@ const styles = StyleSheet.create({
   syncButtonText: {
     fontSize: 16,
   },
+  ouraUpdatedText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+    textAlign: 'right',
+    marginTop: Spacing.xs,
+  },
 
   // Weekly summary
   weeklyGrid: {
@@ -1294,10 +1355,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
 
-  // Weight entry
-  weightEntryWrap: {
-    marginTop: Spacing.sm,
-  },
+
 
   // Section
   sectionHeader: {

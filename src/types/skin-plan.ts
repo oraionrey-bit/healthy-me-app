@@ -77,6 +77,82 @@ export interface SkinPlan {
   phases: Phase[];
   activePhaseIndex: number;
   status: 'active' | 'completed' | 'paused';
+  skinProfile: SkinProfile | null;
+}
+
+// ── Plan Suggestion Types ──────────────────────────────────────────────
+
+export type SuggestionSource = 'milestone_check_in' | 'ask_oraion' | 'journal_alert' | 'cycle_adaptation';
+export type SuggestionStatus = 'pending' | 'approved' | 'rejected' | 'saved_for_later';
+export type SuggestionType = 'advance_phase' | 'add_product' | 'remove_product' | 'change_frequency' | 'pause_actives' | 'extend_phase';
+
+export interface PlanSuggestion {
+  id: string;
+  planId: string;
+  userId: string;
+  source: SuggestionSource;
+  status: SuggestionStatus;
+  suggestionType: SuggestionType;
+  proposedChanges: Record<string, unknown>;
+  aiReasoning: string | null;
+  evidence: Record<string, unknown>;
+  createdAt: string;
+  respondedAt: string | null;
+}
+
+export interface PlanSuggestionRow {
+  id: string;
+  plan_id: string;
+  user_id: string;
+  source: string;
+  status: string;
+  suggestion_type: string;
+  proposed_changes: Record<string, unknown>;
+  ai_reasoning: string | null;
+  evidence: Record<string, unknown>;
+  created_at: string;
+  responded_at: string | null;
+}
+
+export function rowToSuggestion(row: PlanSuggestionRow): PlanSuggestion {
+  return {
+    id: row.id,
+    planId: row.plan_id,
+    userId: row.user_id,
+    source: row.source as SuggestionSource,
+    status: row.status as SuggestionStatus,
+    suggestionType: row.suggestion_type as SuggestionType,
+    proposedChanges: row.proposed_changes,
+    aiReasoning: row.ai_reasoning,
+    evidence: row.evidence,
+    createdAt: row.created_at,
+    respondedAt: row.responded_at,
+  };
+}
+
+// ── Skin Profile Types ─────────────────────────────────────────────────
+
+export interface SkinSensitivity {
+  ingredient: string;
+  reaction: string;
+  severity: string;
+  note?: string;
+}
+
+export interface SkinTrigger {
+  trigger: string;
+  symptom: string;
+}
+
+export interface SkinProfile {
+  known_sensitivities: SkinSensitivity[];
+  known_triggers: SkinTrigger[];
+  skin_type: string;
+  skin_concerns: string[];
+  fitzpatrick: string;
+  pcos_flag: boolean;
+  cycle_tracking_enabled: boolean;
+  safe_products: string[];
 }
 
 /** Row shape returned by Supabase for skin_plans table */
@@ -144,6 +220,8 @@ export function isProductScheduled(
  * Convert a SkinPlanRow from Supabase into a typed SkinPlan.
  */
 export function rowToPlan(row: SkinPlanRow): SkinPlan {
+  const profile = row.skin_profile as Record<string, unknown> | null;
+  const hasProfile = profile && typeof profile === 'object' && 'skin_type' in profile;
   return {
     id: row.id,
     userId: row.user_id,
@@ -153,5 +231,6 @@ export function rowToPlan(row: SkinPlanRow): SkinPlan {
     phases: row.phases,
     activePhaseIndex: row.active_phase_index,
     status: row.status as SkinPlan['status'],
+    skinProfile: hasProfile ? (profile as unknown as SkinProfile) : null,
   };
 }

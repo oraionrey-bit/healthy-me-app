@@ -19,6 +19,7 @@ interface FoodAutoSuggestProps {
   onSelectFood: (meal: SavedMeal) => void;
   onSubmit: () => void;
   searchFoods: (query: string, limit?: number) => PersonalFoodSearchResult[];
+  searchPantry?: (query: string, limit?: number) => SavedMeal[];
   placeholder?: string;
   autoFocus?: boolean;
   saving?: boolean;
@@ -32,6 +33,7 @@ export function FoodAutoSuggest({
   onSelectFood,
   onSubmit,
   searchFoods,
+  searchPantry,
   placeholder = 'e.g., chicken salad, 400 cal, 35g protein',
   autoFocus = false,
   saving = false,
@@ -40,7 +42,7 @@ export function FoodAutoSuggest({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounced search
+  // Debounced search — pantry items first, then personal foods
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
@@ -51,15 +53,24 @@ export function FoodAutoSuggest({
     }
 
     debounceRef.current = setTimeout(() => {
-      const results = searchFoods(value);
-      setSuggestions(results);
-      setShowSuggestions(results.length > 0);
+      // Pantry items get priority (score boosted)
+      const pantryResults: PersonalFoodSearchResult[] = searchPantry
+        ? searchPantry(value, 4).map((meal) => ({ meal, score: 200 }))
+        : [];
+      const pantryIds = new Set(pantryResults.map((r) => r.meal.id));
+
+      // Regular personal foods (exclude pantry items already included)
+      const foodResults = searchFoods(value).filter((r) => !pantryIds.has(r.meal.id));
+
+      const merged = [...pantryResults, ...foodResults].slice(0, 8);
+      setSuggestions(merged);
+      setShowSuggestions(merged.length > 0);
     }, DEBOUNCE_MS);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [value, searchFoods]);
+  }, [value, searchFoods, searchPantry]);
 
   const handleSelect = useCallback(
     (meal: SavedMeal) => {
@@ -79,6 +90,7 @@ export function FoodAutoSuggest({
     ({ item }: { item: PersonalFoodSearchResult }) => {
       const { meal } = item;
       const isAi = meal.source === 'ai_analyzed';
+      const isPantry = meal.is_pantry;
 
       return (
         <TouchableOpacity
@@ -91,12 +103,14 @@ export function FoodAutoSuggest({
               <Text style={styles.suggestionName} numberOfLines={1}>
                 {meal.name}
               </Text>
-              {isAi && <Text style={styles.aiBadge}>🤖</Text>}
+              {isPantry && <Text style={styles.pantryBadge}>🏪</Text>}
+              {isAi && !isPantry && <Text style={styles.aiBadge}>🤖</Text>}
             </View>
             <Text style={styles.suggestionMacros}>
               {meal.calories ?? 0} cal · {meal.protein ?? 0}g P
               {meal.carbs != null ? ` · ${meal.carbs}g C` : ''}
               {meal.fat != null ? ` · ${meal.fat}g F` : ''}
+              {isPantry && meal.serving_size ? ` · per ${meal.serving_size}` : ''}
             </Text>
             {meal.use_count > 1 && (
               <Text style={styles.suggestionFreq}>Logged {meal.use_count}×</Text>
@@ -248,6 +262,9 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   aiBadge: {
+    fontSize: 10,
+  },
+  pantryBadge: {
     fontSize: 10,
   },
   suggestionMacros: {

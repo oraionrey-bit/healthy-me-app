@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { DailyLog } from '../types/database';
 
-
 interface SaveDailyLogInput {
   mood?: string;
   energy?: string;

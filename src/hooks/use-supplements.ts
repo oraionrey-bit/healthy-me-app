@@ -6,6 +6,29 @@ import { useUserProfile } from './use-user-profile';
 import { DEFAULT_SUPPLEMENTS } from '../constants/supplements';
 import type { UserSupplement, SupplementLog } from '../types/database';
 
+// Feeling stored as JSON in supplement_logs.notes
+export type SupplementFeeling = 'good' | 'neutral' | 'bad';
+
+export interface FeelingEntry {
+  feeling: SupplementFeeling;
+  note?: string;
+}
+
+export function parseFeelingFromNotes(notes: string | null): FeelingEntry | null {
+  if (!notes) return null;
+  try {
+    const parsed = JSON.parse(notes);
+    if (parsed && typeof parsed === 'object' && parsed.feeling) return parsed as FeelingEntry;
+  } catch {
+    // plain text note, not a feeling entry
+  }
+  return null;
+}
+
+function encodeFeelingToNotes(feeling: SupplementFeeling, note?: string): string {
+  return JSON.stringify({ feeling, note: note || undefined });
+}
+
 export function useSupplements(date?: Date) {
   const { user } = useAuth();
   const { isOnboarded } = useUserProfile();
@@ -150,7 +173,7 @@ export function useSupplements(date?: Date) {
   // ── CRUD Operations ──
 
   const addSupplement = useCallback(
-    async (name: string, dosage: string, timeOfDay: string) => {
+    async (name: string, dosage: string, timeOfDay: string, notes?: string) => {
       if (!user) return;
 
       // Get next sort_order
@@ -163,7 +186,7 @@ export function useSupplements(date?: Date) {
         dosage: dosage || null,
         frequency: 'daily',
         time_of_day: timeOfDay,
-        notes: null,
+        notes: notes || null,
         is_active: true,
         sort_order: maxSort + 1,
       });
@@ -175,7 +198,7 @@ export function useSupplements(date?: Date) {
   );
 
   const updateSupplement = useCallback(
-    async (id: string, updates: Partial<Pick<UserSupplement, 'supplement_name' | 'dosage' | 'time_of_day' | 'is_active'>>) => {
+    async (id: string, updates: Partial<Pick<UserSupplement, 'supplement_name' | 'dosage' | 'time_of_day' | 'is_active' | 'notes'>>) => {
       if (!user) return;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
@@ -207,6 +230,72 @@ export function useSupplements(date?: Date) {
     [user, fetchSupplements],
   );
 
+  // ── Feeling Tracking ──
+
+  const logFeeling = useCallback(
+    async (userSupplementId: string, feeling: SupplementFeeling, note?: string) => {
+      if (!user) return;
+
+      const existing = todaysLogs.find(
+        (l) => l.user_supplement_id === userSupplementId,
+      );
+
+      const notesJson = encodeFeelingToNotes(feeling, note);
+
+      if (existing) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+        const { error } = await (supabase.from('supplement_logs') as any)
+          .update({ notes: notesJson })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+        const { error } = await (supabase.from('supplement_logs') as any).insert({
+          user_id: user.id,
+          user_supplement_id: userSupplementId,
+          log_date: targetDateKey,
+          taken: true,
+          taken_at: new Date().toISOString(),
+          notes: notesJson,
+        });
+        if (error) throw error;
+      }
+
+      await fetchTodaysLogs();
+    },
+    [user, todaysLogs, targetDateKey, fetchTodaysLogs],
+  );
+
+  const getFeelingForToday = useCallback(
+    (userSupplementId: string): FeelingEntry | null => {
+      const log = todaysLogs.find(
+        (l) => l.user_supplement_id === userSupplementId,
+      );
+      return log ? parseFeelingFromNotes(log.notes) : null;
+    },
+    [todaysLogs],
+  );
+
+  // ── Reorder ──
+
+  const reorderSupplements = useCallback(
+    async (orderedIds: string[]) => {
+      if (!user) return;
+
+      const updates = orderedIds.map((id, idx) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+        (supabase.from('user_supplements') as any)
+          .update({ sort_order: idx })
+          .eq('id', id)
+          .eq('user_id', user.id),
+      );
+
+      await Promise.all(updates);
+      await fetchSupplements();
+    },
+    [user, fetchSupplements],
+  );
+
   return {
     supplements,
     morningSupplements,
@@ -220,6 +309,9 @@ export function useSupplements(date?: Date) {
     addSupplement,
     updateSupplement,
     deleteSupplement,
+    logFeeling,
+    getFeelingForToday,
+    reorderSupplements,
     refetch: async () => {
       await fetchSupplements();
       await fetchTodaysLogs();

@@ -8,6 +8,7 @@ export function useWeight() {
   const { user } = useAuth();
   const [lastWeight, setLastWeight] = useState<WeightLog | null>(null);
   const [todayWeight, setTodayWeight] = useState<WeightLog | null>(null);
+  const [recentWeights, setRecentWeights] = useState<WeightLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   const today = toDateKey(new Date());
@@ -16,7 +17,7 @@ export function useWeight() {
     if (!user) return;
     setLoading(true);
     try {
-      const [lastRes, todayRes] = await Promise.all([
+      const [lastRes, todayRes, recentRes] = await Promise.all([
         supabase
           .from('weight_logs')
           .select('*')
@@ -29,6 +30,12 @@ export function useWeight() {
           .eq('user_id', user.id)
           .eq('log_date', today)
           .maybeSingle(),
+        supabase
+          .from('weight_logs')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('log_date', { ascending: false })
+          .limit(10),
       ]);
 
       if (lastRes.error) throw lastRes.error;
@@ -39,6 +46,9 @@ export function useWeight() {
       );
       setTodayWeight(
         todayRes.data ? (todayRes.data as WeightLog) : null,
+      );
+      setRecentWeights(
+        recentRes.data ? (recentRes.data as WeightLog[]) : [],
       );
     } finally {
       setLoading(false);
@@ -77,5 +87,5 @@ export function useWeight() {
     [user, today, todayWeight, fetchLastWeight],
   );
 
-  return { lastWeight, todayWeight, loading, logWeight, refetch: fetchLastWeight };
+  return { lastWeight, todayWeight, recentWeights, loading, logWeight, refetch: fetchLastWeight };
 }

@@ -17,7 +17,7 @@ import {
   type Intensity,
 } from '../../hooks/use-exercise-log';
 import { useOuraWorkouts, useWeeklyOuraWorkouts, mapOuraActivity } from '../../hooks/use-oura-workouts';
-import { useOura } from '../../hooks/use-oura';
+import { useOura, getBestSteps } from '../../hooks/use-oura';
 import { toDateKey } from '../../utils/storage';
 import { useFocusEffect } from 'expo-router';
 
@@ -289,7 +289,7 @@ export default function MoveScreen() {
             <Text style={styles.yesterdayNote}>📊 Showing yesterday&apos;s activity — today&apos;s data updates later</Text>
           )}
           {activityIsLive && !activityFromYesterday && (
-            <Text style={styles.liveBadge}>📶 Live — score updates tonight</Text>
+            <Text style={styles.liveBadge}>📶 Live — steps may lag 1-2hrs behind Oura app</Text>
           )}
           {todayData ? (
             <View style={styles.activityGrid}>
@@ -299,12 +299,17 @@ export default function MoveScreen() {
                 </Text>
                 <Text style={styles.activityLabel}>Score</Text>
               </View>
-              {todayData.steps != null && (
-                <View style={styles.activityItem}>
-                  <Text style={styles.activityValue}>{todayData.steps.toLocaleString()}</Text>
-                  <Text style={styles.activityLabel}>Steps</Text>
-                </View>
-              )}
+              {(() => {
+                const { steps: bestSteps, isEstimated } = getBestSteps(todayData);
+                return bestSteps != null ? (
+                  <View style={styles.activityItem}>
+                    <Text style={styles.activityValue}>
+                      {isEstimated ? '~' : ''}{bestSteps.toLocaleString()}
+                    </Text>
+                    <Text style={styles.activityLabel}>Steps</Text>
+                  </View>
+                ) : null;
+              })()}
               {todayData.active_calories != null && (
                 <View style={styles.activityItem}>
                   <Text style={styles.activityValue}>{Math.round(todayData.active_calories)}</Text>

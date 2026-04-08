@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -14,14 +14,46 @@ import { getSupplementsForCondition } from '../../constants/supplements';
 
 export default function SupplementsScreen() {
   const { user } = useAuth();
-  const { healthCondition } = useUserProfile();
+  const { healthCondition, isOnboarded } = useUserProfile();
   const supplements = getSupplementsForCondition(healthCondition);
   const isPcos = healthCondition === 'pcos';
+
+  // For re-editing: track existing supplement names so we can merge
+  const [existingSupplementNames, setExistingSupplementNames] = useState<Set<string>>(new Set());
+  const [isReEdit, setIsReEdit] = useState(false);
 
   const [selected, setSelected] = useState<Set<number>>(
     new Set(supplements.map((_, i) => i)),
   );
   const [saving, setSaving] = useState(false);
+
+  // On mount: if user already has supplements, pre-select matching ones
+  useEffect(() => {
+    if (!user) return;
+    const loadExisting = async () => {
+      const { data } = await supabase
+        .from('user_supplements')
+        .select('supplement_name')
+        .eq('user_id', user.id) as { data: Array<{ supplement_name: string }> | null };
+
+      if (data && data.length > 0) {
+        setIsReEdit(true);
+        const names = new Set(data.map((s) => s.supplement_name));
+        setExistingSupplementNames(names);
+
+        // Pre-select supplements that the user already has
+        const preSelected = new Set<number>();
+        supplements.forEach((s, i) => {
+          if (names.has(s.supplement_name)) {
+            preSelected.add(i);
+          }
+        });
+        setSelected(preSelected);
+      }
+    };
+    void loadExisting();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const toggleItem = (index: number) => {
     setSelected((prev) => {
@@ -39,7 +71,11 @@ export default function SupplementsScreen() {
     if (!user) return;
     setSaving(true);
     try {
-      await supabase.from('user_supplements').delete().eq('user_id', user.id);
+      if (!isReEdit) {
+        // First-time onboarding: safe to clear since no history exists
+        await supabase.from('user_supplements').delete().eq('user_id', user.id);
+      }
+      // Re-edit: skipping means "keep what I have", don't delete anything
       router.push('/(onboarding)/complete');
     } finally {
       setSaving(false);
@@ -50,24 +86,57 @@ export default function SupplementsScreen() {
     if (!user) return;
     setSaving(true);
     try {
-      // Delete any existing supplements (from auto-seed) before inserting chosen ones
-      await supabase.from('user_supplements').delete().eq('user_id', user.id);
-
       const chosenSupplements = supplements.filter((_, i) => selected.has(i));
-      if (chosenSupplements.length > 0) {
-        const rows = chosenSupplements.map((s) => ({
-          user_id: user.id,
-          supplement_name: s.supplement_name,
-          dosage: s.dosage,
-          frequency: 'daily',
-          time_of_day: s.time_of_day,
-          notes: null,
-          is_active: true,
-          sort_order: s.sort_order,
-        }));
+      const chosenNames = new Set(chosenSupplements.map((s) => s.supplement_name));
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
-        await (supabase.from('user_supplements') as any).insert(rows);
+      if (isReEdit) {
+        // Fix 2: Merge instead of delete-all to preserve supplement_logs history
+        // 1. Remove only deselected supplements that previously existed
+        const toRemove = [...existingSupplementNames].filter((n) => !chosenNames.has(n));
+        if (toRemove.length > 0) {
+          await supabase
+            .from('user_supplements')
+            .delete()
+            .eq('user_id', user.id)
+            .in('supplement_name', toRemove);
+        }
+
+        // 2. Insert only new supplements that didn't previously exist
+        const toAdd = chosenSupplements.filter(
+          (s) => !existingSupplementNames.has(s.supplement_name),
+        );
+        if (toAdd.length > 0) {
+          const rows = toAdd.map((s) => ({
+            user_id: user.id,
+            supplement_name: s.supplement_name,
+            dosage: s.dosage,
+            frequency: 'daily',
+            time_of_day: s.time_of_day,
+            notes: null,
+            is_active: true,
+            sort_order: s.sort_order,
+          }));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+          await (supabase.from('user_supplements') as any).insert(rows);
+        }
+      } else {
+        // First-time onboarding: safe to delete-then-insert (no history to lose)
+        await supabase.from('user_supplements').delete().eq('user_id', user.id);
+
+        if (chosenSupplements.length > 0) {
+          const rows = chosenSupplements.map((s) => ({
+            user_id: user.id,
+            supplement_name: s.supplement_name,
+            dosage: s.dosage,
+            frequency: 'daily',
+            time_of_day: s.time_of_day,
+            notes: null,
+            is_active: true,
+            sort_order: s.sort_order,
+          }));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+          await (supabase.from('user_supplements') as any).insert(rows);
+        }
       }
 
       router.push('/(onboarding)/complete');

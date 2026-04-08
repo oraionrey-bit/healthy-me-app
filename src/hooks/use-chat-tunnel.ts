@@ -24,7 +24,6 @@ export function useChatTunnel(): UseChatTunnelReturn {
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<ChatMessage | null>(null);
   const pendingMessageId = useRef<string | null>(null);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Subscribe to realtime updates for responses
   useEffect(() => {
@@ -47,8 +46,6 @@ export function useChatTunnel(): UseChatTunnelReturn {
         },
       )
       .subscribe();
-
-    channelRef.current = channel;
 
     return () => {
       channel.unsubscribe();

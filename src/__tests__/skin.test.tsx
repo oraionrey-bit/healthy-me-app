@@ -141,4 +141,131 @@ describe('Skin Screen', () => {
     });
     expect(screen.getByText('Snail Mucin')).toBeTruthy();
   });
+
+  // ── Product Usage Tracking ──
+
+  it('shows reaction buttons when product is expanded', async () => {
+    await renderSkin();
+    await user.click(screen.getByText('Products'));
+    await waitFor(() => {
+      expect(screen.getByText('Laneige Cream Skin')).toBeTruthy();
+    });
+    // Click to expand a product
+    await user.click(screen.getByText('Laneige Cream Skin'));
+    await waitFor(() => {
+      expect(screen.getByText('Log today:')).toBeTruthy();
+    });
+    // Should show reaction emojis
+    expect(screen.getByText('👍')).toBeTruthy();
+    expect(screen.getByText('😐')).toBeTruthy();
+    expect(screen.getByText('👎')).toBeTruthy();
+  });
+
+  it('shows quick note input when product is expanded', async () => {
+    await renderSkin();
+    await user.click(screen.getByText('Products'));
+    await waitFor(() => {
+      expect(screen.getByText('Laneige Cream Skin')).toBeTruthy();
+    });
+    await user.click(screen.getByText('Laneige Cream Skin'));
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Quick note (optional)')).toBeTruthy();
+    });
+  });
+
+  it('shows testing day count for testing products', async () => {
+    await renderSkin();
+    await user.click(screen.getByText('Products'));
+    await waitFor(() => {
+      expect(screen.getByText('🧪 Testing')).toBeTruthy();
+    });
+    // Madeca Cream is in testing status — should show "Day X" if testingStartDate set
+    expect(screen.getByText('Madeca Cream')).toBeTruthy();
+  });
+
+  it('shows status change options when product is expanded', async () => {
+    await renderSkin();
+    await user.click(screen.getByText('Products'));
+    await waitFor(() => {
+      expect(screen.getByText('Laneige Cream Skin')).toBeTruthy();
+    });
+    await user.click(screen.getByText('Laneige Cream Skin'));
+    await waitFor(() => {
+      expect(screen.getByText('Change status:')).toBeTruthy();
+    });
+  });
+
+  // ── Routine Insights & Tester Dashboard ──
+
+  it('shows "How It\'s Going" insights card in routine tab', async () => {
+    await renderSkin();
+    expect(screen.getByText(/How It.s Going/)).toBeTruthy();
+  });
+
+  it('shows AM and PM adherence labels', async () => {
+    await renderSkin();
+    expect(screen.getByText('☀️ AM')).toBeTruthy();
+    expect(screen.getByText('🌙 PM')).toBeTruthy();
+  });
+
+  it('shows tester performance card in routine tab', async () => {
+    await renderSkin();
+    expect(screen.getByText('🧪 Tester Performance')).toBeTruthy();
+  });
+
+  // ── Customizable Routine Management ──
+
+  it('shows add button on AM routine section', async () => {
+    await renderSkin();
+    // The AM Routine section should have a "+" button to add products
+    const amSection = screen.getByText('☀️ AM Routine');
+    expect(amSection).toBeTruthy();
+    // Look for add button within/near AM routine section
+    const addButtons = screen.getAllByText('+');
+    expect(addButtons.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows add button on PM routine section', async () => {
+    await renderSkin();
+    const pmSection = screen.getByText('🌙 PM Routine');
+    expect(pmSection).toBeTruthy();
+    // Both AM and PM sections should have add buttons
+    const addButtons = screen.getAllByText('+');
+    expect(addButtons.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('shows remove button on routine steps', async () => {
+    await renderSkin();
+    // Each routine step should have an "x" remove button
+    const removeButtons = screen.getAllByText('✕');
+    // At least one remove button per visible routine step
+    expect(removeButtons.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows reorder arrows on routine steps', async () => {
+    await renderSkin();
+    // Each routine step should have up/down reorder arrows
+    const upArrows = screen.getAllByText('▲');
+    const downArrows = screen.getAllByText('▼');
+    expect(upArrows.length).toBeGreaterThanOrEqual(1);
+    expect(downArrows.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('product picker shows only safe and testing products', async () => {
+    await renderSkin();
+    // Click the "+" add button on AM routine to open product picker
+    const addButtons = screen.getAllByText('+');
+    await user.click(addButtons[0]);
+    await waitFor(() => {
+      expect(screen.getByText('Add Product to Routine')).toBeTruthy();
+    });
+    // Should show safe products
+    expect(screen.getByText('Laneige Cream Skin')).toBeTruthy();
+    expect(screen.getByText('Wellage HA Blue Ampoule')).toBeTruthy();
+    // Should show testing products
+    expect(screen.getByText('Madeca Cream')).toBeTruthy();
+    // Should NOT show trigger products in the picker
+    expect(screen.queryByText('Niacinamide (high %)')).toBeNull();
+    expect(screen.queryByText('Snail Mucin')).toBeNull();
+  });
 });

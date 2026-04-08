@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,10 @@ import {
   ScrollView,
   StyleSheet,
   Modal,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import {
   Colors,
   Fonts,
@@ -16,21 +19,33 @@ import {
   BorderRadius,
 } from '../../constants/theme';
 import { ScreenWrapper, PixelCard, PixelButton } from '../../components/ui';
-import { AskOraionFAB, AskOraionModal } from '../../components/chat';
+import { supabase } from '../../lib/supabase';
+import { CHAT_RELAY_URL } from '../../constants/chat';
+
+const CHAT_TOKEN = process.env.EXPO_PUBLIC_CHAT_TOKEN ?? '';
+
 import {
   useSkincare,
   type RoutineStep,
+  type RoutineTime,
   type ProductStatus,
-  type UpNextItem,
+  type ReactionRating,
+  type SkincareProduct,
+  type ProductUsageEntry,
 } from '../../hooks/use-skincare';
 import { useSkinPhotos } from '../../hooks/use-skin-photos';
 import { useSkinPlan } from '../../hooks/use-skin-plan';
 import { SkinPhotoCapture } from '../../components/skin/skin-photo-capture';
 import { SkinPhotoGallery } from '../../components/skin/skin-photo-gallery';
 import { PhaseTimeline } from '../../components/skin/phase-timeline';
-import { DailyRoutineCard } from '../../components/skin/daily-routine-card';
+import { RoutineInsightsCard } from '../../components/skin/routine-insights-card';
+import { TesterPerformanceCard } from '../../components/skin/tester-performance-card';
+
 import { RoutineCalendar } from '../../components/skin/routine-calendar';
 import { PhaseTransitionModal } from '../../components/skin/phase-transition-modal';
+import { SuggestionCard } from '../../components/skin/suggestion-card';
+import { SkinProfileCard } from '../../components/skin/skin-profile-card';
+import { usePlanSuggestions } from '../../hooks/use-plan-suggestions';
 import type { SkinPhoto } from '../../types/database';
 
 // ── Severity display ───────────────────────────────────────────────────
@@ -85,6 +100,11 @@ function RoutineChecklist({
   doneCount,
   isStepDone,
   onToggle,
+  editing,
+  onEdit,
+  onRemove,
+  onReorder,
+  onAddProduct,
 }: {
   title: string;
   steps: RoutineStep[];
@@ -92,6 +112,11 @@ function RoutineChecklist({
   doneCount: number;
   isStepDone: (id: string) => boolean;
   onToggle: (id: string) => void;
+  editing?: boolean;
+  onEdit?: () => void;
+  onRemove?: (stepId: string) => void;
+  onReorder?: (stepId: string, direction: 'up' | 'down') => void;
+  onAddProduct?: () => void;
 }) {
   const allDone = doneCount === steps.length && steps.length > 0;
 
@@ -99,16 +124,56 @@ function RoutineChecklist({
     <View style={styles.routineBlock}>
       <View style={styles.routineHeader}>
         <Text style={styles.routineLabel}>{title}</Text>
-        <Text
-          style={[styles.routineCount, allDone && styles.routineCountDone]}
-        >
-          {doneCount}/{steps.length}
-        </Text>
+        <View style={styles.routineHeaderRight}>
+          <Text
+            style={[styles.routineCount, allDone && styles.routineCountDone]}
+          >
+            {doneCount}/{steps.length}
+          </Text>
+          {onEdit && (
+            <TouchableOpacity onPress={onEdit} activeOpacity={0.7}>
+              <Text style={styles.routineEditBtn}>{editing ? 'Done' : 'Edit'}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
       <View style={styles.listGap}>
-        {steps.map((step) => {
+        {steps.map((step, idx) => {
           const key = `${prefix}-${step.id}`;
           const done = isStepDone(key);
+
+          if (editing) {
+            return (
+              <View key={key} style={styles.checkRow}>
+                <View style={styles.editReorderBtns}>
+                  <TouchableOpacity
+                    onPress={() => onReorder?.(step.id, 'up')}
+                    activeOpacity={0.7}
+                    disabled={idx === 0}
+                  >
+                    <Text style={[styles.reorderArrow, idx === 0 && styles.reorderArrowDisabled]}>▲</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => onReorder?.(step.id, 'down')}
+                    activeOpacity={0.7}
+                    disabled={idx === steps.length - 1}
+                  >
+                    <Text style={[styles.reorderArrow, idx === steps.length - 1 && styles.reorderArrowDisabled]}>▼</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={[styles.checkText, { flex: 1 }]}>
+                  {step.productName}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => onRemove?.(step.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.editRemoveBtn}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }
+
           return (
             <TouchableOpacity
               key={key}
@@ -126,6 +191,17 @@ function RoutineChecklist({
             </TouchableOpacity>
           );
         })}
+        {editing && onAddProduct && (
+          <TouchableOpacity
+            testID="add-routine-step"
+            onPress={onAddProduct}
+            activeOpacity={0.7}
+          >
+            <View style={styles.addRoutineStepBtn}>
+              <Text style={styles.addRoutineStepText}>+ Add Product</Text>
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -148,17 +224,17 @@ function TriggerWatchlist({
       <View style={styles.pillContainer}>
         {triggers.map((t) => (
           <View key={t.id} style={[styles.pill, styles.pillTrigger]}>
-            <Text style={styles.pillTextTrigger}>❌ {t.name}</Text>
+            <Text style={styles.pillTextTrigger} numberOfLines={1}>❌ {t.name}</Text>
           </View>
         ))}
         {testing.map((t) => (
           <View key={t.id} style={[styles.pill, styles.pillTesting]}>
-            <Text style={styles.pillTextTesting}>🧪 {t.name}</Text>
+            <Text style={styles.pillTextTesting} numberOfLines={1}>🧪 {t.name}</Text>
           </View>
         ))}
         {safe.slice(0, 4).map((t) => (
           <View key={t.id} style={[styles.pill, styles.pillSafe]}>
-            <Text style={styles.pillTextSafe}>✅ {t.name}</Text>
+            <Text style={styles.pillTextSafe} numberOfLines={1}>✅ {t.name}</Text>
           </View>
         ))}
       </View>
@@ -217,11 +293,28 @@ export default function SkinScreen() {
     testingProducts,
     addProduct,
     updateProductStatus,
+    logProductUsage,
+    getProductUsageToday,
+    getTestingDays,
     upNext,
     addUpNextItem,
     toggleUpNextItem,
     removeUpNextItem,
+    addRoutineStep,
+    removeRoutineStep,
+    reorderRoutineStep,
+    updateRoutineStepTime,
+    availableProductsForRoutine,
+    getAvailableProductsForRoutine,
+    deleteProduct,
+    routineSteps,
+    routineInsights,
+    testerSummaries,
   } = useSkincare();
+
+  // ── Routine editing state ──
+  const [editingRoutine, setEditingRoutine] = useState<'am' | 'pm' | null>(null);
+  const [showProductPicker, setShowProductPicker] = useState<'am' | 'pm' | null>(null);
 
   // ── Journal form state ──
   const [showJournal, setShowJournal] = useState(false);
@@ -239,6 +332,11 @@ export default function SkinScreen() {
   const [newProductName, setNewProductName] = useState('');
   const [newProductStatus, setNewProductStatus] =
     useState<ProductStatus>('testing');
+  const [newProductNotes, setNewProductNotes] = useState('');
+  const [productPhotoUri, setProductPhotoUri] = useState<string | null>(null);
+  const [productScanning, setProductScanning] = useState(false);
+  const [productScanError, setProductScanError] = useState<string | null>(null);
+  const [productTriggersFound, setProductTriggersFound] = useState<string[]>([]);
 
   // ── Skin photos ──
   const { photos: skinPhotos, uploading: photoUploading, addPhoto, deletePhoto: deleteSkinPhoto } = useSkinPhotos();
@@ -248,6 +346,13 @@ export default function SkinScreen() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [showPhaseModal, setShowPhaseModal] = useState(false);
 
+  // ── Plan suggestions ──
+  const { suggestions, pendingCount, approveSuggestion, saveForLater } = usePlanSuggestions(skinPlan?.id);
+
+  // ── Product detail modal ──
+  const [detailProductId, setDetailProductId] = useState<string | null>(null);
+  const detailProduct = detailProductId ? products.find(p => p.id === detailProductId) ?? null : null;
+
   // ── Active section (tab-like) ──
   const [activeSection, setActiveSection] = useState<
     'routine' | 'journal' | 'photos' | 'products' | 'plan'
@@ -255,9 +360,6 @@ export default function SkinScreen() {
 
   // ── Up Next ──
   const [newUpNextText, setNewUpNextText] = useState('');
-
-  // ── Ask Oraion ──
-  const [askOraionVisible, setAskOraionVisible] = useState(false);
 
   const resetJournalForm = () => {
     setJournalNotes('');
@@ -299,11 +401,142 @@ export default function SkinScreen() {
     setReactionDesc('');
   };
 
-  const handleAddProduct = async () => {
-    if (!newProductName.trim()) return;
-    await addProduct(newProductName.trim(), newProductStatus);
+  // ── Product photo scanning ──
+
+  const scanProductLabel = useCallback(async (uri: string) => {
+    setProductScanning(true);
+    setProductScanError(null);
+    setProductTriggersFound([]);
+    try {
+      const resp = await fetch(uri);
+      const blob = await resp.blob();
+
+      const formData = new FormData();
+      formData.append('message_type', 'skincare_product');
+      formData.append('description', 'Analyze this skincare product');
+      formData.append('photos', blob, 'skincare-product.jpg');
+
+      const res = await fetch(`${CHAT_RELAY_URL}/analyze`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${CHAT_TOKEN}` },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+
+      const data = await res.json();
+      const messageId = data.id as string;
+
+      // Poll supabase for AI response (max 35s)
+      const start = Date.now();
+      while (Date.now() - start < 35000) {
+        await new Promise((r) => setTimeout(r, 2500));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+        const { data: original } = await (supabase.from('chat_messages') as any)
+          .select('status')
+          .eq('id', messageId)
+          .single();
+        if (original?.status !== 'complete') continue;
+
+        // Fetch the AI response
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+        const { data: aiReply } = await (supabase.from('chat_messages') as any)
+          .select('content')
+          .eq('message_type', 'skincare_product')
+          .eq('direction', 'oraion')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (aiReply?.content) {
+          const text = String(aiReply.content);
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]) as {
+              name?: string;
+              brand?: string;
+              ingredients?: string[];
+              product_type?: string;
+              triggers_found?: string[];
+              notes?: string;
+            };
+            // Auto-fill product name (include brand if available)
+            if (parsed.name) {
+              const displayName = parsed.brand
+                ? `${parsed.brand} ${parsed.name}`
+                : parsed.name;
+              setNewProductName(displayName);
+            }
+            // Build notes from AI analysis
+            const noteParts: string[] = [];
+            if (parsed.product_type) noteParts.push(`Type: ${parsed.product_type}`);
+            if (parsed.ingredients?.length) noteParts.push(`Key ingredients: ${parsed.ingredients.join(', ')}`);
+            if (parsed.notes) noteParts.push(parsed.notes);
+            if (noteParts.length) setNewProductNotes(noteParts.join('. '));
+
+            // Handle triggers
+            if (parsed.triggers_found && parsed.triggers_found.length > 0) {
+              setProductTriggersFound(parsed.triggers_found);
+              setNewProductStatus('trigger');
+            } else {
+              setNewProductStatus('testing');
+            }
+            return;
+          }
+          throw new Error('Could not parse product data');
+        }
+      }
+      throw new Error('Timed out — try entering manually');
+    } catch (err) {
+      setProductScanError(err instanceof Error ? err.message : 'Failed to scan product');
+    } finally {
+      setProductScanning(false);
+    }
+  }, []);
+
+  const pickProductPhoto = useCallback(async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+      allowsEditing: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri;
+      setProductPhotoUri(uri);
+      await scanProductLabel(uri);
+    }
+  }, [scanProductLabel]);
+
+  const takeProductPhoto = useCallback(async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      setProductScanError('Camera permission needed');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.8,
+      allowsEditing: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri;
+      setProductPhotoUri(uri);
+      await scanProductLabel(uri);
+    }
+  }, [scanProductLabel]);
+
+  const resetProductForm = () => {
     setNewProductName('');
     setNewProductStatus('testing');
+    setNewProductNotes('');
+    setProductPhotoUri(null);
+    setProductScanError(null);
+    setProductTriggersFound([]);
+  };
+
+  const handleAddProduct = async () => {
+    if (!newProductName.trim()) return;
+    await addProduct(newProductName.trim(), newProductStatus, newProductNotes.trim() || undefined);
+    resetProductForm();
     setShowAddProduct(false);
   };
 
@@ -331,7 +564,7 @@ export default function SkinScreen() {
             { key: 'journal', label: 'Journal' },
             { key: 'photos', label: 'Photos' },
             { key: 'products', label: 'Products' },
-            { key: 'plan', label: 'Plan' },
+            { key: 'plan', label: pendingCount > 0 ? `Plan (${pendingCount})` : 'Plan' },
           ] as const
         ).map((tab) => (
           <TouchableOpacity
@@ -374,6 +607,11 @@ export default function SkinScreen() {
             doneCount={amDoneCount}
             isStepDone={isStepDone}
             onToggle={toggleRoutineStep}
+            editing={editingRoutine === 'am'}
+            onEdit={() => setEditingRoutine(editingRoutine === 'am' ? null : 'am')}
+            onRemove={removeRoutineStep}
+            onReorder={reorderRoutineStep}
+            onAddProduct={() => setShowProductPicker('am')}
           />
 
           {/* PM Routine */}
@@ -384,6 +622,25 @@ export default function SkinScreen() {
             doneCount={pmDoneCount}
             isStepDone={isStepDone}
             onToggle={toggleRoutineStep}
+            editing={editingRoutine === 'pm'}
+            onEdit={() => setEditingRoutine(editingRoutine === 'pm' ? null : 'pm')}
+            onRemove={removeRoutineStep}
+            onReorder={reorderRoutineStep}
+            onAddProduct={() => setShowProductPicker('pm')}
+          />
+
+          {/* How It's Going */}
+          <RoutineInsightsCard
+            amAdherence={routineInsights.amAdherence}
+            pmAdherence={routineInsights.pmAdherence}
+            streak={routineInsights.streak}
+            mostSkippedStep={routineInsights.mostSkippedStep}
+          />
+
+          <TesterPerformanceCard
+            testers={testerSummaries}
+            onMarkSafe={(productId) => updateProductStatus(productId, 'safe')}
+            onMarkTrigger={(productId) => updateProductStatus(productId, 'trigger')}
           />
 
           {/* Up Next */}
@@ -673,10 +930,12 @@ export default function SkinScreen() {
                 {safeProducts.map((p) => (
                   <ProductRow
                     key={p.id}
-                    name={p.name}
-                    status={p.status}
-                    notes={p.notes}
+                    product={p}
+                    todayUsage={getProductUsageToday(p.id)}
+                    testingDays={getTestingDays(p)}
                     onStatusChange={(s) => updateProductStatus(p.id, s)}
+                    onLogUsage={(rating, note) => logProductUsage(p.id, rating, note)}
+                    onViewDetail={() => setDetailProductId(p.id)}
                   />
                 ))}
               </View>
@@ -691,10 +950,12 @@ export default function SkinScreen() {
                 {testingProducts.map((p) => (
                   <ProductRow
                     key={p.id}
-                    name={p.name}
-                    status={p.status}
-                    notes={p.notes}
+                    product={p}
+                    todayUsage={getProductUsageToday(p.id)}
+                    testingDays={getTestingDays(p)}
                     onStatusChange={(s) => updateProductStatus(p.id, s)}
+                    onLogUsage={(rating, note) => logProductUsage(p.id, rating, note)}
+                    onViewDetail={() => setDetailProductId(p.id)}
                   />
                 ))}
               </View>
@@ -709,10 +970,12 @@ export default function SkinScreen() {
                 {triggerProducts.map((p) => (
                   <ProductRow
                     key={p.id}
-                    name={p.name}
-                    status={p.status}
-                    notes={p.notes}
+                    product={p}
+                    todayUsage={getProductUsageToday(p.id)}
+                    testingDays={getTestingDays(p)}
                     onStatusChange={(s) => updateProductStatus(p.id, s)}
+                    onLogUsage={(rating, note) => logProductUsage(p.id, rating, note)}
+                    onViewDetail={() => setDetailProductId(p.id)}
                   />
                 ))}
               </View>
@@ -728,14 +991,58 @@ export default function SkinScreen() {
           >
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
+                <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <Text style={styles.modalTitle}>Add Product</Text>
+
+                {/* Photo scan section */}
+                {!productPhotoUri && !productScanning && (
+                  <View style={styles.productPhotoSection}>
+                    <Text style={styles.productPhotoHint}>📸 Scan product label to auto-fill</Text>
+                    <View style={styles.productPhotoButtons}>
+                      <TouchableOpacity onPress={takeProductPhoto} style={styles.productPhotoBtn}>
+                        <Text style={styles.productPhotoBtnText}>📷 Camera</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={pickProductPhoto} style={styles.productPhotoBtn}>
+                        <Text style={styles.productPhotoBtnText}>🖼️ Gallery</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.productOrText}>— or enter manually below —</Text>
+                  </View>
+                )}
+
+                {productScanning && (
+                  <View style={styles.productScanningWrap}>
+                    <ActivityIndicator size="small" color={Colors.purple} />
+                    <Text style={styles.productScanningText}>Analyzing product...</Text>
+                  </View>
+                )}
+
+                {productPhotoUri && !productScanning && (
+                  <View style={styles.productPhotoPreview}>
+                    <Image source={{ uri: productPhotoUri }} style={styles.productPreviewImage} resizeMode="contain" />
+                    <TouchableOpacity onPress={() => { setProductPhotoUri(null); setProductScanError(null); setProductTriggersFound([]); }}>
+                      <Text style={styles.productRetakeText}>Retake photo</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {productScanError && (
+                  <Text style={styles.productErrorText}>⚠️ {productScanError}</Text>
+                )}
+
+                {productTriggersFound.length > 0 && (
+                  <View style={styles.productTriggerWarning}>
+                    <Text style={styles.productTriggerText}>⚠️ Contains known triggers: {productTriggersFound.join(', ')}</Text>
+                  </View>
+                )}
+
                 <TextInput
                   style={styles.modalInput}
                   value={newProductName}
                   onChangeText={setNewProductName}
                   placeholder="Product name"
                   placeholderTextColor={Colors.textMuted}
-                  autoFocus
+                  autoFocus={!productPhotoUri}
                 />
                 <View style={styles.statusPickerRow}>
                   {STATUS_OPTIONS.map((opt) => (
@@ -760,13 +1067,24 @@ export default function SkinScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
+
+                <TextInput
+                  style={[styles.modalInput, styles.productNotesInput]}
+                  value={newProductNotes}
+                  onChangeText={setNewProductNotes}
+                  placeholder="Notes (optional)"
+                  placeholderTextColor={Colors.textMuted}
+                  multiline
+                  numberOfLines={3}
+                />
+
                 <View style={styles.formButtons}>
                   <PixelButton
                     title="Cancel"
                     variant="outline"
                     onPress={() => {
                       setShowAddProduct(false);
-                      setNewProductName('');
+                      resetProductForm();
                     }}
                   />
                   <PixelButton
@@ -775,6 +1093,7 @@ export default function SkinScreen() {
                     disabled={!newProductName.trim()}
                   />
                 </View>
+                </ScrollView>
               </View>
             </View>
           </Modal>
@@ -810,6 +1129,20 @@ export default function SkinScreen() {
                 </TouchableOpacity>
               </View>
 
+              {/* Pending suggestions — always visible above plan content */}
+              {suggestions.length > 0 && (
+                <View style={styles.sectionGap}>
+                  {suggestions.map((s) => (
+                    <SuggestionCard
+                      key={s.id}
+                      suggestion={s}
+                      onApprove={approveSuggestion}
+                      onSaveForLater={saveForLater}
+                    />
+                  ))}
+                </View>
+              )}
+
               {showCalendar ? (
                 <RoutineCalendar activePhase={skinPlan.phases[skinPlan.activePhaseIndex]} />
               ) : (
@@ -822,24 +1155,29 @@ export default function SkinScreen() {
                     />
                   </View>
 
-                  <DailyRoutineCard
-                    amSteps={getTodayRoutine(skinPlan).am}
-                    pmSteps={getTodayRoutine(skinPlan).pm}
-                    phaseStartDate={skinPlan.phases[skinPlan.activePhaseIndex]?.startDate ?? null}
-                  />
-
-                  {/* Phase advance button */}
-                  {skinPlan.activePhaseIndex < skinPlan.phases.length - 1 && (
-                    <View style={styles.advanceBtnWrap}>
-                      <TouchableOpacity
-                        style={styles.advanceBtn}
-                        onPress={() => setShowPhaseModal(true)}
-                      >
-                        <Text style={styles.advanceBtnText}>
-                          🎯 Ready for next phase?
+                  {/* Phase check-in countdown */}
+                  {(() => {
+                    const activePhase = skinPlan.phases[skinPlan.activePhaseIndex];
+                    if (activePhase?.startDate && activePhase.durationWeeks > 0) {
+                      const start = new Date(activePhase.startDate);
+                      const now = new Date();
+                      const daysIn = Math.floor((now.getTime() - start.getTime()) / 86_400_000);
+                      const totalDays = activePhase.durationWeeks * 7;
+                      const daysRemaining = Math.max(0, totalDays - daysIn);
+                      return (
+                        <Text style={styles.phaseCheckinText}>
+                          {daysRemaining > 0
+                            ? `Next check-in in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`
+                            : 'Phase check-in ready'}
                         </Text>
-                      </TouchableOpacity>
-                    </View>
+                      );
+                    }
+                    return null;
+                  })()}
+
+                  {/* Skin profile — collapsed by default */}
+                  {skinPlan.skinProfile && (
+                    <SkinProfileCard profile={skinPlan.skinProfile} />
                   )}
                 </>
               )}
@@ -864,26 +1202,215 @@ export default function SkinScreen() {
         </View>
       )}
     </ScreenWrapper>
-    <AskOraionFAB onPress={() => setAskOraionVisible(true)} />
-    <AskOraionModal visible={askOraionVisible} onClose={() => setAskOraionVisible(false)} />
+
+    {/* ══════════════ PRODUCT DETAIL MODAL ══════════════ */}
+    <Modal
+      visible={!!detailProduct}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setDetailProductId(null)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {detailProduct && (
+              <ProductDetailView
+                product={detailProduct}
+                onClose={() => setDetailProductId(null)}
+                onDelete={(id) => { deleteProduct(id); setDetailProductId(null); }}
+              />
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+
+    {/* ══════════════ PRODUCT PICKER MODAL ══════════════ */}
+    <Modal
+      visible={showProductPicker !== null}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowProductPicker(null)}
+    >
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowProductPicker(null)}>
+        <TouchableOpacity style={styles.modalContent} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.routineHeader}>
+            <Text style={styles.sectionTitle}>Add Product to Routine</Text>
+            <TouchableOpacity onPress={() => setShowProductPicker(null)} activeOpacity={0.7}>
+              <Text style={styles.editRemoveBtn}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: Spacing.md }}>
+            {(() => {
+              const filtered = showProductPicker ? getAvailableProductsForRoutine(showProductPicker) : [];
+              return filtered.length === 0 ? (
+              <Text style={styles.emptyText}>No more products available to add</Text>
+            ) : (
+              <View style={styles.listGap}>
+                {filtered.map((product) => (
+                  <TouchableOpacity
+                    key={product.id}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      if (showProductPicker) {
+                        addRoutineStep(product.id, showProductPicker);
+                      }
+                      setShowProductPicker(null);
+                    }}
+                  >
+                    <View style={styles.checkRow}>
+                      <Text style={styles.checkText}>{product.name}</Text>
+                      <Text style={styles.productPickerStatus}>
+                        {product.status === 'safe' ? '✅' : '🧪'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            );
+            })()}
+          </ScrollView>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+
     </>
+  );
+}
+
+// ── Product Detail View ───────────────────────────────────────────────
+
+const RATING_EMOJI: Record<ReactionRating, string> = {
+  good: '👍',
+  neutral: '😐',
+  bad: '👎',
+};
+
+function ProductDetailView({
+  product,
+  onClose,
+  onDelete,
+}: {
+  product: SkincareProduct;
+  onClose: () => void;
+  onDelete?: (productId: string) => void;
+}) {
+  const log = [...(product.usageLog ?? [])].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
+  const goodCount = log.filter((e) => e.rating === 'good').length;
+  const neutralCount = log.filter((e) => e.rating === 'neutral').length;
+  const badCount = log.filter((e) => e.rating === 'bad').length;
+  const total = log.length;
+
+  return (
+    <View>
+      <View style={styles.detailHeader}>
+        <Text style={styles.modalTitle}>
+          {STATUS_ICON[product.status]} {product.name}
+        </Text>
+        <TouchableOpacity onPress={onClose}>
+          <Text style={styles.detailClose}>✕</Text>
+        </TouchableOpacity>
+      </View>
+
+      {product.notes && (
+        <Text style={styles.detailNotes}>{product.notes}</Text>
+      )}
+
+      {product.status === 'testing' && product.testingStartDate && (
+        <View style={styles.detailTestingBadge}>
+          <Text style={styles.detailTestingText}>
+            🧪 Testing since {new Date(product.testingStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </Text>
+        </View>
+      )}
+
+      {/* Reaction summary */}
+      {total > 0 && (
+        <View style={styles.detailSummary}>
+          <Text style={styles.detailSummaryTitle}>Reaction Summary ({total} logs)</Text>
+          <View style={styles.detailBarRow}>
+            {goodCount > 0 && (
+              <View style={[styles.detailBar, { flex: goodCount, backgroundColor: Colors.success }]}>
+                <Text style={styles.detailBarText}>👍 {goodCount}</Text>
+              </View>
+            )}
+            {neutralCount > 0 && (
+              <View style={[styles.detailBar, { flex: neutralCount, backgroundColor: Colors.warning }]}>
+                <Text style={styles.detailBarText}>😐 {neutralCount}</Text>
+              </View>
+            )}
+            {badCount > 0 && (
+              <View style={[styles.detailBar, { flex: badCount, backgroundColor: Colors.error }]}>
+                <Text style={styles.detailBarText}>👎 {badCount}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Usage log */}
+      {total > 0 ? (
+        <View style={styles.detailLogSection}>
+          <Text style={styles.detailSummaryTitle}>Usage History</Text>
+          {log.map((entry, i) => (
+            <View key={`log-${i}`} style={styles.detailLogRow}>
+              <Text style={styles.detailLogDate}>
+                {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </Text>
+              <Text style={styles.detailLogEmoji}>{RATING_EMOJI[entry.rating]}</Text>
+              {entry.note && <Text style={styles.detailLogNote}>{entry.note}</Text>}
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>No usage logged yet</Text>
+          <Text style={styles.emptySubtext}>Tap a reaction emoji on the product to start tracking</Text>
+        </View>
+      )}
+
+      {onDelete && (
+        <TouchableOpacity
+          style={styles.deleteProductBtn}
+          onPress={() => onDelete(product.id)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.deleteProductText}>🗑 Remove Product</Text>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
 // ── Product Row Component ──────────────────────────────────────────────
 
+const REACTION_OPTIONS: { label: string; value: ReactionRating; color: string }[] = [
+  { label: '👍', value: 'good', color: Colors.success },
+  { label: '😐', value: 'neutral', color: Colors.warning },
+  { label: '👎', value: 'bad', color: Colors.error },
+];
+
 function ProductRow({
-  name,
-  status,
-  notes,
+  product,
+  todayUsage,
+  testingDays,
   onStatusChange,
+  onLogUsage,
+  onViewDetail,
 }: {
-  name: string;
-  status: ProductStatus;
-  notes?: string;
+  product: SkincareProduct;
+  todayUsage?: ProductUsageEntry;
+  testingDays: number;
   onStatusChange: (s: ProductStatus) => void;
+  onLogUsage: (rating: ReactionRating, note?: string) => void;
+  onViewDetail: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [reactionNote, setReactionNote] = useState('');
+  const { name, status, notes } = product;
+  const usageCount = product.usageLog?.length ?? 0;
 
   return (
     <PixelCard>
@@ -892,14 +1419,57 @@ function ProductRow({
           <Text style={styles.productIcon}>{STATUS_ICON[status]}</Text>
           <View style={styles.productInfo}>
             <Text style={styles.productName}>{name}</Text>
-            {notes && <Text style={styles.productNotes}>{notes}</Text>}
+            <View style={styles.productMeta}>
+              {notes && <Text style={styles.productNotes}>{notes}</Text>}
+              {status === 'testing' && testingDays > 0 && (
+                <Text style={styles.testingDays}>Day {testingDays}</Text>
+              )}
+              {usageCount > 0 && (
+                <Text style={styles.usageCount}>{usageCount} logs</Text>
+              )}
+            </View>
           </View>
+          {todayUsage && (
+            <Text style={styles.todayReaction}>
+              {RATING_EMOJI[todayUsage.rating]}
+            </Text>
+          )}
           <Text style={styles.expandArrow}>{expanded ? '▾' : '▸'}</Text>
         </View>
       </TouchableOpacity>
       {expanded && (
         <View style={styles.productActions}>
-          <Text style={styles.changeStatusLabel}>Change status:</Text>
+          {/* Quick reaction */}
+          <Text style={styles.changeStatusLabel}>
+            {todayUsage ? "Today's reaction:" : 'Log today:'}
+          </Text>
+          <View style={styles.reactionRow}>
+            {REACTION_OPTIONS.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                onPress={() => {
+                  onLogUsage(opt.value, reactionNote.trim() || undefined);
+                  setReactionNote('');
+                }}
+                style={[
+                  styles.reactionBtn,
+                  todayUsage?.rating === opt.value && { backgroundColor: opt.color + '22', borderColor: opt.color },
+                ]}
+              >
+                <Text style={styles.reactionEmoji}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TextInput
+            style={styles.reactionNoteInput}
+            value={reactionNote}
+            onChangeText={setReactionNote}
+            placeholder="Quick note (optional)"
+            placeholderTextColor={Colors.textMuted}
+          />
+
+          {/* Status change */}
+          <Text style={[styles.changeStatusLabel, { marginTop: Spacing.sm }]}>Change status:</Text>
           <View style={styles.statusPickerRow}>
             {STATUS_OPTIONS.filter((o) => o.value !== status).map((opt) => (
               <TouchableOpacity
@@ -914,6 +1484,13 @@ function ProductRow({
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* View history */}
+          {usageCount > 0 && (
+            <TouchableOpacity onPress={onViewDetail} style={styles.viewHistoryBtn}>
+              <Text style={styles.viewHistoryText}>📊 View History ({usageCount})</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </PixelCard>
@@ -1075,6 +1652,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   pillTrigger: {
     backgroundColor: 'rgba(229, 115, 115, 0.1)',
@@ -1462,6 +2041,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     width: '100%',
     maxWidth: 400,
+    maxHeight: '70%',
   },
   modalTitle: {
     fontFamily: Fonts.body,
@@ -1478,6 +2058,100 @@ const styles = StyleSheet.create({
     borderColor: Colors.tabBarBorder,
     padding: Spacing.md,
     color: Colors.textPrimary,
+  },
+
+  // Product photo scanning
+  productPhotoSection: {
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    alignItems: 'center',
+  },
+  productPhotoHint: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.purple,
+    marginBottom: Spacing.sm,
+  },
+  productPhotoButtons: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  productPhotoBtn: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.purple,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+  },
+  productPhotoBtnText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.purple,
+  },
+  productOrText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+    marginTop: Spacing.sm,
+  },
+  productScanningWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  productScanningText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.purple,
+  },
+  productPhotoPreview: {
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  productPreviewImage: {
+    width: 120,
+    height: 120,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.xs,
+  },
+  productRetakeText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.purple,
+    textDecorationLine: 'underline',
+  },
+  productErrorText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.error,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  productTriggerWarning: {
+    backgroundColor: '#fff3e0',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+  },
+  productTriggerText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: '#e65100',
+  },
+  productNotesInput: {
+    marginTop: Spacing.sm,
+    minHeight: 60,
+    textAlignVertical: 'top',
   },
 
   // Plan tab
@@ -1500,21 +2174,221 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.bodySm,
     color: Colors.purple,
   },
-  advanceBtnWrap: {
-    marginTop: Spacing.lg,
-    alignItems: 'center',
+  phaseCheckinText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
+    fontStyle: 'italic',
   },
-  advanceBtn: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(124, 77, 255, 0.08)',
+
+  // Product meta row
+  productMeta: {
+    gap: Spacing.xs,
+  },
+  testingDays: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.warning,
+  },
+  usageCount: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+  },
+  todayReaction: {
+    fontSize: 18,
+    marginRight: Spacing.xs,
+  },
+
+  // Reaction row
+  reactionRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  reactionBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    backgroundColor: Colors.cardBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reactionEmoji: {
+    fontSize: 22,
+  },
+  reactionNoteInput: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.cardBackground,
+  },
+  viewHistoryBtn: {
+    marginTop: Spacing.sm,
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.tabBarBorder,
+  },
+  viewHistoryText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.purple,
+  },
+
+  // Product detail modal
+  detailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  detailClose: {
+    fontSize: 20,
+    color: Colors.textMuted,
+    padding: Spacing.xs,
+  },
+  detailNotes: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
+  },
+  detailTestingBadge: {
+    backgroundColor: 'rgba(255, 183, 77, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 183, 77, 0.3)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  detailTestingText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.warning,
+  },
+  detailSummary: {
+    marginBottom: Spacing.md,
+  },
+  detailSummaryTitle: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  detailBarRow: {
+    flexDirection: 'row',
+    height: 28,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+    gap: Spacing.xs,
+  },
+  detailBar: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.sm,
+  },
+  detailBarText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textOnDark,
+  },
+  detailLogSection: {
+    marginTop: Spacing.sm,
+  },
+  detailLogRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.tabBarBorder,
+    gap: Spacing.sm,
+  },
+  detailLogDate: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+    width: 60,
+  },
+  detailLogEmoji: {
+    fontSize: 16,
+  },
+  detailLogNote: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textSecondary,
+    flex: 1,
+  },
+
+  deleteProductBtn: {
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: Colors.tabBarBorder,
+  },
+  deleteProductText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.error,
+  },
+
+  // Routine editing
+  routineHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  routineEditBtn: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.purple,
+  },
+  editReorderBtns: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginRight: Spacing.sm,
+    gap: 2,
+  },
+  reorderArrow: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  reorderArrowDisabled: {
+    color: Colors.tabBarBorder,
+  },
+  editRemoveBtn: {
+    fontSize: 18,
+    color: Colors.error,
+    paddingHorizontal: Spacing.sm,
+  },
+  addRoutineStepBtn: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderColor: Colors.purple,
+    borderStyle: 'dashed',
+    padding: Spacing.md,
+    alignItems: 'center',
   },
-  advanceBtnText: {
+  addRoutineStepText: {
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyMd,
     color: Colors.purple,
+  },
+  productPickerStatus: {
+    fontSize: 16,
+    marginLeft: Spacing.sm,
   },
 });

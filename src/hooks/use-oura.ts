@@ -8,6 +8,14 @@ import type { OuraDaily } from '../types/database';
 const SUPABASE_FUNCTIONS_URL =
   'https://xkdagrpbgyjsbnzbpkxb.supabase.co/functions/v1';
 
+/** Returns the best available step count and whether it's an estimate */
+export function getBestSteps(data: OuraDaily | null): { steps: number | null; isEstimated: boolean } {
+  if (!data) return { steps: null, isEstimated: false };
+  // Always use raw steps from Oura API — equivalent_walking_distance factors in intensity
+  // and can't be reliably converted to step count. Steps update with each sync.
+  return { steps: data.steps, isEstimated: false };
+}
+
 interface UseOuraReturn {
   isConnected: boolean;
   loading: boolean;

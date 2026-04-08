@@ -511,11 +511,16 @@ Respond in STRICT JSON format only:
 async function notifyTelegram(chatId: string, text: string): Promise<void> {
   if (!TELEGRAM_BOT_TOKEN) return;
   try {
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
+      body: JSON.stringify({ chat_id: chatId, text }),
     });
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.warn("Telegram notification failed:", errBody);
+    }
   } catch (err) {
     console.warn("Telegram notification failed:", String(err));
   }
@@ -527,14 +532,14 @@ async function notifyFoodLogged(
   analysis: AnalysisResult,
   analyzedBy: string,
 ): Promise<void> {
+  const desc = description ? `"${description.substring(0, 100)}"` : "";
   const text = [
-    `🍽️ *Food logged* (${mealType})`,
-    description ? `"${description.substring(0, 100)}"` : "",
+    `🍽️ Food logged (${mealType})`,
+    desc,
     "",
     `📊 ${Math.round(analysis.calories)} cal | ${Math.round(analysis.protein)}g protein | ${Math.round(analysis.carbs)}g carbs | ${Math.round(analysis.fat)}g fat`,
-    `🤖 Analyzed by: ${analyzedBy}`,
     "",
-    `💬 _Tina, I'll follow up with PCOS tips!_`,
+    analysis.pcos_notes ? `💬 ${analysis.pcos_notes}` : "",
   ].filter(Boolean).join("\n");
 
   await notifyTelegram(TINA_CHAT_ID, text);

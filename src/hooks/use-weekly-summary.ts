@@ -52,7 +52,7 @@ export function useWeeklySummary() {
       const sundayKey = toDateKey(sunday);
 
       // Fetch all data in parallel
-      const [scoresRes, exerciseRes, foodRes, supplementsRes, supplementLogsRes] =
+      const [scoresRes, exerciseRes, ouraWorkoutsRes, foodRes, supplementsRes, supplementLogsRes] =
         await Promise.all([
           // Daily scores for the week
           supabase
@@ -61,13 +61,21 @@ export function useWeeklySummary() {
             .eq('user_id', user.id)
             .gte('score_date', mondayKey)
             .lte('score_date', sundayKey),
-          // Exercise logs for the week
+          // Exercise logs for the week (manual entries)
           supabase
             .from('exercise_logs')
             .select('duration_minutes')
             .eq('user_id', user.id)
             .gte('log_date', mondayKey)
             .lte('log_date', sundayKey),
+          // Oura workouts for the week (exclude housework)
+          supabase
+            .from('oura_workouts')
+            .select('duration_minutes')
+            .eq('user_id', user.id)
+            .gte('log_date', mondayKey)
+            .lte('log_date', sundayKey)
+            .neq('activity_type', 'houseWork'),
           // Food logs for the week
           supabase
             .from('food_logs')
@@ -103,14 +111,22 @@ export function useWeeklySummary() {
             )
           : 0;
 
-      // --- Exercise ---
+      // --- Exercise (manual + Oura workouts) ---
       const exercises = (exerciseRes.data ?? []) as Array<{
         duration_minutes: number | null;
       }>;
-      const totalExerciseMinutes = exercises.reduce(
+      const manualMinutes = exercises.reduce(
         (s, e) => s + (e.duration_minutes ?? 0),
         0,
       );
+      const ouraWorkouts = (ouraWorkoutsRes.data ?? []) as Array<{
+        duration_minutes: number | null;
+      }>;
+      const ouraMinutes = ouraWorkouts.reduce(
+        (s, e) => s + (e.duration_minutes ?? 0),
+        0,
+      );
+      const totalExerciseMinutes = manualMinutes + ouraMinutes;
 
       // --- Food: average per day that has logs ---
       const foodRows = (foodRes.data ?? []) as Array<{

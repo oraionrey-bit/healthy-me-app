@@ -14,6 +14,7 @@ import { OuraSleepTrend } from './oura-sleep-trend';
 import { OuraHrvTrend } from './oura-hrv-trend';
 import { useOura } from '../../hooks/use-oura';
 import { SupplementStreakCard } from './supplement-streak-card';
+import { SupplementTracker } from './supplement-tracker';
 import { LabDashboard } from './lab-dashboard';
 
 export function HealthDashboard() {
@@ -48,6 +49,9 @@ export function HealthDashboard() {
         currentMonth={currentMonth}
         onMonthChange={setCurrentMonth}
       />
+      <View style={styles.sectionSpacing}>
+        <SupplementTracker />
+      </View>
       <View style={styles.sectionSpacing}>
         <SupplementStreakCard />
       </View>

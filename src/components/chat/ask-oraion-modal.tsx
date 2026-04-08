@@ -36,6 +36,25 @@ export function AskOraionModal({ visible, onClose }: AskOraionModalProps) {
   const [description, setDescription] = useState('');
   const [messageType, setMessageType] = useState<ChatMessageType>('food_analysis');
   const { sendAnalysis, sendChat, response, sending, error, clearResponse } = useChatTunnel();
+  const [showTimeout, setShowTimeout] = useState(false);
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Start/clear timeout when sending state changes
+  React.useEffect(() => {
+    if (sending) {
+      setShowTimeout(false);
+      timeoutRef.current = setTimeout(() => setShowTimeout(true), 30000);
+    } else {
+      setShowTimeout(false);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    }
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [sending]);
 
   const pickImage = useCallback(async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -203,7 +222,16 @@ export function AskOraionModal({ visible, onClose }: AskOraionModalProps) {
                   <View style={styles.analyzingBox}>
                     <ActivityIndicator color={Colors.purple} size="small" />
                     <Text style={styles.analyzingText}>Oraion is analyzing...</Text>
-                    <Text style={styles.analyzingSubtext}>This may take a moment ✨</Text>
+                    {showTimeout ? (
+                      <>
+                        <Text style={styles.timeoutText}>
+                          Taking longer than usual... You can close this and check back later.
+                        </Text>
+                        <PixelButton title="Close" variant="outline" onPress={handleClose} />
+                      </>
+                    ) : (
+                      <Text style={styles.analyzingSubtext}>This may take a moment ✨</Text>
+                    )}
                   </View>
                 ) : (
                   <PixelButton
@@ -375,6 +403,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodySm,
     color: Colors.textMuted,
+  },
+  timeoutText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
   },
   responseLabel: {
     fontFamily: Fonts.pixel,

@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { Symptom } from '../types/database';
 
-
 interface SaveMoodEnergyInput {
   mood: number; // 1-5
   energy: number; // 1-5

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
@@ -31,7 +31,7 @@ const PCOS_OPTIONS: Array<{ value: PcosType; label: string; emoji: string }> = [
 
 export default function ProfileScreen() {
   const { user } = useAuth();
-  const { updateProfile } = useUserProfile();
+  const { profile, loading: profileLoading, updateProfile } = useUserProfile();
   const emailPrefix = user?.email?.split('@')[0] ?? '';
 
   const [name, setName] = useState(emailPrefix);
@@ -43,7 +43,33 @@ export default function ProfileScreen() {
   const [pcosType, setPcosType] = useState<PcosType | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const handleNext = async () => {
+  // Track the original health condition for change confirmation (Fix 3)
+  const originalHealthCondition = useRef<HealthCondition | null>(null);
+
+  // Pre-populate form with existing profile data when editing (Fix 1)
+  useEffect(() => {
+    if (!profile || profileLoading) return;
+
+    // Store original health condition for change detection
+    if (originalHealthCondition.current === null && profile.onboarding_complete) {
+      originalHealthCondition.current = profile.health_condition;
+    }
+
+    if (profile.display_name) setName(profile.display_name);
+    if (profile.age != null) setAge(String(profile.age));
+    if (profile.current_weight != null) setWeight(String(profile.current_weight));
+    if (profile.health_condition) setHealthCondition(profile.health_condition);
+    if (profile.pcos_type) setPcosType(profile.pcos_type);
+
+    // Convert height_cm back to ft/in for display
+    if (profile.height_cm != null) {
+      const totalInches = Math.round(profile.height_cm / 2.54);
+      setHeightFt(String(Math.floor(totalInches / 12)));
+      setHeightIn(String(totalInches % 12));
+    }
+  }, [profile, profileLoading]);
+
+  const saveAndNavigate = async () => {
     setSaving(true);
     try {
       const ft = parseInt(heightFt, 10) || 0;
@@ -64,6 +90,23 @@ export default function ProfileScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleNext = () => {
+    // Fix 3: Confirm if health condition changed on an existing profile
+    const orig = originalHealthCondition.current;
+    if (orig && orig !== healthCondition) {
+      Alert.alert(
+        'Change Health Focus?',
+        'Changing your health focus will update your supplement list. Your existing supplement check-in history will be preserved. Continue?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Continue', onPress: () => void saveAndNavigate() },
+        ],
+      );
+      return;
+    }
+    void saveAndNavigate();
   };
 
   return (

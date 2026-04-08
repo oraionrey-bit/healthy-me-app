@@ -10,5 +10,6 @@ const Y_AXIS_WIDTH = 50; // space for y-axis labels like "2000"
 /** Returns the chart width accounting for screen padding, card padding, border, and y-axis. */
 export function useChartWidth(): number {
   const { width } = useWindowDimensions();
-  return Math.min(width, MAX_APP_WIDTH) - SCREEN_PADDING * 2 - CARD_PADDING * 2 - BORDER_WIDTH - Y_AXIS_WIDTH;
+  const computed = Math.min(width, MAX_APP_WIDTH) - SCREEN_PADDING * 2 - CARD_PADDING * 2 - BORDER_WIDTH - Y_AXIS_WIDTH;
+  return Math.max(computed, 50); // Prevent negative SVG width errors
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { compressImage } from '../utils/compress-image';
 import type { FoodLog } from '../types/database';
 
 const POLL_INTERVAL_MS = 30_000;
@@ -23,9 +24,18 @@ interface AddFoodInput {
  */
 async function triggerAnalysis(foodLogId: string, mode?: 'leftovers', leftoversPhotoUrl?: string, retryCount = 0): Promise<void> {
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData?.session?.access_token;
-    if (!token) return;
+    let { data: sessionData } = await supabase.auth.getSession();
+    let token = sessionData?.session?.access_token;
+
+    // If token is missing/expired, try refreshing the session before giving up
+    if (!token) {
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      token = refreshed?.session?.access_token;
+      if (!token) {
+        console.warn('triggerAnalysis: no valid session after refresh, skipping');
+        return;
+      }
+    }
 
     const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
     const body: Record<string, unknown> = { food_log_id: foodLogId };
@@ -111,55 +121,6 @@ export function useFoodLog(date: string) {
       }
     };
   }, [hasPending, fetchEntries]);
-
-  /**
-   * Compress an image file to stay under maxSizeKB using canvas resize.
-   * Returns a Blob (JPEG) that fits within the size limit.
-   */
-  const compressImage = async (file: File, maxSizeKB = 4000): Promise<Blob> => {
-    // If already small enough, return as-is
-    if (file.size <= maxSizeKB * 1024) return file;
-
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        // Calculate target dimensions — scale down proportionally
-        let { width, height } = img;
-        const maxDim = 2048; // Max dimension for food photos (plenty for AI analysis)
-        if (width > maxDim || height > maxDim) {
-          const ratio = Math.min(maxDim / width, maxDim / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) { resolve(file); return; }
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Try progressively lower quality until under size limit
-        const tryQuality = (quality: number) => {
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) { resolve(file); return; }
-              if (blob.size <= maxSizeKB * 1024 || quality <= 0.3) {
-                resolve(blob);
-              } else {
-                tryQuality(quality - 0.1);
-              }
-            },
-            'image/jpeg',
-            quality,
-          );
-        };
-        tryQuality(0.85);
-      };
-      img.onerror = () => reject(new Error('Failed to load image for compression'));
-      img.src = URL.createObjectURL(file);
-    });
-  };
 
   const uploadPhotos = async (files: File[]): Promise<string[]> => {
     if (!user || files.length === 0) return [];

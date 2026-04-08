@@ -39,8 +39,12 @@ export function PhaseTransitionModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onStay}>
-      <View style={styles.overlay}>
-        <View style={styles.content}>
+      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onStay}>
+        <TouchableOpacity style={styles.content} activeOpacity={1} onPress={() => {}}>
+          {/* Close button */}
+          <TouchableOpacity style={styles.closeButton} onPress={onStay}>
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>🎯 Ready for Phase {nextPhase.order}?</Text>
             <Text style={styles.subtitle}>{nextPhase.name}</Text>
@@ -80,8 +84,8 @@ export function PhaseTransitionModal({
               <PixelButton title={`Advance to Phase ${nextPhase.order}`} onPress={onAdvance} />
             </View>
           </ScrollView>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -101,6 +105,22 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     maxHeight: '80%',
+    position: 'relative',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    zIndex: 1,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: Colors.textMuted,
   },
   title: {
     fontFamily: Fonts.pixel,

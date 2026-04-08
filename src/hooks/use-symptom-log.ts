@@ -4,13 +4,16 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { SymptomLog, SymptomType } from '../types/database';
 
-
 interface AddSymptomInput {
   symptom_type: SymptomType;
   severity: number;
   notes?: string;
   triggers?: string;
 }
+
+const SEVERITY_MAP: Record<number, string> = {
+  1: 'mild', 2: 'mild', 3: 'moderate', 4: 'severe', 5: 'severe',
+};
 
 export function useSymptomLog() {
   const { user } = useAuth();
@@ -42,12 +45,7 @@ export function useSymptomLog() {
     async (input: AddSymptomInput) => {
       if (!user) return;
 
-      // DB constraint: severity must be 'mild' | 'moderate' | 'severe'
-      // UI uses numbers 1-5, so map: 1-2 = mild, 3 = moderate, 4-5 = severe
-      const severityMap: Record<number, string> = {
-        1: 'mild', 2: 'mild', 3: 'moderate', 4: 'severe', 5: 'severe',
-      };
-      const severityText = severityMap[input.severity] ?? 'moderate';
+      const severityText = SEVERITY_MAP[input.severity] ?? 'moderate';
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
       const { error } = await (supabase.from('symptom_logs') as any).insert({
@@ -61,6 +59,30 @@ export function useSymptomLog() {
 
       if (error) {
         console.error('Failed to save symptom:', error.message);
+        throw error;
+      }
+      await fetchSymptomLogs();
+    },
+    [user, fetchSymptomLogs],
+  );
+
+  const updateSymptomLog = useCallback(
+    async (id: string, input: { severity: number; notes?: string }) => {
+      if (!user) return;
+
+      const severityText = SEVERITY_MAP[input.severity] ?? 'moderate';
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+      const { error } = await (supabase.from('symptom_logs') as any)
+        .update({
+          severity: severityText,
+          notes: input.notes ?? null,
+        })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Failed to update symptom:', error.message);
         throw error;
       }
       await fetchSymptomLogs();
@@ -88,6 +110,7 @@ export function useSymptomLog() {
     symptomLogs,
     loading,
     addSymptom,
+    updateSymptomLog,
     removeSymptom,
     refetch: fetchSymptomLogs,
   };

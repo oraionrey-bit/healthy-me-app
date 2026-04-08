@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { HealthLab } from '../types/database';
-import { getAllTests, computeLabStatus, LAB_CATEGORIES, CATEGORY_ORDER } from '../constants/lab-categories';
-import type { LabTestDef } from '../constants/lab-categories';
+import { getAllTests, computeLabStatus, LAB_CATEGORIES } from '../constants/lab-categories';
 
 /** Re-export flat test list for backward compat */
 export const COMMON_LAB_TESTS = getAllTests().map((t) => ({

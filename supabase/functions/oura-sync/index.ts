@@ -145,6 +145,7 @@ interface OuraDailyActivity {
   equivalent_walking_distance: number | null;
   non_wear_minutes: number | null;
   resting_time: number | null; // seconds
+  timestamp: string | null; // when steps/activity was last computed
 }
 
 interface OuraSleepDetail {
@@ -208,6 +209,8 @@ interface DayData {
   equivalent_walking_distance: number | null;
   non_wear_minutes: number | null;
   resting_minutes: number | null;
+  activity_timestamp: string | null;
+  estimated_steps: number | null;
 }
 
 Deno.serve(async (req) => {
@@ -329,6 +332,8 @@ Deno.serve(async (req) => {
           equivalent_walking_distance: null,
           non_wear_minutes: null,
           resting_minutes: null,
+          activity_timestamp: null,
+          estimated_steps: null,
         });
       }
       return dayMap.get(day)!;
@@ -363,6 +368,16 @@ Deno.serve(async (req) => {
       d.equivalent_walking_distance = item.equivalent_walking_distance ?? null;
       d.non_wear_minutes = item.non_wear_minutes ?? null;
       d.resting_minutes = item.resting_time != null ? Math.round(item.resting_time / 60) : null;
+      d.activity_timestamp = item.timestamp ?? null;
+
+      // Compute estimated steps from walking distance when steps timestamp is stale
+      // (Oura steps field is computed at 4am and doesn't update throughout the day,
+      // but equivalent_walking_distance updates in near-real-time)
+      if (item.equivalent_walking_distance != null && item.equivalent_walking_distance > 0) {
+        // Average stride length ~0.762m → steps = distance / stride
+        const estimatedFromDistance = Math.round(item.equivalent_walking_distance / 0.762);
+        d.estimated_steps = estimatedFromDistance;
+      }
     }
 
     // Detailed sleep: HRV, resting HR, sleep durations
