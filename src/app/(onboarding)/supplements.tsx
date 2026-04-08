@@ -177,7 +177,7 @@ export default function SupplementsScreen() {
                         {supp.supplement_name}
                       </Text>
                       <Text style={styles.suppDose}>
-                        {supp.dosage} · {supp.time_of_day === 'morning' ? '☀️ AM' : '🌙 PM'}
+                        {supp.dosage} · {supp.time_of_day.includes('morning') && supp.time_of_day.includes('evening') ? '☀️🌙 AM+PM' : supp.time_of_day.includes('morning') ? '☀️ AM' : '🌙 PM'}
                       </Text>
                     </View>
                   </TouchableOpacity>

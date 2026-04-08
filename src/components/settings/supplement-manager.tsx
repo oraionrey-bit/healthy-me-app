@@ -45,8 +45,25 @@ function SupplementForm({
 }) {
   const [name, setName] = useState(initial?.name ?? '');
   const [dosage, setDosage] = useState(initial?.dosage ?? '');
-  const [timeOfDay, setTimeOfDay] = useState(initial?.timeOfDay ?? 'morning');
+  const [selectedTimes, setSelectedTimes] = useState<Set<string>>(() => {
+    const initialTod = initial?.timeOfDay ?? 'morning';
+    return new Set(initialTod.split(','));
+  });
   const [saving, setSaving] = useState(false);
+
+  const toggleTime = (value: string) => {
+    setSelectedTimes((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) {
+        if (next.size > 1) next.delete(value);
+      } else {
+        next.add(value);
+      }
+      return next;
+    });
+  };
+
+  const timeOfDay = ['morning', 'evening'].filter((t) => selectedTimes.has(t)).join(',');
 
   const handleSubmit = async () => {
     if (!name.trim()) return;
@@ -88,11 +105,11 @@ function SupplementForm({
           {TIME_OPTIONS.map((opt) => (
             <TouchableOpacity
               key={opt.value}
-              style={[styles.timePill, timeOfDay === opt.value && styles.timePillActive]}
-              onPress={() => setTimeOfDay(opt.value)}
+              style={[styles.timePill, selectedTimes.has(opt.value) && styles.timePillActive]}
+              onPress={() => toggleTime(opt.value)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.timePillText, timeOfDay === opt.value && styles.timePillTextActive]}>
+              <Text style={[styles.timePillText, selectedTimes.has(opt.value) && styles.timePillTextActive]}>
                 {opt.label}
               </Text>
             </TouchableOpacity>
@@ -144,7 +161,7 @@ function SupplementRow({
       <View style={styles.suppInfo}>
         <Text style={styles.suppName}>{supplement.supplement_name}</Text>
         <Text style={styles.suppDetails}>
-          {supplement.dosage ?? '—'} · {supplement.time_of_day === 'morning' ? '☀️ Morning' : '🌙 Evening'}
+          {supplement.dosage ?? '—'} · {supplement.time_of_day.includes('morning') && supplement.time_of_day.includes('evening') ? '☀️🌙 Both' : supplement.time_of_day.includes('morning') ? '☀️ Morning' : '🌙 Evening'}
         </Text>
       </View>
       <View style={styles.suppActions}>

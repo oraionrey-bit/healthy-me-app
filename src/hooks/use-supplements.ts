@@ -44,8 +44,8 @@ export function useSupplements(date?: Date) {
   const takenCount = todaysLogs.filter((l) => l.taken).length;
   const totalCount = supplements.length;
 
-  const morningSupplements = supplements.filter((s) => s.time_of_day === 'morning');
-  const eveningSupplements = supplements.filter((s) => s.time_of_day === 'evening');
+  const morningSupplements = supplements.filter((s) => s.time_of_day.includes('morning'));
+  const eveningSupplements = supplements.filter((s) => s.time_of_day.includes('evening'));
 
   const seedDefaults = useCallback(async () => {
     if (!user || seededRef.current) return false;
