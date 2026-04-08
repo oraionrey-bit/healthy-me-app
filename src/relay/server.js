@@ -37,6 +37,7 @@ const ANALYSIS_PROMPTS = {
   food_analysis: 'You are a nutrition expert for PCOS. Analyze the food shown in the photo. Estimate calories, protein, and macros. Suggest improvements for someone targeting 1400-1600 cal/day, 80-100g protein. Keep response concise.',
   nutrition_label: 'You are a nutrition label reader. Extract the following from the nutrition label photo and return ONLY valid JSON (no markdown, no explanation):\n{"name": "product name", "brand": "brand name", "serving_size": "e.g. 1 cup (55g)", "serving_unit": "e.g. cup, bar, oz", "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "fiber": 0}\nUse integers for numbers. If a field is not visible, use null. Read the label carefully.',
   skincare_product: 'You are a skincare product analyst. Analyze this skincare product photo. Extract:\n- Product name\n- Brand\n- Key active ingredients (list the main ones)\n- Product type (cleanser, toner, serum, moisturizer, sunscreen, treatment, lip, oil, other)\n- Flag any of these known triggers if found in ingredients: niacinamide, snail mucin/snail secretion filtrate, vitamin E/tocopherol (when main ingredient), isostearic acid\n\nReturn ONLY valid JSON (no markdown, no explanation):\n{"name": "...", "brand": "...", "ingredients": ["..."], "product_type": "...", "triggers_found": ["..."], "notes": "brief ingredient analysis"}',
+  supplement_product: 'You are a supplement label analyst specializing in PCOS. Analyze this supplement product photo. Extract:\n- Product name\n- Brand\n- Dosage per serving (e.g. "2000 IU", "500mg")\n- Key ingredients with amounts\n- Form (capsule, tablet, gummy, powder, liquid)\n- Any PCOS-relevant notes (e.g. contains inositol, vitamin D, etc.)\n\nReturn ONLY valid JSON (no markdown, no explanation):\n{"name": "...", "brand": "...", "dosage": "...", "ingredients": [{"name": "...", "amount": "..."}], "form": "...", "pcos_notes": "brief relevance to PCOS"}',
 };
 
 const AI_TIMEOUT_MS = 30000;
@@ -44,7 +45,7 @@ const AI_TIMEOUT_MS = 30000;
 const MAX_TEXT_LENGTH = 5000;
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-const VALID_MESSAGE_TYPES = ['chat', 'food_analysis', 'skin_analysis', 'supplement_check', 'lab_analysis', 'menu_analysis', 'fridge_analysis', 'nutrition_label', 'skincare_product'];
+const VALID_MESSAGE_TYPES = ['chat', 'food_analysis', 'skin_analysis', 'supplement_check', 'lab_analysis', 'menu_analysis', 'fridge_analysis', 'nutrition_label', 'skincare_product', 'supplement_product'];
 
 // Rate limiting
 const rateLimits = new Map(); // key -> { count, resetTime }

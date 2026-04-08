@@ -419,7 +419,7 @@ export interface SavedMeal {
 }
 
 export type ChatMessageDirection = 'user' | 'oraion';
-export type ChatMessageType = 'chat' | 'food_analysis' | 'skin_analysis' | 'supplement_check' | 'lab_analysis' | 'menu_analysis' | 'fridge_analysis';
+export type ChatMessageType = 'chat' | 'food_analysis' | 'skin_analysis' | 'supplement_check' | 'lab_analysis' | 'menu_analysis' | 'fridge_analysis' | 'nutrition_label' | 'skincare_product' | 'supplement_product';
 export type ChatMessageStatus = 'pending' | 'processing' | 'complete' | 'error';
 
 export interface FoodAnalysis {

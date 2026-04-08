@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { PixelCard } from '../ui/pixel-card';
 import { PixelButton } from '../ui/pixel-button';
+import { ProductAnalyzer, type FoodResult } from '../shared/product-analyzer';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import type { SavedMeal } from '../../types/database';
 
@@ -23,11 +24,22 @@ interface PantrySectionProps {
 
 export function PantrySection({ items, loading, onLogItem, onRemoveItem, onAddItem }: PantrySectionProps) {
   const [showForm, setShowForm] = useState(false);
+  const [addMode, setAddMode] = useState<'manual' | 'scan'>('manual');
   const [formName, setFormName] = useState('');
   const [formCalories, setFormCalories] = useState('');
   const [formProtein, setFormProtein] = useState('');
   const [formCarbs, setFormCarbs] = useState('');
   const [formFat, setFormFat] = useState('');
+
+  const handleScanResult = useCallback((data: FoodResult) => {
+    const displayName = data.brand ? `${data.brand} ${data.name ?? ''}`.trim() : (data.name ?? '');
+    setFormName(displayName);
+    if (data.calories != null) setFormCalories(String(data.calories));
+    if (data.protein != null) setFormProtein(String(data.protein));
+    if (data.carbs != null) setFormCarbs(String(data.carbs));
+    if (data.fat != null) setFormFat(String(data.fat));
+    setAddMode('manual'); // Switch to manual view so user can review/edit
+  }, []);
 
   const handleAdd = () => {
     if (!formName.trim()) return;
@@ -44,6 +56,7 @@ export function PantrySection({ items, loading, onLogItem, onRemoveItem, onAddIt
     setFormCarbs('');
     setFormFat('');
     setShowForm(false);
+    setAddMode('manual');
   };
 
   const confirmRemove = (id: string, name: string) => {
@@ -73,49 +86,79 @@ export function PantrySection({ items, loading, onLogItem, onRemoveItem, onAddIt
 
       {showForm && (
         <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Food name"
-            placeholderTextColor={Colors.textMuted}
-            value={formName}
-            onChangeText={setFormName}
-            autoFocus
-          />
-          <View style={styles.macroRow}>
-            <TextInput
-              style={[styles.input, styles.macroInput]}
-              placeholder="Cal"
-              placeholderTextColor={Colors.textMuted}
-              value={formCalories}
-              onChangeText={setFormCalories}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={[styles.input, styles.macroInput]}
-              placeholder="Protein"
-              placeholderTextColor={Colors.textMuted}
-              value={formProtein}
-              onChangeText={setFormProtein}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={[styles.input, styles.macroInput]}
-              placeholder="Carbs"
-              placeholderTextColor={Colors.textMuted}
-              value={formCarbs}
-              onChangeText={setFormCarbs}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={[styles.input, styles.macroInput]}
-              placeholder="Fat"
-              placeholderTextColor={Colors.textMuted}
-              value={formFat}
-              onChangeText={setFormFat}
-              keyboardType="numeric"
-            />
+          {/* Mode toggle: Scan vs Manual */}
+          <View style={styles.modeRow}>
+            <TouchableOpacity
+              onPress={() => setAddMode('scan')}
+              style={[styles.modeBtn, addMode === 'scan' && styles.modeBtnActive]}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.modeBtnText, addMode === 'scan' && styles.modeBtnTextActive]}>
+                Scan Label
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setAddMode('manual')}
+              style={[styles.modeBtn, addMode === 'manual' && styles.modeBtnActive]}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.modeBtnText, addMode === 'manual' && styles.modeBtnTextActive]}>
+                Manual
+              </Text>
+            </TouchableOpacity>
           </View>
-          <PixelButton title="Save to Pantry" onPress={handleAdd} variant="primary" />
+
+          {addMode === 'scan' && (
+            <ProductAnalyzer mode="food" onResult={handleScanResult} compact />
+          )}
+
+          {addMode === 'manual' && (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Food name"
+                placeholderTextColor={Colors.textMuted}
+                value={formName}
+                onChangeText={setFormName}
+                autoFocus
+              />
+              <View style={styles.macroRow}>
+                <TextInput
+                  style={[styles.input, styles.macroInput]}
+                  placeholder="Cal"
+                  placeholderTextColor={Colors.textMuted}
+                  value={formCalories}
+                  onChangeText={setFormCalories}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={[styles.input, styles.macroInput]}
+                  placeholder="Protein"
+                  placeholderTextColor={Colors.textMuted}
+                  value={formProtein}
+                  onChangeText={setFormProtein}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={[styles.input, styles.macroInput]}
+                  placeholder="Carbs"
+                  placeholderTextColor={Colors.textMuted}
+                  value={formCarbs}
+                  onChangeText={setFormCarbs}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={[styles.input, styles.macroInput]}
+                  placeholder="Fat"
+                  placeholderTextColor={Colors.textMuted}
+                  value={formFat}
+                  onChangeText={setFormFat}
+                  keyboardType="numeric"
+                />
+              </View>
+              <PixelButton title="Save to Pantry" onPress={handleAdd} variant="primary" />
+            </>
+          )}
         </View>
       )}
 
@@ -175,6 +218,31 @@ const styles = StyleSheet.create({
   form: {
     marginBottom: Spacing.md,
     gap: Spacing.sm,
+  },
+  modeRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    alignItems: 'center',
+  },
+  modeBtnActive: {
+    borderColor: Colors.purple,
+    backgroundColor: Colors.purple + '18',
+  },
+  modeBtnText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+  },
+  modeBtnTextActive: {
+    color: Colors.purple,
   },
   input: {
     fontFamily: Fonts.body,
