@@ -48,7 +48,7 @@ supabase_query() {
 }
 
 # ── 1. TypeScript ──────────────────────────────────────────────────────
-echo -e "${BOLD}[1/6] TypeScript${NC}"
+echo -e "${BOLD}[1/7] TypeScript${NC}"
 if npx tsc --noEmit 2>/dev/null; then
   pass "TypeScript compiles cleanly"
 else
@@ -57,7 +57,7 @@ fi
 echo ""
 
 # ── 2. Tests ───────────────────────────────────────────────────────────
-echo -e "${BOLD}[2/6] Jest Tests${NC}"
+echo -e "${BOLD}[2/7] Jest Tests${NC}"
 if npx jest --forceExit --silent 2>/dev/null; then
   pass "All tests pass"
 else
@@ -66,7 +66,7 @@ fi
 echo ""
 
 # ── 3. Web Export ──────────────────────────────────────────────────────
-echo -e "${BOLD}[3/6] Web Export${NC}"
+echo -e "${BOLD}[3/7] Web Export${NC}"
 if npx expo export --platform web 2>/dev/null; then
   pass "Expo web export succeeded"
 else
@@ -95,7 +95,7 @@ fi
 echo ""
 
 # ── 4. Supabase Tables ────────────────────────────────────────────────
-echo -e "${BOLD}[4/6] Supabase Tables${NC}"
+echo -e "${BOLD}[4/7] Supabase Tables${NC}"
 if [ -z "$ACCESS_TOKEN" ]; then
   warn "Supabase access token not found — skipping DB checks"
 else
@@ -108,6 +108,7 @@ else
     "supplement_logs"
     "user_supplements"
     "calf_measurements"
+    "skincare_logs"
   )
 
   EXISTING_TABLES=$(supabase_query "SELECT tablename FROM pg_tables WHERE schemaname = 'public'" 2>/dev/null) || true
@@ -143,11 +144,11 @@ fi
 echo ""
 
 # ── 5. RLS Policies ───────────────────────────────────────────────────
-echo -e "${BOLD}[5/6] Row-Level Security${NC}"
+echo -e "${BOLD}[5/7] Row-Level Security${NC}"
 if [ -z "$ACCESS_TOKEN" ]; then
   warn "Skipping RLS checks (no access token)"
 else
-  RLS_STATUS=$(supabase_query "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('daily_logs','food_logs','weight_logs','water_logs','symptoms','supplement_logs','user_supplements','calf_measurements')") || true
+  RLS_STATUS=$(supabase_query "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('daily_logs','food_logs','weight_logs','water_logs','symptoms','supplement_logs','user_supplements','calf_measurements','skincare_logs')") || true
 
   for table in "${REQUIRED_TABLES[@]}"; do
     if echo "$RLS_STATUS" | python3 -c "
@@ -165,7 +166,7 @@ fi
 echo ""
 
 # ── 6. Storage Buckets ────────────────────────────────────────────────
-echo -e "${BOLD}[6/6] Storage Buckets${NC}"
+echo -e "${BOLD}[6/7] Storage Buckets${NC}"
 if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
   warn "Skipping storage checks (missing Supabase URL or service key)"
 else
@@ -181,6 +182,34 @@ else
       fail "Bucket missing: $bucket"
     fi
   done
+fi
+echo ""
+
+# ── 7. Stub File Detection ───────────────────────────────────────────
+echo -e "${BOLD}[7/7] Stub File Detection${NC}"
+STUB_PATTERNS='not yet implemented|NOT_IMPLEMENTED|stub|STUB|todo.*implement|TODO.*implement'
+STUB_FILES=$(grep -rlE "$STUB_PATTERNS" src/components/ src/screens/ src/services/ src/hooks/ 2>/dev/null || true)
+
+if [ -n "$STUB_FILES" ]; then
+  while IFS= read -r sfile; do
+    warn "Possible stub: $sfile (contains stub/TODO pattern)"
+  done <<< "$STUB_FILES"
+fi
+
+# Check for tiny components (< 10 lines with just View/Text)
+TINY_STUBS=""
+for cfile in $(find src/components/ -name '*.tsx' -o -name '*.ts' 2>/dev/null); do
+  LINES=$(wc -l < "$cfile" | tr -d ' ')
+  if [ "$LINES" -lt 10 ]; then
+    if grep -qE '<View>|<Text>' "$cfile" 2>/dev/null; then
+      TINY_STUBS="$TINY_STUBS $cfile"
+      warn "Tiny component ($LINES lines): $cfile"
+    fi
+  fi
+done
+
+if [ -z "$STUB_FILES" ] && [ -z "$TINY_STUBS" ]; then
+  pass "No stub files detected"
 fi
 echo ""
 

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Healthy Me — pre-commit hook
+# Runs the line-count guard to prevent stub replacements.
+
+SCRIPT_DIR="$(cd "$(dirname "$0")/../scripts" && pwd)"
+
+if [ -f "$SCRIPT_DIR/line-count-guard.sh" ]; then
+  bash "$SCRIPT_DIR/line-count-guard.sh" "$@"
+fi

@@ -1,0 +1,2473 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Snapshot: CalorieBalanceCard matches snapshot 1`] = `
+<div>
+  <div
+    class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+  >
+    <div
+      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-1ifxtd0"
+      dir="auto"
+    >
+      Calorie Balance
+    </div>
+    <div
+      class="css-view-g5y9jx r-gap-1cmwbt1"
+    >
+      <div
+        class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1"
+      >
+        <div
+          class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-width-18tzken"
+          dir="auto"
+        >
+          Calories
+        </div>
+        <div
+          class="css-view-g5y9jx r-backgroundColor-1rxx7b r-borderRadius-cpet4d r-flex-13awgt0 r-height-3da1kt r-overflow-1udh08x"
+        >
+          <div
+            class="css-view-g5y9jx r-borderRadius-cpet4d r-height-1pi2tsx"
+            style="width: 47.22222222222222%; background-color: rgb(124, 77, 255);"
+          />
+        </div>
+        <div
+          class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-10x49cs r-minWidth-1c8i11 r-textAlign-1ff274t"
+          dir="auto"
+        >
+          850
+          /
+          1800
+        </div>
+      </div>
+      <div
+        class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1"
+      >
+        <div
+          class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-width-18tzken"
+          dir="auto"
+        >
+          Protein
+        </div>
+        <div
+          class="css-view-g5y9jx r-backgroundColor-1rxx7b r-borderRadius-cpet4d r-flex-13awgt0 r-height-3da1kt r-overflow-1udh08x"
+        >
+          <div
+            class="css-view-g5y9jx r-borderRadius-cpet4d r-height-1pi2tsx"
+            style="width: 45%; background-color: rgb(129, 212, 250);"
+          />
+        </div>
+        <div
+          class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-10x49cs r-minWidth-1c8i11 r-textAlign-1ff274t"
+          dir="auto"
+        >
+          45
+          /
+          100
+          g
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Snapshot: Food Screen matches snapshot 1`] = `
+<div>
+  <div
+    style="flex: 1; background-color: rgb(232, 244, 253);"
+  >
+    <div
+      class="css-view-g5y9jx r-WebkitOverflowScrolling-150rngu r-flexDirection-eqz5dr r-flexGrow-16y2uox r-flexShrink-1wbh5a2 r-overflowX-11yh6sk r-overflowY-1rnoaur r-transform-agouwx r-flex-13awgt0 r-scrollbarWidth-2eszeu"
+    >
+      <div
+        class="css-view-g5y9jx r-padding-d23pfw r-paddingBottom-16wqof"
+      >
+        <div
+          class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-f4gmv6 r-justifyContent-1777fci r-marginBottom-1peese0"
+        >
+          <div
+            class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-1r8g8re r-justifyContent-1777fci r-width-1acpoxo"
+            style="transition-duration: 0s;"
+            tabindex="0"
+          >
+            <div
+              class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+              dir="auto"
+            >
+              ◀
+            </div>
+          </div>
+          <div
+            class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+            dir="auto"
+          >
+            Wednesday, Apr 8
+          </div>
+          <div
+            aria-disabled="true"
+            class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-1r8g8re r-justifyContent-1777fci r-width-1acpoxo r-opacity-todpsx r-pointerEvents-12vffkv"
+            style="transition-duration: 0s;"
+            tabindex="-1"
+          >
+            <div
+              class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-1enofrn r-color-jwiekc"
+              dir="auto"
+            >
+              ▶
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-1r8g8re r-justifyContent-1777fci r-width-1acpoxo"
+            style="transition-duration: 0s;"
+            tabindex="0"
+          >
+            <div
+              class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+              dir="auto"
+            >
+              📅
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-1r8g8re r-justifyContent-1777fci r-width-1acpoxo"
+            style="transition-duration: 0s;"
+            tabindex="0"
+          >
+            <div
+              class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+              dir="auto"
+            >
+              📊
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw r-marginBottom-1peese0"
+        >
+          <div
+            class="css-view-g5y9jx r-alignItems-1habvwh r-flexDirection-18u37iz"
+          >
+            <div
+              class="css-view-g5y9jx r-alignItems-1awozwy r-flex-13awgt0"
+            >
+              <div
+                class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs r-marginBottom-15zivkp"
+                dir="auto"
+              >
+                Calories
+              </div>
+              <div
+                class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1i10wst"
+                dir="auto"
+              >
+                0
+                 
+                <span
+                  class="css-textHasAncestor-1jxf684 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                >
+                  / 
+                  1500
+                </span>
+              </div>
+              <div
+                class="css-view-g5y9jx r-backgroundColor-m5ec0j r-borderRadius-cdmcib r-height-1xbve24 r-marginTop-knv0ih r-overflow-1udh08x r-width-6e0ovw"
+              >
+                <div
+                  class="css-view-g5y9jx r-backgroundColor-k0pd6i r-borderRadius-cdmcib r-height-1pi2tsx"
+                  style="width: 0%;"
+                />
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-backgroundColor-m5ec0j r-height-1iud8zs r-marginInline-1xpp3t0 r-width-92ng3h"
+            />
+            <div
+              class="css-view-g5y9jx r-alignItems-1awozwy r-flex-13awgt0"
+            >
+              <div
+                class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs r-marginBottom-15zivkp"
+                dir="auto"
+              >
+                Protein
+              </div>
+              <div
+                class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1i10wst"
+                dir="auto"
+              >
+                0
+                g 
+                <span
+                  class="css-textHasAncestor-1jxf684 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                >
+                  / 
+                  80
+                  g
+                </span>
+              </div>
+              <div
+                class="css-view-g5y9jx r-backgroundColor-m5ec0j r-borderRadius-cdmcib r-height-1xbve24 r-marginTop-knv0ih r-overflow-1udh08x r-width-6e0ovw"
+              >
+                <div
+                  class="css-view-g5y9jx r-backgroundColor-k0pd6i r-borderRadius-cdmcib r-height-1pi2tsx"
+                  style="width: 0%;"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw r-marginBottom-1ifxtd0"
+        >
+          <div
+            class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-5oul0u"
+          >
+            <div
+              class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+              dir="auto"
+            >
+              🏪 My Pantry
+            </div>
+            <div
+              class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+              style="transition-duration: 0s;"
+              tabindex="0"
+            >
+              <div
+                class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                dir="auto"
+              >
+                + Add
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-paddingBlock-w7s2jr r-textAlign-q4m81j"
+            dir="auto"
+          >
+            No pantry items yet. Tap + Add to stock up!
+          </div>
+        </div>
+        <div
+          class="css-view-g5y9jx r-flexDirection-18u37iz r-gap-1cmwbt1 r-marginBottom-1peese0"
+        >
+          <div
+            class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-k0pd6i r-borderRadius-1q9bdsx r-flex-13awgt0 r-padding-nsbfu8"
+            style="transition-duration: 0s;"
+            tabindex="0"
+          >
+            <div
+              class="css-text-146c3p1 r-color-jwli3a r-fontFamily-1aoiedr r-fontSize-1b43r93"
+              dir="auto"
+            >
+              + Add Meal
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-oegoc r-borderRadius-1q9bdsx r-justifyContent-1777fci r-padding-nsbfu8"
+            style="transition-duration: 0s;"
+            tabindex="0"
+          >
+            <div
+              class="css-text-146c3p1 r-color-jwli3a r-fontFamily-1aoiedr r-fontSize-1enofrn"
+              dir="auto"
+            >
+              ⚡ Quick Add
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-1c8wk46"
+        >
+          <div
+            class="css-view-g5y9jx r-flexBasis-1mlwlqe r-overflow-1udh08x r-zIndex-417010 r-height-1ph75f1 r-marginBottom-1ifxtd0 r-width-1glkqn6"
+          >
+            <div
+              class="css-view-g5y9jx r-backgroundColor-1niwhzg r-backgroundPosition-vvn4in r-backgroundRepeat-u6sd8q r-bottom-1p0dtai r-height-1pi2tsx r-left-1d2f490 r-position-u8s1d r-right-zchlnj r-top-ipm5af r-width-13qz1uu r-zIndex-1wyyakw r-backgroundSize-ehq7j7"
+            />
+          </div>
+          <div
+            class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-15zivkp"
+            dir="auto"
+          >
+            No meals logged yet today
+          </div>
+          <div
+            class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn"
+            dir="auto"
+          >
+            Tap + to add your first meal
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Snapshot: Health Screen matches snapshot 1`] = `
+<div>
+  <div
+    style="flex: 1; background-color: rgb(232, 244, 253);"
+  >
+    <div
+      class="css-view-g5y9jx r-WebkitOverflowScrolling-150rngu r-flexDirection-eqz5dr r-flexGrow-16y2uox r-flexShrink-1wbh5a2 r-overflowX-11yh6sk r-overflowY-1rnoaur r-transform-agouwx r-flex-13awgt0 r-scrollbarWidth-2eszeu"
+    >
+      <div
+        class="css-view-g5y9jx r-padding-d23pfw r-paddingBottom-16wqof"
+      >
+        <div
+          class="css-view-g5y9jx"
+        >
+          <div
+            class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1murz1w r-fontSize-ubezar r-marginBottom-1ifxtd0 r-textAlign-q4m81j"
+            dir="auto"
+          >
+            HEALTH
+          </div>
+          <div
+            class="css-view-g5y9jx r-flexDirection-18u37iz r-gap-1cmwbt1 r-justifyContent-1777fci r-marginBottom-1ifxtd0"
+          >
+            <div
+              class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-borderRadius-cpet4d r-borderWidth-rs99b7 r-paddingBlock-vuvdlw r-paddingInline-3pj75a r-backgroundColor-k0pd6i r-borderColor-ksjtb8"
+              style="transition-duration: 0s;"
+              tabindex="0"
+            >
+              <div
+                class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-color-jwli3a"
+                dir="auto"
+              >
+                7D
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-paddingBlock-vuvdlw r-paddingInline-3pj75a"
+              style="transition-duration: 0s;"
+              tabindex="0"
+            >
+              <div
+                class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                dir="auto"
+              >
+                30D
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-paddingBlock-vuvdlw r-paddingInline-3pj75a"
+              style="transition-duration: 0s;"
+              tabindex="0"
+            >
+              <div
+                class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                dir="auto"
+              >
+                90D
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-et2tpa r-marginBottom-1ifxtd0 r-padding-nsbfu8"
+            style="border-left-color: rgba(255,128,171,1.00);"
+          >
+            <div
+              class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst r-marginBottom-5oul0u"
+              dir="auto"
+            >
+              😊 Mood & Energy
+            </div>
+            <div
+              class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-zo2zu6"
+            >
+              <div
+                class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-textAlign-q4m81j"
+                dir="auto"
+              >
+                Start logging mood & energy on Home to see trends! 😊
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-et2tpa r-marginBottom-1ifxtd0 r-padding-nsbfu8"
+            style="border-left-color: rgba(129,199,132,1.00);"
+          >
+            <div
+              class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst r-marginBottom-5oul0u"
+              dir="auto"
+            >
+              🔥 Nutrition
+            </div>
+            <div
+              class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-zo2zu6"
+            >
+              <div
+                class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-textAlign-q4m81j"
+                dir="auto"
+              >
+                Log meals in the Food tab to see trends! 🍽️
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-et2tpa r-marginBottom-1ifxtd0 r-padding-nsbfu8"
+            style="border-left-color: rgba(252,228,236,1.00);"
+          >
+            <div
+              class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst r-marginBottom-5oul0u"
+              dir="auto"
+            >
+              🩸 Period Tracker
+            </div>
+            <div
+              class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-zo2zu6"
+            >
+              <div
+                class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-textAlign-q4m81j"
+                dir="auto"
+              >
+                Tap a day to start tracking your period 🩸
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-marginBottom-1ifxtd0"
+            >
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-1ifxtd0"
+              >
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-mabqd8 r-justifyContent-1777fci r-width-1yvhtrz"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    ◀
+                  </div>
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                  dir="auto"
+                >
+                  April 2026
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-mabqd8 r-justifyContent-1777fci r-width-1yvhtrz r-opacity-todpsx r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-color-jwiekc"
+                    dir="auto"
+                  >
+                    ▶
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-flexDirection-18u37iz r-marginBottom-15zivkp"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-cnw61z r-width-3ayno7"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    Su
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-cnw61z r-width-3ayno7"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    Mo
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-cnw61z r-width-3ayno7"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    Tu
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-cnw61z r-width-3ayno7"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    We
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-cnw61z r-width-3ayno7"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    Th
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-cnw61z r-width-3ayno7"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    Fr
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-cnw61z r-width-3ayno7"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    Sa
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-flexDirection-18u37iz r-flexWrap-1w6e6rj"
+              >
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-fpub7"
+                      dir="auto"
+                    />
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-fpub7"
+                      dir="auto"
+                    />
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-fpub7"
+                      dir="auto"
+                    />
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      1
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      2
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      3
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      4
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      5
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      6
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      7
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx r-borderColor-xl8vh5 r-borderWidth-1rf8fdq"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      8
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      9
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      10
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      11
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      12
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      13
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      14
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      15
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      16
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      17
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      18
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      19
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      20
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      21
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      22
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      23
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      24
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      25
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      26
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      27
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      28
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      29
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      30
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    />
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-flexDirection-18u37iz r-gap-f4gmv6 r-justifyContent-1777fci r-marginTop-knv0ih"
+            >
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-9aw3ui"
+              >
+                <div
+                  class="css-view-g5y9jx"
+                  style="width: 8px; height: 8px; border-top-left-radius: 4px; border-top-right-radius: 4px; border-bottom-right-radius: 4px; border-bottom-left-radius: 4px; background-color: rgb(229, 115, 115);"
+                />
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                  dir="auto"
+                >
+                  Heavy
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-9aw3ui"
+              >
+                <div
+                  class="css-view-g5y9jx"
+                  style="width: 6px; height: 6px; border-top-left-radius: 3px; border-top-right-radius: 3px; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; background-color: rgb(255, 183, 77);"
+                />
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                  dir="auto"
+                >
+                  Medium
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-9aw3ui"
+              >
+                <div
+                  class="css-view-g5y9jx"
+                  style="width: 5px; height: 5px; border-top-left-radius: 2.5px; border-top-right-radius: 2.5px; border-bottom-right-radius: 2.5px; border-bottom-left-radius: 2.5px; background-color: rgb(255, 241, 118);"
+                />
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                  dir="auto"
+                >
+                  Light
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-9aw3ui"
+              >
+                <div
+                  class="css-view-g5y9jx"
+                  style="width: 4px; height: 4px; border-top-left-radius: 2px; border-top-right-radius: 2px; border-bottom-right-radius: 2px; border-bottom-left-radius: 2px; background-color: rgb(224, 224, 224);"
+                />
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                  dir="auto"
+                >
+                  Spotting
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-marginTop-11c0sde"
+          />
+          <div
+            class="css-view-g5y9jx r-marginTop-11c0sde"
+          />
+          <div
+            class="css-view-g5y9jx r-marginTop-11c0sde"
+          >
+            <div
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-et2tpa r-marginBottom-1ifxtd0 r-padding-nsbfu8"
+              style="border-left-color: rgba(255,183,77,1.00);"
+            >
+              <div
+                class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst r-marginBottom-5oul0u"
+                dir="auto"
+              >
+                🤒 Top Symptoms
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-zo2zu6"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-textAlign-q4m81j"
+                  dir="auto"
+                >
+                  Log symptoms from Home to see patterns! 🤒
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-marginTop-11c0sde"
+          />
+          <div
+            class="css-view-g5y9jx r-marginTop-11c0sde"
+          >
+            <div
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-et2tpa r-marginBottom-1ifxtd0 r-padding-nsbfu8"
+              style="border-left-color: rgba(129,212,250,1.00);"
+            >
+              <div
+                class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst r-marginBottom-5oul0u"
+                dir="auto"
+              >
+                ⚖️ Weight
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-zo2zu6"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-textAlign-q4m81j"
+                  dir="auto"
+                >
+                  Log your weight to see trends ⚖️
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Snapshot: Home Screen matches snapshot 1`] = `
+<div>
+  <div
+    style="flex: 1; background-color: rgb(232, 244, 253);"
+  >
+    <div
+      class="css-view-g5y9jx r-WebkitOverflowScrolling-150rngu r-flexDirection-eqz5dr r-flexGrow-16y2uox r-flexShrink-1wbh5a2 r-overflowX-11yh6sk r-overflowY-1rnoaur r-transform-agouwx r-flex-13awgt0 r-scrollbarWidth-2eszeu"
+    >
+      <div
+        class="css-view-g5y9jx r-alignItems-1awozwy r-flexGrow-16y2uox"
+      >
+        <div
+          class="css-view-g5y9jx r-maxWidth-b8co6g r-paddingBottom-16wqof r-paddingInline-3pj75a r-width-13qz1uu"
+        >
+          <div
+            class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1777fci r-marginTop-11c0sde"
+          >
+            <div
+              class="css-view-g5y9jx r-width-1acpoxo"
+            />
+            <div
+              class="css-text-146c3p1 r-color-13lab5b r-flex-13awgt0 r-fontFamily-1murz1w r-fontSize-ubezar r-textAlign-q4m81j"
+              dir="auto"
+            >
+              HEALTHY ME
+            </div>
+            <div
+              class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-height-1r8g8re r-justifyContent-1777fci r-width-1acpoxo"
+              style="transition-duration: 0s;"
+              tabindex="0"
+            >
+              <div
+                class="css-text-146c3p1 r-fontSize-evnaw"
+                dir="auto"
+              >
+                ⚙️
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1i10wst r-marginBottom-1ifxtd0 r-marginTop-knv0ih r-textAlign-q4m81j"
+            dir="auto"
+          >
+            Wednesday, April 8
+          </div>
+          <div
+            class="css-view-g5y9jx r-alignItems-1awozwy r-marginBottom-1peese0"
+          >
+            <div
+              class="css-view-g5y9jx r-flexBasis-1mlwlqe r-overflow-1udh08x r-zIndex-417010 r-height-1njcn02 r-width-1glkqn6"
+            >
+              <div
+                class="css-view-g5y9jx r-backgroundColor-1niwhzg r-backgroundPosition-vvn4in r-backgroundRepeat-u6sd8q r-bottom-1p0dtai r-height-1pi2tsx r-left-1d2f490 r-position-u8s1d r-right-zchlnj r-top-ipm5af r-width-13qz1uu r-zIndex-1wyyakw r-backgroundSize-ehq7j7"
+              />
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+          >
+            <div
+              class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-1ifxtd0"
+              dir="auto"
+            >
+              Calorie Balance
+            </div>
+            <div
+              class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn"
+              dir="auto"
+            >
+              No food logged yet today
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-gap-f4gmv6 r-width-13qz1uu"
+          >
+            <div
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftColor-112ynna r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1w565t7 r-padding-nsbfu8"
+            >
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-5oul0u"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-flexBasis-1mlwlqe r-overflow-1udh08x r-zIndex-417010 r-height-z80fyv r-width-19wmn03"
+                  >
+                    <div
+                      class="css-view-g5y9jx r-backgroundColor-1niwhzg r-backgroundPosition-vvn4in r-backgroundRepeat-u6sd8q r-bottom-1p0dtai r-height-1pi2tsx r-left-1d2f490 r-position-u8s1d r-right-zchlnj r-top-ipm5af r-width-13qz1uu r-zIndex-1wyyakw r-backgroundSize-4gszlv"
+                    />
+                  </div>
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst"
+                    dir="auto"
+                  >
+                    💧 Water
+                  </div>
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-1xmj65u r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                  dir="auto"
+                >
+                  0
+                  /
+                  8
+                   cups
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-backgroundColor-14zabhi r-borderRadius-1f0042m r-height-1or9b2r r-marginBottom-15zivkp r-overflow-1udh08x"
+              >
+                <div
+                  class="css-view-g5y9jx r-backgroundColor-qj32cy r-borderRadius-1f0042m r-height-1pi2tsx"
+                  style="width: 0%;"
+                />
+              </div>
+              <div
+                class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs r-marginBottom-5oul0u r-textAlign-q4m81j"
+                dir="auto"
+              >
+                0
+                ml / 
+                2000
+                ml
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1"
+              >
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14zabhi r-borderColor-2hfke4 r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flex-13awgt0 r-paddingBlock-11f147o"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                    dir="auto"
+                  >
+                    +1 cup
+                  </div>
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs r-marginTop-1cvj4g8"
+                    dir="auto"
+                  >
+                    250ml
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14zabhi r-borderColor-2hfke4 r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flex-13awgt0 r-paddingBlock-11f147o"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                    dir="auto"
+                  >
+                    +2 cups
+                  </div>
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs r-marginTop-1cvj4g8"
+                    dir="auto"
+                  >
+                    500ml
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1w565t7 r-padding-nsbfu8 r-borderLeftColor-1hse7qf"
+            >
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-1ifxtd0"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst"
+                  dir="auto"
+                >
+                  💊 Supplements
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                  dir="auto"
+                >
+                  ...
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1 r-justifyContent-1777fci r-marginBottom-1ifxtd0"
+              >
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ◀
+                  </div>
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-minWidth-j03pct r-textAlign-q4m81j"
+                  dir="auto"
+                >
+                  TODAY
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx r-opacity-todpsx r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc"
+                    dir="auto"
+                  >
+                    ▶
+                  </div>
+                </div>
+              </div>
+              <div
+                aria-valuemax="1"
+                aria-valuemin="0"
+                class="css-view-g5y9jx r-alignItems-1awozwy r-justifyContent-1777fci"
+                role="progressbar"
+              >
+                <div
+                  class="css-view-g5y9jx r-height-z80fyv r-width-19wmn03 r-animationDuration-17bb2tj r-animationIterationCount-1muvv40 r-animationKeyframes-1yef0xd r-animationTimingFunction-1ldzwu0"
+                >
+                  <svg
+                    height="100%"
+                    viewBox="0 0 32 32"
+                    width="100%"
+                  >
+                    <circle
+                      cx="16"
+                      cy="16"
+                      fill="none"
+                      r="14"
+                      stroke-width="4"
+                      style="stroke: #7c4dff; opacity: 0.2;"
+                    />
+                    <circle
+                      cx="16"
+                      cy="16"
+                      fill="none"
+                      r="14"
+                      stroke-width="4"
+                      style="stroke: #7c4dff; stroke-dasharray: 80; stroke-dashoffset: 60;"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1w565t7 r-padding-nsbfu8 r-borderLeftColor-1ykzvab"
+            >
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-1ifxtd0"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst"
+                  dir="auto"
+                >
+                  🍽️ Today's Food
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                  dir="auto"
+                />
+              </div>
+              <div
+                class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-paddingBlock-11f147o r-textAlign-q4m81j"
+                dir="auto"
+              >
+                No meals logged yet 🍽️
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1w565t7 r-padding-nsbfu8 r-borderLeftColor-tt226n"
+            >
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst"
+                  dir="auto"
+                >
+                  📝 Daily Check-in
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                  dir="auto"
+                >
+                  ▼
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Snapshot: PantrySection matches snapshot 1`] = `
+<div>
+  <div
+    class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw r-marginBottom-1ifxtd0"
+  >
+    <div
+      class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-5oul0u"
+    >
+      <div
+        class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+        dir="auto"
+      >
+        🏪 My Pantry
+      </div>
+      <div
+        class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+        style="transition-duration: 0s;"
+        tabindex="0"
+      >
+        <div
+          class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+          dir="auto"
+        >
+          + Add
+        </div>
+      </div>
+    </div>
+    <div
+      class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-paddingBlock-w7s2jr r-textAlign-q4m81j"
+      dir="auto"
+    >
+      No pantry items yet. Tap + Add to stock up!
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Snapshot: Skin Screen matches snapshot 1`] = `
+<div>
+  <div
+    style="flex: 1; background-color: rgb(232, 244, 253);"
+  >
+    <div
+      class="css-view-g5y9jx r-WebkitOverflowScrolling-150rngu r-flexDirection-eqz5dr r-flexGrow-16y2uox r-flexShrink-1wbh5a2 r-overflowX-11yh6sk r-overflowY-1rnoaur r-transform-agouwx r-flex-13awgt0 r-scrollbarWidth-2eszeu"
+    >
+      <div
+        class="css-view-g5y9jx r-padding-d23pfw r-paddingBottom-16wqof"
+      >
+        <div
+          class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1murz1w r-fontSize-ubezar r-marginBottom-1peese0"
+          dir="auto"
+        >
+          🧴 Skin
+        </div>
+        <div
+          class="css-view-g5y9jx r-flexDirection-18u37iz r-gap-9aw3ui r-marginBottom-1peese0"
+        >
+          <div
+            class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flex-13awgt0 r-justifyContent-1777fci r-paddingBlock-cnw61z r-paddingInline-lzsi8w r-backgroundColor-k0pd6i r-borderColor-ksjtb8"
+            style="transition-duration: 0s;"
+            tabindex="0"
+          >
+            <div
+              class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-1enofrn r-color-jwli3a"
+              dir="auto"
+            >
+              Routine
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flex-13awgt0 r-justifyContent-1777fci r-paddingBlock-cnw61z r-paddingInline-lzsi8w"
+            style="transition-duration: 0s;"
+            tabindex="0"
+          >
+            <div
+              class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn"
+              dir="auto"
+            >
+              Journal
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flex-13awgt0 r-justifyContent-1777fci r-paddingBlock-cnw61z r-paddingInline-lzsi8w"
+            style="transition-duration: 0s;"
+            tabindex="0"
+          >
+            <div
+              class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn"
+              dir="auto"
+            >
+              Products
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flex-13awgt0 r-justifyContent-1777fci r-paddingBlock-cnw61z r-paddingInline-lzsi8w"
+            style="transition-duration: 0s;"
+            tabindex="0"
+          >
+            <div
+              class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn"
+              dir="auto"
+            >
+              Plan
+            </div>
+          </div>
+        </div>
+        <div
+          class="css-view-g5y9jx r-marginBottom-zd98yo"
+        >
+          <div
+            class="css-view-g5y9jx r-marginBottom-1peese0"
+          >
+            <div
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+            >
+              <div
+                class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-5oul0u"
+                dir="auto"
+              >
+                Trigger Watchlist
+              </div>
+              <div
+                class="css-view-g5y9jx r-flexDirection-18u37iz r-flexWrap-1w6e6rj r-gap-9aw3ui"
+              >
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-1a7sp83 r-borderColor-npsgud"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1lt4kvy r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ❌ 
+                    Niacinamide (high %)
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-1a7sp83 r-borderColor-npsgud"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1lt4kvy r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ❌ 
+                    Snail Mucin
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-1a7sp83 r-borderColor-npsgud"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1lt4kvy r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ❌ 
+                    Laneige Lip Sleeping Mask
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-1a7sp83 r-borderColor-npsgud"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1lt4kvy r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ❌ 
+                    Vea Lipogel
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-1a7sp83 r-borderColor-npsgud"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1lt4kvy r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ❌ 
+                    Dr. Reju-All Cream
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-1a7sp83 r-borderColor-npsgud"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1lt4kvy r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ❌ 
+                    Centellian 24 Madeca Cream (original)
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-1a7sp83 r-borderColor-npsgud"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1lt4kvy r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ❌ 
+                    Mary Ruth's Probiotics
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-1784779 r-borderColor-4doq3j"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1bou8fj r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    🧪 
+                    Madeca Cream
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-ku1p50 r-borderColor-1s795lk"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1x0ya18 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ✅ 
+                    Laneige Cream Skin
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-ku1p50 r-borderColor-1s795lk"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1x0ya18 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ✅ 
+                    Wellage HA Blue Ampoule
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-ku1p50 r-borderColor-1s795lk"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1x0ya18 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ✅ 
+                    Aestura Atobarrier 365
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flexShrink-1wbh5a2 r-maxWidth-dnmrzs r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-ku1p50 r-borderColor-1s795lk"
+                >
+                  <div
+                    class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-1x0ya18 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    ✅ 
+                    Goodal Heartleaf SPF
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-marginBottom-1peese0"
+          >
+            <div
+              class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-5oul0u"
+            >
+              <div
+                class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1i10wst"
+                dir="auto"
+              >
+                ☀️ AM Routine
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-f4gmv6"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                  dir="auto"
+                >
+                  0
+                  /
+                  5
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                    dir="auto"
+                  >
+                    Edit
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-gap-1cmwbt1"
+            >
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flexDirection-18u37iz r-padding-nsbfu8"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    Laneige Cream Skin
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flexDirection-18u37iz r-padding-nsbfu8"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    Wellage HA Blue Ampoule
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flexDirection-18u37iz r-padding-nsbfu8"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    S-Nature Aqua Squalane (if dry)
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flexDirection-18u37iz r-padding-nsbfu8"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    Aestura Atobarrier 365 OR Madeca Cream
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flexDirection-18u37iz r-padding-nsbfu8"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    Goodal Heartleaf SPF (or LRP in summer)
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-marginBottom-1peese0"
+          >
+            <div
+              class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-5oul0u"
+            >
+              <div
+                class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1i10wst"
+                dir="auto"
+              >
+                🌙 PM Routine
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-f4gmv6"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                  dir="auto"
+                >
+                  0
+                  /
+                  6
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                    dir="auto"
+                  >
+                    Edit
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-gap-1cmwbt1"
+            >
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flexDirection-18u37iz r-padding-nsbfu8"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    Laneige Cream Skin
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flexDirection-18u37iz r-padding-nsbfu8"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    Wellage HA Blue Ampoule
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flexDirection-18u37iz r-padding-nsbfu8"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    Celimax Noni Ampoule
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flexDirection-18u37iz r-padding-nsbfu8"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    Caudalie Vinoperfect Serum
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flexDirection-18u37iz r-padding-nsbfu8"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    Aestura Atobarrier 365 OR Madeca Cream
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                style="transition-duration: 0s;"
+                tabindex="0"
+              >
+                <div
+                  class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flexDirection-18u37iz r-padding-nsbfu8"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                    dir="auto"
+                  >
+                    COSRX Propolis Lip Mask
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+          >
+            <div
+              class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-1ifxtd0"
+              dir="auto"
+            >
+              📊 How It’s Going
+            </div>
+            <div
+              class="css-view-g5y9jx r-gap-1cmwbt1 r-marginBottom-1ifxtd0"
+            >
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-width-rwqe4o"
+                  dir="auto"
+                >
+                  ☀️ AM
+                </div>
+                <div
+                  class="css-view-g5y9jx r-backgroundColor-12bsgc r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flex-13awgt0 r-height-tbmifm r-overflow-1udh08x"
+                >
+                  <div
+                    class="css-view-g5y9jx r-borderRadius-cpet4d r-height-1pi2tsx"
+                    style="width: 0%; background-color: rgb(229, 115, 115);"
+                  />
+                </div>
+                <div
+                  class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-1enofrn r-textAlign-1ff274t r-width-1acpoxo"
+                  dir="auto"
+                  style="color: rgb(229, 115, 115);"
+                >
+                  0
+                  %
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-width-rwqe4o"
+                  dir="auto"
+                >
+                  🌙 PM
+                </div>
+                <div
+                  class="css-view-g5y9jx r-backgroundColor-12bsgc r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-flex-13awgt0 r-height-tbmifm r-overflow-1udh08x"
+                >
+                  <div
+                    class="css-view-g5y9jx r-borderRadius-cpet4d r-height-1pi2tsx"
+                    style="width: 0%; background-color: rgb(229, 115, 115);"
+                  />
+                </div>
+                <div
+                  class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-1enofrn r-textAlign-1ff274t r-width-1acpoxo"
+                  dir="auto"
+                  style="color: rgb(229, 115, 115);"
+                >
+                  0
+                  %
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-15zivkp"
+              dir="auto"
+            >
+              No streak yet
+            </div>
+            <div
+              class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs"
+              dir="auto"
+            >
+              Most skipped: 
+              Laneige Cream Skin
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+          >
+            <div
+              class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-1ifxtd0"
+              dir="auto"
+            >
+              🧪 Tester Performance
+            </div>
+            <div
+              class="css-view-g5y9jx r-backgroundColor-12bsgc r-borderColor-qd0bky r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-marginBottom-5oul0u r-padding-nsbfu8"
+            >
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-5oul0u"
+              >
+                <div
+                  class="css-text-146c3p1 r-maxWidth-dnmrzs r-overflow-1udh08x r-textOverflow-1udbk01 r-whiteSpace-3s2u2q r-wordWrap-1iln25a r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginRight-1kb76zh"
+                  dir="auto"
+                >
+                  Madeca Cream
+                </div>
+                <div
+                  class="css-view-g5y9jx r-backgroundColor-1k1jeo5 r-borderRadius-1xfd6ze r-paddingBlock-1559e4e r-paddingInline-is05cd"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    Day 
+                    14
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-9aw3ui r-marginBottom-5oul0u"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontSize-1i10wst"
+                  dir="auto"
+                >
+                  ·
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontSize-1i10wst"
+                  dir="auto"
+                >
+                  ·
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontSize-1i10wst"
+                  dir="auto"
+                >
+                  ·
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontSize-1i10wst"
+                  dir="auto"
+                >
+                  ·
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontSize-1i10wst"
+                  dir="auto"
+                >
+                  ·
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontSize-1i10wst"
+                  dir="auto"
+                >
+                  ·
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontSize-1i10wst"
+                  dir="auto"
+                >
+                  ·
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs r-marginLeft-1jj8364"
+                  dir="auto"
+                >
+                  0
+                   logs
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-backgroundColor-m5ec0j r-borderRadius-cpet4d r-flexDirection-18u37iz r-height-1xbve24 r-overflow-1udh08x"
+              >
+                <div
+                  class="css-view-g5y9jx r-height-1pi2tsx r-backgroundColor-oegoc"
+                  style="flex: 100;"
+                />
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+          >
+            <div
+              class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-5oul0u"
+              dir="auto"
+            >
+              📋 Up Next
+            </div>
+            <div
+              class="css-view-g5y9jx r-gap-1cmwbt1"
+            >
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1 r-paddingBlock-cnw61z"
+              >
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                  dir="auto"
+                >
+                  Start azelaic acid (after skin reset stabilizes)
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-padding-tuq35u"
+                    dir="auto"
+                  >
+                    ✕
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1 r-paddingBlock-cnw61z"
+              >
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderColor-xzapft r-borderRadius-kdyh1x r-borderWidth-d045u9 r-height-18yzcnr r-justifyContent-1777fci r-marginRight-88pszg r-width-yc9v9c"
+                  />
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                  dir="auto"
+                >
+                  Transition from Aestura to Madeca Cream (testing)
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-padding-tuq35u"
+                    dir="auto"
+                  >
+                    ✕
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1 r-marginTop-1wzrnnt"
+            >
+              <input
+                autocapitalize="sentences"
+                autocomplete="on"
+                autocorrect="on"
+                class="css-textinput-11aywtz r-placeholderTextColor-6taxm2 r-backgroundColor-12bsgc r-borderColor-qd0bky r-borderRadius-1xfd6ze r-borderWidth-rs99b7 r-color-g14633 r-flex-13awgt0 r-fontFamily-1aoiedr r-fontSize-1enofrn r-padding-edyy15"
+                dir="auto"
+                placeholder="Add a skincare goal..."
+                rows="1"
+                spellcheck="true"
+                style="--placeholderTextColor: #a094b0;"
+                value=""
+                virtualkeyboardpolicy="auto"
+              />
+              <div
+                aria-disabled="true"
+                class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-backgroundColor-k0pd6i r-borderRadius-1867qdf r-height-mabqd8 r-justifyContent-1777fci r-width-1yvhtrz r-pointerEvents-12vffkv"
+                style="transition-duration: 0s;"
+                tabindex="-1"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-jwli3a r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                  dir="auto"
+                >
+                  +
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Snapshot: SkinProfileCard matches snapshot 1`] = `
+<div>
+  <div
+    class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+  >
+    <div
+      class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-5oul0u"
+      style="transition-duration: 0s;"
+      tabindex="0"
+    >
+      <div
+        class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93"
+        dir="auto"
+      >
+        Skin Profile
+      </div>
+      <div
+        class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs"
+        dir="auto"
+      >
+        ▼
+      </div>
+    </div>
+    <div
+      class="css-view-g5y9jx r-flexDirection-18u37iz r-flexWrap-1w6e6rj r-gap-9aw3ui"
+    >
+      <div
+        class="css-view-g5y9jx r-backgroundColor-12bsgc r-borderRadius-cpet4d r-paddingBlock-cnw61z r-paddingInline-is05cd"
+      >
+        <div
+          class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+          dir="auto"
+        >
+          oily
+        </div>
+      </div>
+      <div
+        class="css-view-g5y9jx r-borderRadius-cpet4d r-paddingBlock-cnw61z r-paddingInline-is05cd r-backgroundColor-iapqnv"
+      >
+        <div
+          class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-13lab5b"
+          dir="auto"
+        >
+          PCOS
+        </div>
+      </div>
+      <div
+        class="css-view-g5y9jx r-backgroundColor-12bsgc r-borderRadius-cpet4d r-paddingBlock-cnw61z r-paddingInline-is05cd"
+      >
+        <div
+          class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+          dir="auto"
+        >
+          III
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Snapshot: SuggestionCard matches snapshot 1`] = `
+<div>
+  <div
+    class="css-view-g5y9jx"
+  >
+    <div
+      class="css-text-146c3p1"
+      dir="auto"
+    >
+      Suggestion
+    </div>
+  </div>
+</div>
+`;
