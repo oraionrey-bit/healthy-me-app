@@ -44,8 +44,8 @@ export function useCalfTracker(date?: Date) {
   const fetchDailyLog = useCallback(async () => {
     if (!user) return;
     try {
-      const { data } = await supabase
-        .from('daily_logs')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase.from('daily_logs') as any)
         .select('id, wore_compression_socks, wore_calf_sleeves, stretched_minutes, calf_notes')
         .eq('user_id', user.id)
         .eq('log_date', dateKey)
@@ -54,10 +54,10 @@ export function useCalfTracker(date?: Date) {
       if (data) {
         setDailyLogId(data.id);
         setDailyLog({
-          woreCompressionSocks: (data as any).wore_compression_socks ?? false,
-          woreCalfSleeves: (data as any).wore_calf_sleeves ?? false,
-          stretchedMinutes: (data as any).stretched_minutes ?? 0,
-          notes: (data as any).calf_notes ?? '',
+          woreCompressionSocks: data.wore_compression_socks ?? false,
+          woreCalfSleeves: data.wore_calf_sleeves ?? false,
+          stretchedMinutes: data.stretched_minutes ?? 0,
+          notes: data.calf_notes ?? '',
         });
       } else {
         setDailyLogId(null);

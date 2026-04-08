@@ -49,45 +49,41 @@ export function useExportData(userId?: string) {
       const endDate = toDateKey(new Date());
 
       // Fetch all data in parallel
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
       const [dailyLogs, foodLogs, weightLogs, waterLogs, symptoms, calfMeasurements] =
         await Promise.all([
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (supabase.from('daily_logs') as any)
+          db.from('daily_logs')
             .select('log_date, mood, period, exercise, health_notes, wore_compression_socks, wore_calf_sleeves, stretched_minutes, calf_notes')
             .eq('user_id', userId)
             .gte('log_date', startDate)
             .lte('log_date', endDate)
             .order('log_date', { ascending: true }),
-          supabase
-            .from('food_logs')
+          db.from('food_logs')
             .select('log_date, meal_type, description, calories, protein, carbs, fat, fiber, notes')
             .eq('user_id', userId)
             .gte('log_date', startDate)
             .lte('log_date', endDate)
             .order('log_date', { ascending: true }),
-          supabase
-            .from('weight_logs')
+          db.from('weight_logs')
             .select('log_date, weight, notes')
             .eq('user_id', userId)
             .gte('log_date', startDate)
             .lte('log_date', endDate)
             .order('log_date', { ascending: true }),
-          supabase
-            .from('water_logs')
+          db.from('water_logs')
             .select('log_date, glasses')
             .eq('user_id', userId)
             .gte('log_date', startDate)
             .lte('log_date', endDate)
             .order('log_date', { ascending: true }),
-          supabase
-            .from('symptoms')
+          db.from('symptoms')
             .select('log_date, bloating, acne, hair_loss, fatigue, brain_fog, cravings, anxiety, mood, energy_level, notes')
             .eq('user_id', userId)
             .gte('log_date', startDate)
             .lte('log_date', endDate)
             .order('log_date', { ascending: true }),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (supabase.from('calf_measurements') as any)
+          db.from('calf_measurements')
             .select('measure_date, left_calf_cm, right_calf_cm, ankle_flexion_degrees, notes')
             .eq('user_id', userId)
             .gte('measure_date', startDate)
