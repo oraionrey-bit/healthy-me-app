@@ -12,6 +12,7 @@ const mockProfileData = {
   id: 'test-user-id',
   display_name: 'Tina',
   email: 'tina@test.com',
+  health_condition: 'pcos',
   pcos_type: 'insulin_resistant',
   age: 28,
   height_cm: 163,

@@ -29,8 +29,8 @@ describe('Health Screen', () => {
     expect(screen.getByText('90D')).toBeTruthy();
   });
 
-  it('renders Ask Oraion FAB', async () => {
+  it('renders mood and energy section', async () => {
     await renderHealth();
-    expect(screen.getByText('Ask Oraion')).toBeTruthy();
+    expect(screen.getByText(/Mood/)).toBeTruthy();
   });
 });

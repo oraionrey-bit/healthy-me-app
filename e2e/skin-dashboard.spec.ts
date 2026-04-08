@@ -12,10 +12,7 @@ test.describe('Skin Dashboard - Routine Insights & Tester Performance', () => {
 
   test('Routine tab shows "How It\'s Going" insights card', async ({ page }) => {
     // Navigate to Skin tab
-    const skinTab = page.getByText('Skin', { exact: true }).first();
-    if (await skinTab.isVisible()) {
-      await skinTab.click();
-    }
+    await page.getByRole('tab', { name: 'Skin' }).click();
     await page.waitForTimeout(2000);
 
     // Routine tab should be default — check for insights card
@@ -23,21 +20,16 @@ test.describe('Skin Dashboard - Routine Insights & Tester Performance', () => {
   });
 
   test('Routine tab shows AM and PM adherence bars', async ({ page }) => {
-    const skinTab = page.getByText('Skin', { exact: true }).first();
-    if (await skinTab.isVisible()) {
-      await skinTab.click();
-    }
+    await page.getByRole('tab', { name: 'Skin' }).click();
     await page.waitForTimeout(2000);
 
-    await expect(page.getByText('☀️ AM')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText('🌙 PM')).toBeVisible({ timeout: 10_000 });
+    // AM/PM adherence bars render as multiline "☀️ AM\n0%" — use regex partial match
+    await expect(page.getByText(/☀️ AM/).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/🌙 PM/).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('Routine tab shows streak information', async ({ page }) => {
-    const skinTab = page.getByText('Skin', { exact: true }).first();
-    if (await skinTab.isVisible()) {
-      await skinTab.click();
-    }
+    await page.getByRole('tab', { name: 'Skin' }).click();
     await page.waitForTimeout(2000);
 
     // Should show either a streak count or "No streak yet"
@@ -46,20 +38,14 @@ test.describe('Skin Dashboard - Routine Insights & Tester Performance', () => {
   });
 
   test('Routine tab shows Tester Performance card', async ({ page }) => {
-    const skinTab = page.getByText('Skin', { exact: true }).first();
-    if (await skinTab.isVisible()) {
-      await skinTab.click();
-    }
+    await page.getByRole('tab', { name: 'Skin' }).click();
     await page.waitForTimeout(2000);
 
     await expect(page.getByText('🧪 Tester Performance')).toBeVisible({ timeout: 10_000 });
   });
 
   test('Tester Performance shows testing products or empty state', async ({ page }) => {
-    const skinTab = page.getByText('Skin', { exact: true }).first();
-    if (await skinTab.isVisible()) {
-      await skinTab.click();
-    }
+    await page.getByRole('tab', { name: 'Skin' }).click();
     await page.waitForTimeout(2000);
 
     // Should show either testing product names or "No products being tested"
@@ -72,10 +58,7 @@ test.describe('Skin Dashboard - Routine Insights & Tester Performance', () => {
   });
 
   test('Dashboard cards appear between routines and Up Next', async ({ page }) => {
-    const skinTab = page.getByText('Skin', { exact: true }).first();
-    if (await skinTab.isVisible()) {
-      await skinTab.click();
-    }
+    await page.getByRole('tab', { name: 'Skin' }).click();
     await page.waitForTimeout(2000);
 
     // Verify ordering: AM Routine, PM Routine, How It's Going, Tester Performance, Up Next

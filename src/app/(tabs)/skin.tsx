@@ -1414,7 +1414,7 @@ function ProductRow({
 
   return (
     <PixelCard>
-      <TouchableOpacity onPress={() => setExpanded(!expanded)}>
+      <TouchableOpacity testID={`product-card-${product.id}`} onPress={() => setExpanded(!expanded)}>
         <View style={styles.productRow}>
           <Text style={styles.productIcon}>{STATUS_ICON[status]}</Text>
           <View style={styles.productInfo}>

@@ -64,20 +64,6 @@ describe('Home Screen', () => {
     expect(screen.getByText(/No meals logged yet/)).toBeTruthy();
   });
 
-  it('renders weight card collapsed by default', async () => {
-    await renderHome();
-    expect(screen.getByText('⚖️ Weight')).toBeTruthy();
-    // Multiple ▼ may exist (weight + check-in). Just verify at least one exists.
-    expect(screen.getAllByText('▼').length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('expands weight card on press', async () => {
-    await renderHome();
-    fireEvent.click(screen.getByText('⚖️ Weight'));
-    // After expanding weight, ▲ should appear
-    expect(screen.getAllByText('▲').length).toBeGreaterThanOrEqual(1);
-  });
-
   it('renders daily check-in section', async () => {
     await renderHome();
     expect(screen.getByText('📝 Daily Check-in')).toBeTruthy();

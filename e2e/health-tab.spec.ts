@@ -6,10 +6,7 @@ test.describe('Health Tab', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/', { waitUntil: 'load' });
     await page.waitForTimeout(3000);
-    const healthTab = page.getByText('Health', { exact: true }).first();
-    if (await healthTab.isVisible()) {
-      await healthTab.click();
-    }
+    await page.getByRole('tab', { name: 'Health' }).click();
     await page.waitForTimeout(2000);
   });
 
@@ -18,11 +15,16 @@ test.describe('Health Tab', () => {
   });
 
   test('Shows weight entry section', async ({ page }) => {
-    await expect(page.getByText(/Weight/i)).toBeVisible({ timeout: 10_000 });
+    // Weight section is at the bottom of the Health tab — scroll to it
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1000);
+    await expect(page.getByText(/Weight/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('Shows supplement consistency section', async ({ page }) => {
-    await expect(page.getByText(/Supplement Consistency/)).toBeVisible({ timeout: 10_000 });
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1000);
+    await expect(page.getByText(/Supplement Consistency/).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('Shows My Supplements tracker', async ({ page }) => {
@@ -34,8 +36,7 @@ test.describe('Health Tab', () => {
   });
 
   test('Shows mood/energy section', async ({ page }) => {
-    const hasMood = await page.getByText(/Mood|mood/).first().isVisible().catch(() => false);
-    const hasEnergy = await page.getByText(/Energy|energy/).first().isVisible().catch(() => false);
-    expect(hasMood || hasEnergy).toBeTruthy();
+    // Health tab shows "😊 Mood & Energy" as a combined section
+    await expect(page.getByText(/Mood/).first()).toBeVisible({ timeout: 10_000 });
   });
 });

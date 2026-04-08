@@ -19,18 +19,18 @@ test.describe('Home Tab', () => {
     await expect(img).toBeVisible({ timeout: 10_000 });
   });
 
-  test('Shows Today\'s Checklist section', async ({ page }) => {
-    await expect(page.getByText(/Checklist|checklist/)).toBeVisible({ timeout: 10_000 });
+  test('Shows Supplements section', async ({ page }) => {
+    await expect(page.getByText(/Supplements/).first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test('Shows supplement items in checklist', async ({ page }) => {
+  test('Shows supplement items', async ({ page }) => {
     const hasOvasitol = await page.getByText(/Ovasitol/).first().isVisible().catch(() => false);
-    const hasMagnesium = await page.getByText(/Magnesium/).first().isVisible().catch(() => false);
-    expect(hasOvasitol || hasMagnesium).toBeTruthy();
+    const hasNAC = await page.getByText(/NAC/).first().isVisible().catch(() => false);
+    expect(hasOvasitol || hasNAC).toBeTruthy();
   });
 
   test('Shows Today\'s Food section', async ({ page }) => {
-    await expect(page.getByText(/Today's Food|Food/)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Today.s Food/)).toBeVisible({ timeout: 10_000 });
   });
 
   test('Tab bar is visible with all tabs', async ({ page }) => {
