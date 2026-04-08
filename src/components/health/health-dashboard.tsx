@@ -20,7 +20,16 @@ import { LabDashboard } from './lab-dashboard';
 export function HealthDashboard() {
   const { moodEnergy, nutrition, symptomFrequency, weight, loading, range, setRange } =
     useHealthTrends();
-  const { periodLogs, currentMonth, setCurrentMonth } = usePeriodCalendar();
+  const {
+    periodLogs,
+    currentMonth,
+    selectedDate,
+    setSelectedDate,
+    setCurrentMonth,
+    saving: periodSaving,
+    savePeriodLog,
+    deletePeriodLog,
+  } = usePeriodCalendar();
   const { calorieTarget, profile } = useUserProfile();
   const { isConnected: ouraConnected, recentData: ouraData } = useOura();
 
@@ -47,7 +56,12 @@ export function HealthDashboard() {
       <PeriodCalendarCard
         periodLogs={periodLogs}
         currentMonth={currentMonth}
+        selectedDate={selectedDate}
+        saving={periodSaving}
         onMonthChange={setCurrentMonth}
+        onDayPress={setSelectedDate}
+        onSave={savePeriodLog}
+        onDelete={deletePeriodLog}
       />
       <View style={styles.sectionSpacing}>
         <SupplementTracker />
