@@ -611,13 +611,13 @@ export function useExportData(userId?: string) {
           .lte('log_date', endDate)
           .order('log_date', { ascending: true }),
         db.from('supplement_logs')
-          .select('log_date, taken')
+          .select('log_date, user_supplement_id, taken')
           .eq('user_id', userId)
           .gte('log_date', startDate)
           .lte('log_date', endDate)
           .order('log_date', { ascending: true }),
         db.from('user_supplements')
-          .select('id, is_active')
+          .select('id, supplement_name, dosage, is_active')
           .eq('user_id', userId)
           .eq('is_active', true),
         db.from('exercise_logs')
@@ -649,6 +649,30 @@ export function useExportData(userId?: string) {
       const waterTarget = profileResult.data?.water_target ?? 8;
       const totalActiveSupplements = (userSupplements.data ?? []).length;
 
+      // Build supplement name lookup and identify key supplements for individual columns
+      const KEY_SUPPLEMENT_NAMES = ['Inositol', 'Metformin', 'NAC', 'Omega', 'Magnesium', 'Fiber'];
+
+      const suppIdToName: Record<string, string> = {};
+      const suppIdToDosage: Record<string, string> = {};
+      for (const s of userSupplements.data ?? []) {
+        suppIdToName[s.id] = s.supplement_name;
+        suppIdToDosage[s.id] = s.dosage ?? '';
+      }
+
+      // Match supplement IDs to key columns (case-insensitive partial match)
+      const keySuppIds: Record<string, string[]> = {};
+      for (const keyName of KEY_SUPPLEMENT_NAMES) {
+        keySuppIds[keyName] = [];
+      }
+      for (const s of userSupplements.data ?? []) {
+        const name = (s.supplement_name ?? '').toLowerCase();
+        for (const keyName of KEY_SUPPLEMENT_NAMES) {
+          if (name.includes(keyName.toLowerCase())) {
+            keySuppIds[keyName].push(s.id);
+          }
+        }
+      }
+
       // Build flat day map
       interface DayData {
         mood: string;
@@ -658,6 +682,9 @@ export function useExportData(userId?: string) {
         water: number;
         suppsTaken: number;
         suppsTotal: number;
+        keySupps: Record<string, string>; // key supplement name -> dosage taken
+        otherSuppsTaken: number;
+        otherSuppsTotal: number;
         exercise: string;
         skinScore: string;
         breakouts: string;
@@ -671,12 +698,20 @@ export function useExportData(userId?: string) {
         notes: string;
       }
 
+      // Track which supplement IDs are "key" (used in named columns)
+      const allKeySuppIds = new Set<string>();
+      for (const ids of Object.values(keySuppIds)) {
+        for (const id of ids) allKeySuppIds.add(id);
+      }
+      const otherSuppsTotal = totalActiveSupplements - allKeySuppIds.size;
+
       const dayMap: Record<string, DayData> = {};
       const ensureDay = (d: string): DayData => {
         if (!dayMap[d]) {
           dayMap[d] = {
             mood: '', energy: '', calories: 0, protein: 0,
             water: 0, suppsTaken: 0, suppsTotal: totalActiveSupplements,
+            keySupps: {}, otherSuppsTaken: 0, otherSuppsTotal: otherSuppsTotal,
             exercise: '', skinScore: '', breakouts: '', flow: '',
             cramps: '', bloating: '', weight: '', love: '',
             sleep: '', cycleDay: '', notes: '',
@@ -734,16 +769,38 @@ export function useExportData(userId?: string) {
         if (!day.energy && row.energy_level) day.energy = String(row.energy_level);
       }
 
-      // Supplements -> count taken per day
+      // Supplements -> categorize into key supplement columns and other
       const suppsByDay: Record<string, number> = {};
+      const otherSuppsByDay: Record<string, number> = {};
       for (const row of supplementLogs.data ?? []) {
+        const day = ensureDay(row.log_date);
         if (row.taken) {
           suppsByDay[row.log_date] = (suppsByDay[row.log_date] ?? 0) + 1;
+
+          const suppId = row.user_supplement_id;
+          let isKey = false;
+          for (const [keyName, ids] of Object.entries(keySuppIds)) {
+            if (ids.includes(suppId)) {
+              // Use the supplement name + dosage for the column value
+              const name = suppIdToName[suppId] ?? keyName;
+              const dosage = suppIdToDosage[suppId] ?? '';
+              const existing = day.keySupps[keyName];
+              day.keySupps[keyName] = existing
+                ? `${existing}, ${dosage || name}`
+                : (dosage || name);
+              isKey = true;
+            }
+          }
+          if (!isKey) {
+            otherSuppsByDay[row.log_date] = (otherSuppsByDay[row.log_date] ?? 0) + 1;
+          }
         }
-        ensureDay(row.log_date); // ensure day exists
       }
       for (const [date, count] of Object.entries(suppsByDay)) {
         dayMap[date]!.suppsTaken = count;
+      }
+      for (const [date, count] of Object.entries(otherSuppsByDay)) {
+        dayMap[date]!.otherSuppsTaken = count;
       }
 
       // Exercise -> type + duration (first entry per day)
@@ -778,7 +835,10 @@ export function useExportData(userId?: string) {
       // Build CSV rows sorted by date
       const headers = [
         'Date', 'Day', 'Mood', 'Energy', 'Calories', 'Protein',
-        'Water', 'Supplements', 'Exercise', 'Skin Score', 'Breakouts',
+        'Water',
+        ...KEY_SUPPLEMENT_NAMES,
+        'Other Supps',
+        'Exercise', 'Skin Score', 'Breakouts',
         'Period', 'Cramps', 'Stomach', 'Weight', 'Love', 'Sleep', 'Notes',
       ];
 
@@ -794,8 +854,8 @@ export function useExportData(userId?: string) {
         const calStr = d.calories > 0 ? `${Math.round(d.calories)}/${calorieTarget}` : '';
         const protStr = d.protein > 0 ? `${Math.round(d.protein)}/${proteinTarget}g` : '';
         const waterStr = d.water > 0 ? `${d.water}/${waterTarget}` : '';
-        const suppStr = d.suppsTaken > 0 || d.suppsTotal > 0
-          ? `${d.suppsTaken}/${d.suppsTotal}`
+        const otherSuppStr = d.otherSuppsTaken > 0 || d.otherSuppsTotal > 0
+          ? `${d.otherSuppsTaken}/${d.otherSuppsTotal}`
           : '';
 
         return [
@@ -806,7 +866,8 @@ export function useExportData(userId?: string) {
           calStr,
           protStr,
           waterStr,
-          suppStr,
+          ...KEY_SUPPLEMENT_NAMES.map((keyName) => d.keySupps[keyName] ?? ''),
+          otherSuppStr,
           d.exercise,
           d.skinScore,
           d.breakouts,
