@@ -630,7 +630,7 @@ export default function HomeScreen() {
 
             {/* Oura Ring Summary */}
             {ouraConnected && ouraToday && (
-              <View style={[styles.accentCard, styles.accentPurple, { marginBottom: Spacing.md }]}>
+              <View style={[styles.accentCard, styles.accentPurple, { marginBottom: Spacing.lg }]}>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>💍 Oura Ring</Text>
                   <View style={styles.ouraSyncRow}>
@@ -724,7 +724,7 @@ export default function HomeScreen() {
             )}
 
             {/* Calorie Balance */}
-            <View style={{ marginBottom: Spacing.md }}>
+            <View style={{ marginBottom: Spacing.lg }}>
               <CalorieBalanceCard
                 calories={totals.calories}
                 calorieTarget={calorieTarget}
@@ -735,7 +735,7 @@ export default function HomeScreen() {
 
             {/* Weekly Summary */}
             {weeklySummary && weeklySummary.daysTracked > 0 && (
-              <View style={[styles.accentCard, styles.accentPurple, { marginBottom: Spacing.md }]}>
+              <View style={[styles.accentCard, styles.accentPurple, { marginBottom: Spacing.lg }]}>
                 <Text style={styles.sectionTitle}>📊 This Week</Text>
                 <View style={styles.weeklyGrid}>
                   <View style={styles.weeklyStatRow}>
@@ -770,7 +770,7 @@ export default function HomeScreen() {
 
             {/* Weekly Insights */}
             {weeklyInsights && weeklyInsights.insights.length > 0 && (
-              <View style={[styles.accentCard, styles.accentPurple, { marginBottom: Spacing.md }]}>
+              <View style={[styles.accentCard, styles.accentPurple, { marginBottom: Spacing.lg }]}>
                 <TouchableOpacity
                   onPress={() => setShowInsights(!showInsights)}
                   activeOpacity={0.7}
@@ -1366,7 +1366,7 @@ const styles = StyleSheet.create({
   // Content wrapper
   contentWrap: {
     width: '100%',
-    gap: Spacing.md,
+    gap: Spacing.lg,
   },
 
   // Accent cards with colored left border

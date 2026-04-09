@@ -86,7 +86,7 @@ export function CalorieBalanceCard({
 
 const styles = StyleSheet.create({
   title: {
-    fontFamily: Fonts.body,
+    fontFamily: Fonts.pixel,
     fontSize: FontSizes.bodyMd,
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
