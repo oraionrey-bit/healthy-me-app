@@ -12,7 +12,7 @@ exports[`Snapshot: CalorieBalanceCard matches snapshot 1`] = `
       Calorie Balance
     </div>
     <div
-      class="css-view-g5y9jx r-gap-1cmwbt1"
+      class="css-view-g5y9jx r-gap-f4gmv6"
     >
       <div
         class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1"
@@ -24,7 +24,7 @@ exports[`Snapshot: CalorieBalanceCard matches snapshot 1`] = `
           Calories
         </div>
         <div
-          class="css-view-g5y9jx r-backgroundColor-1rxx7b r-borderRadius-cpet4d r-flex-13awgt0 r-height-3da1kt r-overflow-1udh08x"
+          class="css-view-g5y9jx r-backgroundColor-1rxx7b r-borderRadius-cpet4d r-flex-13awgt0 r-height-1or9b2r r-overflow-1udh08x"
         >
           <div
             class="css-view-g5y9jx r-borderRadius-cpet4d r-height-1pi2tsx"
@@ -50,7 +50,7 @@ exports[`Snapshot: CalorieBalanceCard matches snapshot 1`] = `
           Protein
         </div>
         <div
-          class="css-view-g5y9jx r-backgroundColor-1rxx7b r-borderRadius-cpet4d r-flex-13awgt0 r-height-3da1kt r-overflow-1udh08x"
+          class="css-view-g5y9jx r-backgroundColor-1rxx7b r-borderRadius-cpet4d r-flex-13awgt0 r-height-1or9b2r r-overflow-1udh08x"
         >
           <div
             class="css-view-g5y9jx r-borderRadius-cpet4d r-height-1pi2tsx"
@@ -1312,19 +1312,24 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
             </div>
           </div>
           <div
-            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+            class="css-view-g5y9jx"
+            style="margin-bottom: 16px;"
           >
             <div
-              class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-1ifxtd0"
-              dir="auto"
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
             >
-              Calorie Balance
-            </div>
-            <div
-              class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn"
-              dir="auto"
-            >
-              No food logged yet today
+              <div
+                class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-1ifxtd0"
+                dir="auto"
+              >
+                Calorie Balance
+              </div>
+              <div
+                class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                dir="auto"
+              >
+                No food logged yet today
+              </div>
             </div>
           </div>
           <div

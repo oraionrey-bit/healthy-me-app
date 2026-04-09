@@ -333,7 +333,7 @@ export default function FoodScreen() {
 
   const calendar = useFoodCalendar();
   const { savedMeals, saveMeal, logSavedMeal, deleteSavedMeal } = useSavedMeals();
-  const { searchFoods, recentFoods, frequentFoods, autoSaveFromAnalysis, updateFromUserEdit } = usePersonalFoods();
+  const { searchFoods, autoSaveFromAnalysis, updateFromUserEdit } = usePersonalFoods();
   const { pantryItems, loading: pantryLoading, addToPantry, removeFromPantry, logFromPantry } = usePantry();
   const [favSaved, setFavSaved] = useState(false);
   const prevEntriesRef = useRef<FoodLog[]>([]);
@@ -740,29 +740,6 @@ export default function FoodScreen() {
         <View style={styles.favHintWrap}>
           <Text style={styles.favHintText}>💡 Your foods auto-save after AI analysis for quick re-logging!</Text>
         </View>
-      )}
-
-      {/* Recent Foods Quick Re-log */}
-      {recentFoods.length > 0 && !calendarOpen && !showTrends && (
-        <PixelCard style={styles.favoritesCard}>
-          <Text style={styles.favoritesTitle}>🕐 Recent</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.favoritesScroll}>
-            <View style={styles.favoritesRow}>
-              {recentFoods.slice(0, 6).map((meal) => (
-                <TouchableOpacity
-                  key={`recent-${meal.id}`}
-                  style={styles.recentChip}
-                  onPress={() => handleSelectPersonalFood(meal)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.recentChipName} numberOfLines={1}>{meal.name}</Text>
-                  <Text style={styles.recentChipCal}>{meal.calories ?? 0} cal</Text>
-                  {meal.source === 'ai_analyzed' && <Text style={styles.recentAiBadge}>🤖</Text>}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </PixelCard>
       )}
 
       {/* Fav saved toast */}
@@ -1543,35 +1520,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // Recent foods section
-  recentChip: {
-    backgroundColor: Colors.cream,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.warning,
-    minWidth: 100,
-    maxWidth: 160,
-    alignItems: 'center',
-  },
-  recentChipName: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodySm,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  recentChipCal: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyXs,
-    color: Colors.textSecondary,
-    marginTop: 1,
-  },
-  recentAiBadge: {
-    fontSize: 8,
-    position: 'absolute',
-    top: 2,
-    right: 4,
-  },
   // Star button on entry
   starBtn: {
     width: 28,

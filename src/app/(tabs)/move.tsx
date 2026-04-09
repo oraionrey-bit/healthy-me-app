@@ -537,10 +537,6 @@ export default function MoveScreen() {
             {(totals.calories + ouraTotals.calories) > 0 ? ` · ${Math.round(totals.calories + ouraTotals.calories)} cal` : ''}
           </Text>
         </View>
-      ) : !loading && !showForm ? (
-        <View style={styles.todayTotals}>
-          <Text style={styles.todayTotalsText}>No exercise logged today</Text>
-        </View>
       ) : null}
 
       {!loading && entries.length === 0 && ouraWorkouts.length === 0 && !showForm && (
