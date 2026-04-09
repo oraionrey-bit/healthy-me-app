@@ -7,17 +7,18 @@ export default defineConfig({
   use: {
     baseURL: 'https://app.withluna.dev',
     trace: 'on-first-retry',
-    storageState: 'e2e/.auth/state.json',
   },
   projects: [
     {
       name: 'setup',
       testMatch: /auth\.setup\.ts/,
-      use: { storageState: undefined },
     },
     {
       name: 'chromium',
-      use: { browserName: 'chromium' },
+      use: {
+        browserName: 'chromium',
+        storageState: 'e2e/.auth/state.json',
+      },
       dependencies: ['setup'],
     },
   ],
