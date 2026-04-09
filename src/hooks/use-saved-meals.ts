@@ -16,6 +16,7 @@ export function useSavedMeals() {
     const { data, error } = await (supabase.from('saved_meals') as any)
       .select('*')
       .eq('user_id', user.id)
+      .eq('is_favorite', true)
       .order('use_count', { ascending: false });
 
     if (!error && data) setSavedMeals(data as SavedMeal[]);
@@ -36,20 +37,46 @@ export function useSavedMeals() {
     async (foodLog: FoodLog): Promise<{ error?: Error }> => {
       if (!user) return { error: new Error('Not authenticated') };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- saved_meals not in generated types yet
-      const { error } = await (supabase.from('saved_meals') as any).insert({
-        user_id: user.id,
-        name: foodLog.description || 'Saved Meal',
-        description: foodLog.description,
-        meal_type: foodLog.meal_type,
-        calories: foodLog.calories,
-        protein: foodLog.protein,
-        carbs: foodLog.carbs,
-        fat: foodLog.fat,
-        fiber: foodLog.fiber,
-        pcos_notes: foodLog.ai_pcos_notes,
-        use_count: 0,
-        last_used_at: null,
-      });
+      // Check if a saved_meal for this food already exists (from auto-save)
+      const name = (foodLog.description || 'Saved Meal').trim();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: existing } = await (supabase.from('saved_meals') as any)
+        .select('id')
+        .eq('user_id', user.id)
+        .ilike('name', name)
+        .limit(1)
+        .single();
+
+      let error: { message: string } | null = null;
+
+      if (existing?.id) {
+        // Mark existing personal food as favorite
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (supabase.from('saved_meals') as any)
+          .update({ is_favorite: true })
+          .eq('id', existing.id)
+          .eq('user_id', user.id);
+        error = result.error;
+      } else {
+        // Insert new favorite
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (supabase.from('saved_meals') as any).insert({
+          user_id: user.id,
+          name,
+          description: foodLog.description,
+          meal_type: foodLog.meal_type,
+          calories: foodLog.calories,
+          protein: foodLog.protein,
+          carbs: foodLog.carbs,
+          fat: foodLog.fat,
+          fiber: foodLog.fiber,
+          pcos_notes: foodLog.ai_pcos_notes,
+          use_count: 0,
+          last_used_at: null,
+          is_favorite: true,
+        });
+        error = result.error;
+      }
       if (!error) await fetchSavedMeals();
       return { error: error ? new Error(error.message) : undefined };
     },
@@ -105,9 +132,10 @@ export function useSavedMeals() {
   const deleteSavedMeal = useCallback(
     async (id: string): Promise<{ error?: Error }> => {
       if (!user) return { error: new Error('Not authenticated') };
+      // Unfavorite instead of deleting — keeps the personal food dictionary entry
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- saved_meals not in generated types yet
       const { error } = await (supabase.from('saved_meals') as any)
-        .delete()
+        .update({ is_favorite: false })
         .eq('id', id)
         .eq('user_id', user.id);
       if (error) {
