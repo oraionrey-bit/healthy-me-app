@@ -109,7 +109,7 @@ function getSupplementIcon(name: string): ImageSourcePropType {
 
 // ── Supplement Group Component ──
 
-function SupplementGroup({
+const SupplementGroup = React.memo(function SupplementGroup({
   title,
   items,
   isChecked,
@@ -149,11 +149,11 @@ function SupplementGroup({
       </View>
     </View>
   );
-}
+});
 
 // ── Emoji Picker Component ──
 
-function EmojiPicker({
+const EmojiPicker = React.memo(function EmojiPicker({
   options,
   selected,
   onSelect,
@@ -179,11 +179,11 @@ function EmojiPicker({
       ))}
     </View>
   );
-}
+});
 
 // ── Symptom Chip Component ──
 
-function SymptomChip({
+const SymptomChip = React.memo(function SymptomChip({
   label,
   active,
   onPress,
@@ -203,11 +203,11 @@ function SymptomChip({
       </Text>
     </TouchableOpacity>
   );
-}
+});
 
 // ── Severity Dots Component ──
 
-function SeverityDots({
+const SeverityDots = React.memo(function SeverityDots({
   severity,
   onSelect,
 }: {
@@ -230,7 +230,7 @@ function SeverityDots({
       ))}
     </View>
   );
-}
+});
 
 // ── Main Screen ──
 
@@ -723,15 +723,15 @@ export default function HomeScreen() {
               </View>
             )}
 
-
-
             {/* Calorie Balance */}
-            <CalorieBalanceCard
-              calories={totals.calories}
-              calorieTarget={calorieTarget}
-              protein={totals.protein}
-              proteinTarget={proteinTarget}
-            />
+            <View style={{ marginBottom: Spacing.md }}>
+              <CalorieBalanceCard
+                calories={totals.calories}
+                calorieTarget={calorieTarget}
+                protein={totals.protein}
+                proteinTarget={proteinTarget}
+              />
+            </View>
 
             {/* Weekly Summary */}
             {weeklySummary && weeklySummary.daysTracked > 0 && (

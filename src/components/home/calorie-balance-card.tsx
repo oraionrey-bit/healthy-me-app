@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   bars: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
   row: {
     flexDirection: 'row',
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   barTrack: {
     flex: 1,
-    height: 8,
+    height: 10,
     backgroundColor: '#F0EAF8',
     borderRadius: BorderRadius.full,
     overflow: 'hidden',
