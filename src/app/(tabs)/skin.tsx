@@ -411,7 +411,18 @@ export default function SkinScreen() {
     setProductTriggersFound([]);
     try {
       if (!CHAT_TOKEN) {
-        throw new Error('Analysis service not configured');
+        throw new Error('Photo analysis is not available right now. Please add the product manually.');
+      }
+
+      // Quick health-check on the relay before uploading
+      try {
+        const healthCheck = await Promise.race([
+          fetch(`${CHAT_RELAY_URL}/health`, { method: 'GET' }),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+        ]);
+        if (!healthCheck.ok) throw new Error('unhealthy');
+      } catch {
+        throw new Error('Photo analysis is not available right now. Please add the product manually.');
       }
 
       // Convert image URI to File (Safari requires File, not Blob, in FormData)
@@ -437,11 +448,11 @@ export default function SkinScreen() {
           body: formData,
         });
       } catch {
-        throw new Error('Analysis service unavailable — check your connection');
+        throw new Error('Photo analysis is not available right now. Please add the product manually.');
       }
 
       if (res.status === 401) throw new Error('Analysis service auth error — please update the app');
-      if (!res.ok) throw new Error(`Analysis failed (${res.status}) — try again`);
+      if (!res.ok) throw new Error('Photo analysis is not available right now. Please add the product manually.');
 
       const data = await res.json();
       const messageId = data.id as string;
