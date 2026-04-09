@@ -144,17 +144,24 @@ export function useOura(): UseOuraReturn {
     fetchConnectionStatus();
   }, [fetchConnectionStatus]);
 
-  // Sync first on mount, then fetch from DB for fresh data
+  // Fetch from DB immediately for fast render, then sync in background
   useEffect(() => {
     if (isConnected) {
+      // Show cached data instantly — today's data is critical for Home tab
+      fetchTodayData();
+
+      // Defer recent data (90 days) — only needed for trends, not initial render
+      const recentTimer = setTimeout(() => { fetchRecentData(); }, 2000);
+
+      // Background sync — refreshes DB, then re-fetch for fresh data
       const today = toDateKey(new Date());
-      // Trigger a sync first, then read from DB
       syncOura(today, today)
-        .catch(() => {/* ignore sync errors, still read from DB */})
-        .finally(() => {
+        .then(() => {
           fetchTodayData();
-          fetchRecentData();
-        });
+        })
+        .catch(() => {/* ignore sync errors — already showing cached data */});
+
+      return () => clearTimeout(recentTimer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected]);

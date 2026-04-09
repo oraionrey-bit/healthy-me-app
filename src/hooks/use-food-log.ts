@@ -73,9 +73,9 @@ export function useFoodLog(date: string) {
   const [loading, setLoading] = useState(true);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchEntries = useCallback(async () => {
+  const fetchEntries = useCallback(async (showLoading = true) => {
     if (!user) return;
-    setLoading(true);
+    if (showLoading) setLoading(true);
     const { data, error } = await supabase
       .from('food_logs')
       .select('*')
@@ -92,9 +92,10 @@ export function useFoodLog(date: string) {
   }, [fetchEntries]);
 
   // Re-fetch when tab gains focus (e.g. switching from Food → Home)
+  // Silent refetch — no loading spinner, just update data in background
   useFocusEffect(
     useCallback(() => {
-      fetchEntries();
+      fetchEntries(false);
     }, [fetchEntries])
   );
 

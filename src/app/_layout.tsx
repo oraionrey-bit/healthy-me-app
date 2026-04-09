@@ -12,7 +12,16 @@ import { supabase } from '../lib/supabase';
 // Prevent splash from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000, // 1 minute — avoid refetching data that just loaded
+      gcTime: 5 * 60_000, // 5 minutes cache
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const MAX_APP_WIDTH = 430;
 const OUTER_BG = '#EDE7F6'; // soft lavender for desktop sides

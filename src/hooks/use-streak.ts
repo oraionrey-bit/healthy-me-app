@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { toDateKey } from '../utils/storage';
+import { useDebouncedFocusEffect } from './use-debounced-focus';
 
 /** Milestone thresholds that trigger celebration */
 export const STREAK_MILESTONES = [3, 7, 14, 30] as const;
@@ -163,10 +163,9 @@ export function useStreak(
     fetchStreak();
   }, [fetchStreak]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchStreak();
-    }, [fetchStreak]),
+  useDebouncedFocusEffect(
+    () => { fetchStreak(); },
+    [fetchStreak],
   );
 
   return {

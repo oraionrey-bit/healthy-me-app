@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { toDateKey } from '../utils/storage';
+import { useDebouncedFocusEffect } from './use-debounced-focus';
 
 /**
  * Comprehensive daily score (0–100) combining all tracked metrics.
@@ -339,10 +339,9 @@ export function useDailyScore(date?: string): UseDailyScoreReturn {
     calculateScore();
   }, [calculateScore]);
 
-  useFocusEffect(
-    useCallback(() => {
-      calculateScore();
-    }, [calculateScore]),
+  useDebouncedFocusEffect(
+    () => { calculateScore(); },
+    [calculateScore],
   );
 
   return { score, breakdown, tips, loading, refresh: calculateScore };

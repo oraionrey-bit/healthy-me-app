@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { toDateKey } from '../utils/storage';
+import { useDebouncedFocusEffect } from './use-debounced-focus';
 
 export interface WeeklySummary {
   avgDailyScore: number;
@@ -217,10 +217,9 @@ export function useWeeklySummary() {
     fetchSummary();
   }, [fetchSummary]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchSummary();
-    }, [fetchSummary]),
+  useDebouncedFocusEffect(
+    () => { fetchSummary(); },
+    [fetchSummary],
   );
 
   return { summary, loading, refresh: fetchSummary };

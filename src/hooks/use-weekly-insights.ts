@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useUserProfile } from './use-user-profile';
 import { toDateKey } from '../utils/storage';
+import { useDebouncedFocusEffect } from './use-debounced-focus';
 
 export interface WeeklyInsight {
   emoji: string;
@@ -345,10 +345,9 @@ export function useWeeklyInsights() {
     fetchInsights();
   }, [fetchInsights]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchInsights();
-    }, [fetchInsights]),
+  useDebouncedFocusEffect(
+    () => { fetchInsights(); },
+    [fetchInsights],
   );
 
   return { data, loading, refresh: fetchInsights };
