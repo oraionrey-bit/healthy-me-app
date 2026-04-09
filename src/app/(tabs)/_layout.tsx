@@ -29,6 +29,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        lazy: true,
         tabBarStyle: styles.tabBar,
         tabBarItemStyle: styles.tabBarItem,
       }}
