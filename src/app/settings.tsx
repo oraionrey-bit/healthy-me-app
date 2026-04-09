@@ -90,7 +90,7 @@ export default function SettingsScreen() {
     deleteSupplement,
   } = useSupplements();
   const { isConnected: ouraConnected, loading: ouraLoading, connectOura, disconnectOura, syncing: ouraSyncing, syncOura } = useOura();
-  const { loading: exportLoading, error: exportError, success: exportSuccess, exportData } = useExportData(user?.id);
+  const { loading: exportLoading, error: exportError, success: exportSuccess, exportData, exportDashboard } = useExportData(user?.id);
   const { recentWeights } = useWeight();
 
   const handleSignOut = async () => {
@@ -267,17 +267,24 @@ export default function SettingsScreen() {
           {/* Data */}
           <SettingsSection title="Data" icon={SECTION_ICONS.chart}>
             <Text style={styles.sectionDescription}>
-              Export your health data from the last 30 days as a CSV file.
+              Export your health data as a CSV file.
             </Text>
             <View style={styles.editButtonWrap}>
               {exportLoading ? (
                 <ActivityIndicator color={Colors.purple} />
               ) : (
-                <PixelButton
-                  title="Export Health Data (CSV)"
-                  variant="outline"
-                  onPress={exportData}
-                />
+                <>
+                  <PixelButton
+                    title="📊 Daily Dashboard (90 days)"
+                    onPress={exportDashboard}
+                  />
+                  <View style={styles.exportButtonSpacer} />
+                  <PixelButton
+                    title="📋 Full Export (30 days)"
+                    variant="outline"
+                    onPress={exportData}
+                  />
+                </>
               )}
             </View>
             {exportSuccess && (
@@ -414,6 +421,11 @@ const styles = StyleSheet.create({
   // Edit button
   editButtonWrap: {
     marginTop: Spacing.md,
+  },
+
+  // Export buttons
+  exportButtonSpacer: {
+    height: Spacing.sm,
   },
 
   // Export feedback

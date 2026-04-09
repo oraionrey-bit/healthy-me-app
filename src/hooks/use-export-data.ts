@@ -549,5 +549,287 @@ export function useExportData(userId?: string) {
     }
   }, [userId]);
 
-  return { loading, error, success, exportData };
+  const exportDashboard = useCallback(async () => {
+    if (!userId) {
+      setError('Not logged in');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const startDate = toDateKey(ninetyDaysAgo);
+      const endDate = toDateKey(new Date());
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = supabase as any;
+
+      const [
+        dailyLogs,
+        foodLogs,
+        weightLogs,
+        waterLogs,
+        symptoms,
+        supplementLogs,
+        userSupplements,
+        exerciseLogs,
+        periodLogs,
+        skincareLogs,
+        profileResult,
+      ] = await Promise.all([
+        db.from('daily_logs')
+          .select('log_date, mood, health_notes')
+          .eq('user_id', userId)
+          .gte('log_date', startDate)
+          .lte('log_date', endDate)
+          .order('log_date', { ascending: true }),
+        db.from('food_logs')
+          .select('log_date, calories, protein')
+          .eq('user_id', userId)
+          .gte('log_date', startDate)
+          .lte('log_date', endDate)
+          .order('log_date', { ascending: true }),
+        db.from('weight_logs')
+          .select('log_date, weight')
+          .eq('user_id', userId)
+          .gte('log_date', startDate)
+          .lte('log_date', endDate)
+          .order('log_date', { ascending: true }),
+        db.from('water_logs')
+          .select('log_date, glasses')
+          .eq('user_id', userId)
+          .gte('log_date', startDate)
+          .lte('log_date', endDate)
+          .order('log_date', { ascending: true }),
+        db.from('symptoms')
+          .select('log_date, bloating, mood, energy_level, notes')
+          .eq('user_id', userId)
+          .gte('log_date', startDate)
+          .lte('log_date', endDate)
+          .order('log_date', { ascending: true }),
+        db.from('supplement_logs')
+          .select('log_date, taken')
+          .eq('user_id', userId)
+          .gte('log_date', startDate)
+          .lte('log_date', endDate)
+          .order('log_date', { ascending: true }),
+        db.from('user_supplements')
+          .select('id, is_active')
+          .eq('user_id', userId)
+          .eq('is_active', true),
+        db.from('exercise_logs')
+          .select('log_date, exercise_type, duration_minutes, sleep_score')
+          .eq('user_id', userId)
+          .gte('log_date', startDate)
+          .lte('log_date', endDate)
+          .order('log_date', { ascending: true }),
+        db.from('period_logs')
+          .select('log_date, flow, cramps')
+          .eq('user_id', userId)
+          .gte('log_date', startDate)
+          .lte('log_date', endDate)
+          .order('log_date', { ascending: true }),
+        db.from('skincare_logs')
+          .select('log_date, skin_score, breakouts, cycle_day')
+          .eq('user_id', userId)
+          .gte('log_date', startDate)
+          .lte('log_date', endDate)
+          .order('log_date', { ascending: true }),
+        db.from('profiles')
+          .select('calorie_target, protein_target, water_target')
+          .eq('id', userId)
+          .single(),
+      ]);
+
+      const calorieTarget = profileResult.data?.calorie_target ?? 1800;
+      const proteinTarget = profileResult.data?.protein_target ?? 50;
+      const waterTarget = profileResult.data?.water_target ?? 8;
+      const totalActiveSupplements = (userSupplements.data ?? []).length;
+
+      // Build flat day map
+      interface DayData {
+        mood: string;
+        energy: string;
+        calories: number;
+        protein: number;
+        water: number;
+        suppsTaken: number;
+        suppsTotal: number;
+        exercise: string;
+        skinScore: string;
+        breakouts: string;
+        flow: string;
+        cramps: string;
+        bloating: string;
+        weight: string;
+        love: string;
+        sleep: string;
+        cycleDay: string;
+        notes: string;
+      }
+
+      const dayMap: Record<string, DayData> = {};
+      const ensureDay = (d: string): DayData => {
+        if (!dayMap[d]) {
+          dayMap[d] = {
+            mood: '', energy: '', calories: 0, protein: 0,
+            water: 0, suppsTaken: 0, suppsTotal: totalActiveSupplements,
+            exercise: '', skinScore: '', breakouts: '', flow: '',
+            cramps: '', bloating: '', weight: '', love: '',
+            sleep: '', cycleDay: '', notes: '',
+          };
+        }
+        return dayMap[d];
+      };
+
+      // Daily logs -> mood, energy, love, notes
+      for (const row of dailyLogs.data ?? []) {
+        const day = ensureDay(row.log_date);
+        try {
+          const parsed = JSON.parse(row.mood ?? '{}');
+          day.mood = String(parsed.mood ?? '');
+          day.energy = String(parsed.energy ?? '');
+        } catch {
+          day.mood = row.mood ?? '';
+        }
+        if (row.health_notes) {
+          try {
+            const hn = JSON.parse(row.health_notes);
+            if (typeof hn === 'object' && hn !== null && hn.love) {
+              day.love = 'Yes';
+            }
+          } catch {
+            // not JSON
+          }
+          const formatted = formatHealthNotes(row.health_notes);
+          day.notes = formatted.length > 50 ? formatted.slice(0, 47) + '...' : formatted;
+        }
+      }
+
+      // Food -> calories, protein
+      for (const row of foodLogs.data ?? []) {
+        const day = ensureDay(row.log_date);
+        day.calories += row.calories ?? 0;
+        day.protein += Number(row.protein ?? 0);
+      }
+
+      // Weight
+      for (const row of weightLogs.data ?? []) {
+        ensureDay(row.log_date).weight = String(row.weight);
+      }
+
+      // Water
+      for (const row of waterLogs.data ?? []) {
+        ensureDay(row.log_date).water = row.glasses ?? 0;
+      }
+
+      // Symptoms -> bloating, mood/energy override if not from daily_logs
+      for (const row of symptoms.data ?? []) {
+        const day = ensureDay(row.log_date);
+        day.bloating = row.bloating ? String(row.bloating) : '';
+        if (!day.mood && row.mood) day.mood = String(row.mood);
+        if (!day.energy && row.energy_level) day.energy = String(row.energy_level);
+      }
+
+      // Supplements -> count taken per day
+      const suppsByDay: Record<string, number> = {};
+      for (const row of supplementLogs.data ?? []) {
+        if (row.taken) {
+          suppsByDay[row.log_date] = (suppsByDay[row.log_date] ?? 0) + 1;
+        }
+        ensureDay(row.log_date); // ensure day exists
+      }
+      for (const [date, count] of Object.entries(suppsByDay)) {
+        dayMap[date]!.suppsTaken = count;
+      }
+
+      // Exercise -> type + duration (first entry per day)
+      const exerciseByDay: Record<string, string[]> = {};
+      for (const row of exerciseLogs.data ?? []) {
+        const day = ensureDay(row.log_date);
+        if (!exerciseByDay[row.log_date]) exerciseByDay[row.log_date] = [];
+        const typeName = (row.exercise_type ?? '').replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+        const dur = row.duration_minutes ? ` ${row.duration_minutes}min` : '';
+        exerciseByDay[row.log_date].push(`${typeName}${dur}`);
+        if (row.sleep_score) day.sleep = String(row.sleep_score);
+      }
+      for (const [date, entries] of Object.entries(exerciseByDay)) {
+        dayMap[date]!.exercise = entries.join(', ');
+      }
+
+      // Period -> flow, cramps
+      for (const row of periodLogs.data ?? []) {
+        const day = ensureDay(row.log_date);
+        day.flow = row.flow ?? '';
+        day.cramps = row.cramps ? String(row.cramps) : '';
+      }
+
+      // Skincare -> skin score, breakouts, cycle day
+      for (const row of skincareLogs.data ?? []) {
+        const day = ensureDay(row.log_date);
+        if (row.skin_score != null) day.skinScore = String(row.skin_score);
+        if (row.breakouts) day.breakouts = row.breakouts;
+        if (row.cycle_day != null) day.cycleDay = String(row.cycle_day);
+      }
+
+      // Build CSV rows sorted by date
+      const headers = [
+        'Date', 'Day', 'Mood', 'Energy', 'Calories', 'Protein',
+        'Water', 'Supplements', 'Exercise', 'Skin Score', 'Breakouts',
+        'Period', 'Cramps', 'Stomach', 'Weight', 'Love', 'Sleep', 'Notes',
+      ];
+
+      const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      const sortedDates = Object.keys(dayMap).sort();
+      const rows = sortedDates.map((dateStr) => {
+        const d = dayMap[dateStr];
+        const dateObj = new Date(dateStr + 'T00:00:00');
+        const formattedDate = `${DAY_NAMES[dateObj.getDay()]} ${MONTH_NAMES[dateObj.getMonth()]} ${dateObj.getDate()}`;
+
+        const calStr = d.calories > 0 ? `${Math.round(d.calories)}/${calorieTarget}` : '';
+        const protStr = d.protein > 0 ? `${Math.round(d.protein)}/${proteinTarget}g` : '';
+        const waterStr = d.water > 0 ? `${d.water}/${waterTarget}` : '';
+        const suppStr = d.suppsTaken > 0 || d.suppsTotal > 0
+          ? `${d.suppsTaken}/${d.suppsTotal}`
+          : '';
+
+        return [
+          formattedDate,
+          d.cycleDay,
+          d.mood,
+          d.energy,
+          calStr,
+          protStr,
+          waterStr,
+          suppStr,
+          d.exercise,
+          d.skinScore,
+          d.breakouts,
+          d.flow,
+          d.cramps,
+          d.bloating,
+          d.weight,
+          d.love,
+          d.sleep,
+          d.notes,
+        ];
+      });
+
+      const csv = toCSV(headers, rows);
+      const filename = `healthy-me-dashboard-${endDate}.csv`;
+      downloadCSV(filename, csv);
+      setSuccess(true);
+    } catch (err: any) {
+      setError(err.message ?? 'Export failed');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  return { loading, error, success, exportData, exportDashboard };
 }
