@@ -11,6 +11,7 @@ import {
 import { PixelCard, PixelButton } from '../ui';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useSupplements, type SupplementFeeling, type FeelingEntry } from '../../hooks/use-supplements';
+import { MetforminPhasingCard } from './metformin-phasing-card';
 import type { UserSupplement } from '../../types/database';
 
 const FEELING_OPTIONS: Array<{ value: SupplementFeeling; emoji: string; label: string }> = [
@@ -273,6 +274,7 @@ export function SupplementTracker() {
     deleteSupplement,
     logFeeling,
     getFeelingForToday,
+    advancePhase,
     reorderSupplements,
   } = useSupplements();
 
@@ -364,6 +366,17 @@ export function SupplementTracker() {
       {supplements.length === 0 && !showAddForm && (
         <Text style={styles.emptyText}>No supplements yet {'\u2014'} tap + to add one</Text>
       )}
+
+      {/* Phasing cards for supplements with phase schedules */}
+      {supplements
+        .filter((s) => s.phase_schedule != null)
+        .map((s) => (
+          <MetforminPhasingCard
+            key={`phasing-${s.id}`}
+            supplement={s}
+            onAdvancePhase={advancePhase}
+          />
+        ))}
 
       {renderGroup('\u2600\uFE0F Morning', morningSupplements)}
       {renderGroup('\u{1F319} Evening', eveningSupplements)}

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useUserProfile } from './use-user-profile';
 import { DEFAULT_SUPPLEMENTS } from '../constants/supplements';
-import type { UserSupplement, SupplementLog } from '../types/database';
+import type { UserSupplement, SupplementLog, SupplementPhaseSchedule } from '../types/database';
 
 // Feeling stored as JSON in supplement_logs.notes
 export type SupplementFeeling = 'good' | 'neutral' | 'bad';
@@ -276,6 +276,41 @@ export function useSupplements(date?: Date) {
     [todaysLogs],
   );
 
+  // ── Phase Advancement ──
+
+  const advancePhase = useCallback(
+    async (supplementId: string, nextPhase: number) => {
+      if (!user) return;
+
+      const supp = supplements.find((s) => s.id === supplementId);
+      if (!supp?.phase_schedule) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      const updatedSchedule: SupplementPhaseSchedule = {
+        ...supp.phase_schedule,
+        current_phase: nextPhase,
+        phase_started_at: today,
+      };
+
+      // Also update the dosage field to reflect the new phase
+      const newPhaseData = updatedSchedule.phases.find((p) => p.phase === nextPhase);
+      const newDosage = newPhaseData?.dosage ?? supp.dosage;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+      const { error } = await (supabase.from('user_supplements') as any)
+        .update({
+          phase_schedule: updatedSchedule,
+          dosage: newDosage,
+        })
+        .eq('id', supplementId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      await fetchSupplements();
+    },
+    [user, supplements, fetchSupplements],
+  );
+
   // ── Reorder ──
 
   const reorderSupplements = useCallback(
@@ -311,6 +346,7 @@ export function useSupplements(date?: Date) {
     deleteSupplement,
     logFeeling,
     getFeelingForToday,
+    advancePhase,
     reorderSupplements,
     refetch: async () => {
       await fetchSupplements();

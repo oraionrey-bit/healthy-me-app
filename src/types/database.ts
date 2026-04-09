@@ -184,6 +184,21 @@ export interface SupplementLog {
   notes: string | null;
 }
 
+export interface SupplementPhase {
+  phase: number;
+  label: string;
+  dosage: string;
+  frequency: string;
+  duration_weeks: number | null; // null = final phase (indefinite)
+}
+
+export interface SupplementPhaseSchedule {
+  phases: SupplementPhase[];
+  current_phase: number;
+  phase_started_at: string; // ISO date
+  start_date: string; // ISO date
+}
+
 export interface UserSupplement {
   id: string;
   user_id: string;
@@ -195,6 +210,7 @@ export interface UserSupplement {
   notes: string | null;
   is_active: boolean;
   sort_order: number;
+  phase_schedule: SupplementPhaseSchedule | null;
 }
 
 export interface ExerciseLog {
