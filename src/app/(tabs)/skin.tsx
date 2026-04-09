@@ -409,21 +409,38 @@ export default function SkinScreen() {
     setProductScanError(null);
     setProductTriggersFound([]);
     try {
-      const resp = await fetch(uri);
-      const blob = await resp.blob();
+      if (!CHAT_TOKEN) {
+        throw new Error('Analysis service not configured');
+      }
+
+      // Convert image URI to File (Safari requires File, not Blob, in FormData)
+      let photoFile: Blob;
+      try {
+        const resp = await fetch(uri);
+        const blob = await resp.blob();
+        photoFile = new File([blob], 'skincare-product.jpg', { type: blob.type || 'image/jpeg' });
+      } catch {
+        throw new Error('Could not read photo — please try again');
+      }
 
       const formData = new FormData();
       formData.append('message_type', 'skincare_product');
       formData.append('description', 'Analyze this skincare product');
-      formData.append('photos', blob, 'skincare-product.jpg');
+      formData.append('photos', photoFile, 'skincare-product.jpg');
 
-      const res = await fetch(`${CHAT_RELAY_URL}/analyze`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${CHAT_TOKEN}` },
-        body: formData,
-      });
+      let res: Response;
+      try {
+        res = await fetch(`${CHAT_RELAY_URL}/analyze`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${CHAT_TOKEN}` },
+          body: formData,
+        });
+      } catch {
+        throw new Error('Analysis service unavailable — check your connection');
+      }
 
-      if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+      if (res.status === 401) throw new Error('Analysis service auth error — please update the app');
+      if (!res.ok) throw new Error(`Analysis failed (${res.status}) — try again`);
 
       const data = await res.json();
       const messageId = data.id as string;

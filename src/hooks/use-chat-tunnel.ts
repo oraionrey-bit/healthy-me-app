@@ -63,28 +63,45 @@ export function useChatTunnel(): UseChatTunnelReturn {
       setResponse(null);
 
       try {
+        if (!CHAT_TOKEN) {
+          throw new Error('Analysis service not configured');
+        }
+
         const formData = new FormData();
         formData.append('message_type', params.messageType);
         formData.append('description', params.description);
 
         for (const photo of params.photos) {
-          // On web, fetch the URI and create a blob
-          const resp = await fetch(photo.uri);
-          const blob = await resp.blob();
-          formData.append('photos', blob, photo.name);
+          // Convert to File (Safari requires File, not Blob, in FormData)
+          try {
+            const resp = await fetch(photo.uri);
+            const blob = await resp.blob();
+            const file = new File([blob], photo.name, { type: photo.type || 'image/jpeg' });
+            formData.append('photos', file, photo.name);
+          } catch {
+            throw new Error('Could not read photo — please try again');
+          }
         }
 
-        const res = await fetch(`${CHAT_RELAY_URL}/analyze`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${CHAT_TOKEN}`,
-          },
-          body: formData,
-        });
+        let res: Response;
+        try {
+          res = await fetch(`${CHAT_RELAY_URL}/analyze`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${CHAT_TOKEN}`,
+            },
+            body: formData,
+          });
+        } catch {
+          throw new Error('Analysis service unavailable — check your connection');
+        }
 
+        if (res.status === 401) {
+          throw new Error('Analysis service auth error — please update the app');
+        }
         if (!res.ok) {
           const body = await res.json().catch(() => ({ error: 'Request failed' }));
-          throw new Error(body.error || `HTTP ${res.status}`);
+          throw new Error(body.error || `Analysis failed (${res.status})`);
         }
 
         const data = await res.json();

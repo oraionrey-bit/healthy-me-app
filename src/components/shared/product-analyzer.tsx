@@ -109,21 +109,39 @@ export function ProductAnalyzer<M extends ProductAnalyzerMode>({
       setScanning(true);
       setError(null);
       try {
-        const resp = await fetch(uri);
-        const blob = await resp.blob();
+        if (!CHAT_TOKEN) {
+          throw new Error('Analysis service not configured');
+        }
+
+        // Convert image URI to File (Safari requires File, not Blob, in FormData)
+        let photoFile: Blob;
+        try {
+          const resp = await fetch(uri);
+          const blob = await resp.blob();
+          const filename = `${mode}-product.jpg`;
+          photoFile = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+        } catch {
+          throw new Error('Could not read photo — please try again');
+        }
 
         const formData = new FormData();
         formData.append('message_type', messageType);
         formData.append('description', labels.description);
-        formData.append('photos', blob, `${mode}-product.jpg`);
+        formData.append('photos', photoFile, `${mode}-product.jpg`);
 
-        const res = await fetch(`${CHAT_RELAY_URL}/analyze`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${CHAT_TOKEN}` },
-          body: formData,
-        });
+        let res: Response;
+        try {
+          res = await fetch(`${CHAT_RELAY_URL}/analyze`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${CHAT_TOKEN}` },
+            body: formData,
+          });
+        } catch {
+          throw new Error('Analysis service unavailable — check your connection');
+        }
 
-        if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+        if (res.status === 401) throw new Error('Analysis service auth error — please update the app');
+        if (!res.ok) throw new Error(`Analysis failed (${res.status}) — try again`);
 
         const data = await res.json();
         const messageId = data.id as string;

@@ -65,6 +65,23 @@ else
 fi
 echo ""
 
+# ── 2b. Environment Variables ─────────────────────────────────────────
+echo -e "${BOLD}[2b] Environment Variables${NC}"
+if [ -f ".env" ]; then
+  pass ".env file exists"
+else
+  warn ".env file missing — EXPO_PUBLIC_* vars may not be set at build time"
+fi
+
+if [ -n "${EXPO_PUBLIC_CHAT_TOKEN:-}" ]; then
+  pass "EXPO_PUBLIC_CHAT_TOKEN is set"
+elif grep -q "EXPO_PUBLIC_CHAT_TOKEN" .env 2>/dev/null; then
+  pass "EXPO_PUBLIC_CHAT_TOKEN found in .env"
+else
+  fail "EXPO_PUBLIC_CHAT_TOKEN not set — product analysis will fail"
+fi
+echo ""
+
 # ── 3. Web Export ──────────────────────────────────────────────────────
 echo -e "${BOLD}[3/7] Web Export${NC}"
 if npx expo export --platform web 2>/dev/null; then
