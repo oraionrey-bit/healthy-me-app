@@ -312,6 +312,7 @@ export default function HomeScreen() {
   const [mood, setMood] = useState<number | null>(savedMood);
   const [energy, setEnergy] = useState<number | null>(savedEnergy);
   const [periodStatus, setPeriodStatus] = useState<string>('off');
+  const [love, setLove] = useState(false);
   const [selectedSymptoms, setSelectedSymptoms] = useState<Map<SymptomType, number>>(new Map());
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -344,14 +345,25 @@ export default function HomeScreen() {
       if (dailyLog.health_notes) {
         const hn = dailyLog.health_notes;
         if (!hn.startsWith('{') || !hn.includes('"skincare"')) {
-          setNotes(hn);
+          // Could still be JSON with just love field
+          try {
+            const parsed = JSON.parse(hn);
+            if (typeof parsed === 'object' && parsed !== null) {
+              if (parsed.love) setLove(true);
+              if (parsed.userNotes) setNotes(parsed.userNotes);
+            }
+          } catch {
+            // Plain text notes
+            setNotes(hn);
+          }
         } else {
-          // Extract userNotes from skincare JSON
+          // Extract userNotes and love from skincare JSON
           try {
             const parsed = JSON.parse(hn);
             if (parsed.userNotes) {
               setNotes(parsed.userNotes);
             }
+            if (parsed.love) setLove(true);
           } catch {
             // ignore parse errors
           }
@@ -424,29 +436,44 @@ export default function HomeScreen() {
         }
       }
 
-      // Save notes to daily_logs FIRST (most important — don't lose user's text)
+      // Save notes + love to daily_logs FIRST (most important — don't lose user's text)
       // Preserve skincare JSON if it exists in health_notes
-      let healthNotesToSave = notes || undefined;
-      if (healthNotesToSave) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: existingLog } = await (supabase.from('daily_logs') as any)
-          .select('health_notes')
-          .eq('user_id', user.id)
-          .eq('log_date', toDateKey(new Date()))
-          .maybeSingle();
-        if (existingLog?.health_notes) {
-          try {
-            const parsed = JSON.parse(existingLog.health_notes as string);
-            if (parsed.skincare) {
-              // Merge: keep skincare data, add user notes
-              parsed.userNotes = healthNotesToSave;
-              healthNotesToSave = JSON.stringify(parsed);
-            }
-          } catch {
-            // Not JSON, just use plain text
+      let healthNotesToSave: string | undefined;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: existingLog } = await (supabase.from('daily_logs') as any)
+        .select('health_notes')
+        .eq('user_id', user.id)
+        .eq('log_date', toDateKey(new Date()))
+        .maybeSingle();
+
+      // Build JSON blob merging existing data with notes + love
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let blob: Record<string, any> = {};
+      if (existingLog?.health_notes) {
+        try {
+          const parsed = JSON.parse(existingLog.health_notes as string);
+          if (typeof parsed === 'object' && parsed !== null) {
+            blob = parsed;
           }
+        } catch {
+          // Was plain text — will migrate to JSON
         }
       }
+      if (notes) blob.userNotes = notes;
+      else delete blob.userNotes;
+      if (love) blob.love = true;
+      else delete blob.love;
+
+      // If blob only has userNotes and nothing else, store as plain text for backward compat
+      const blobKeys = Object.keys(blob);
+      if (blobKeys.length === 0) {
+        healthNotesToSave = undefined;
+      } else if (blobKeys.length === 1 && blobKeys[0] === 'userNotes') {
+        healthNotesToSave = notes;
+      } else {
+        healthNotesToSave = JSON.stringify(blob);
+      }
+
       await saveDailyLog({
         health_notes: healthNotesToSave,
         period: periodStatus !== 'off' ? periodStatus : undefined,
@@ -485,7 +512,7 @@ export default function HomeScreen() {
       setSaving(false);
     }
   }, [
-    user, mood, energy, periodStatus, selectedSymptoms, notes,
+    user, mood, energy, periodStatus, love, selectedSymptoms, notes,
     saveMoodEnergy, symptomLogs, removeSymptom, addSymptom, updateSymptomLog, saveDailyLog,
   ]);
 
@@ -1020,6 +1047,19 @@ export default function HomeScreen() {
                           </TouchableOpacity>
                         ))}
                       </View>
+                    </View>
+
+                    {/* Love */}
+                    <View style={styles.fieldGroup}>
+                      <TouchableOpacity
+                        onPress={() => setLove(!love)}
+                        style={[styles.lovePill, love && styles.lovePillActive]}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.lovePillText, love && styles.lovePillTextActive]}>
+                          {love ? '❤️' : '🤍'} Love
+                        </Text>
+                      </TouchableOpacity>
                     </View>
 
                     {/* Symptoms */}
@@ -1647,6 +1687,29 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   periodPillTextActive: {
+    color: Colors.textOnDark,
+  },
+
+  // Love toggle
+  lovePill: {
+    alignSelf: 'flex-start',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+  },
+  lovePillActive: {
+    backgroundColor: Colors.pink,
+    borderColor: Colors.pink,
+  },
+  lovePillText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+  },
+  lovePillTextActive: {
     color: Colors.textOnDark,
   },
 

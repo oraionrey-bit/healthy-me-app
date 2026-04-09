@@ -216,6 +216,7 @@ export function useExportData(userId?: string) {
         'Anxiety',
         'Period Flow',
         'Cramps',
+        'Love',
         'Compression Socks',
         'Calf Sleeves',
         'Stretch Minutes',
@@ -241,6 +242,17 @@ export function useExportData(userId?: string) {
           r['Energy'] = mood.energy ?? '';
         } catch {
           r['Mood'] = row.mood ?? '';
+        }
+        // Extract love from health_notes JSON
+        if (row.health_notes) {
+          try {
+            const hn = JSON.parse(row.health_notes);
+            if (typeof hn === 'object' && hn !== null && hn.love) {
+              r['Love'] = 'Yes';
+            }
+          } catch {
+            // not JSON
+          }
         }
         r['Compression Socks'] = row.wore_compression_socks ? 'Yes' : 'No';
         r['Calf Sleeves'] = row.wore_calf_sleeves ? 'Yes' : 'No';
