@@ -326,12 +326,16 @@ export function useSkincare() {
   // ── Products ──
 
   const addProduct = useCallback(
-    async (name: string, status: ProductStatus, notes?: string) => {
+    async (name: string, status: ProductStatus, notes?: string, opts?: { testingStartDate?: string; ingredients?: string[]; brand?: string; product_type?: string }) => {
       const newProduct: SkincareProduct = {
         id: `p-${Date.now()}`,
         name,
         status,
         notes,
+        ...(opts?.testingStartDate && { testingStartDate: opts.testingStartDate }),
+        ...(opts?.ingredients && { ingredients: opts.ingredients }),
+        ...(opts?.brand && { brand: opts.brand }),
+        ...(opts?.product_type && { product_type: opts.product_type }),
       };
       const newData: SkinData = {
         ...skinData,

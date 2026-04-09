@@ -338,6 +338,7 @@ export default function SkinScreen() {
   const [productScanning, setProductScanning] = useState(false);
   const [productScanError, setProductScanError] = useState<string | null>(null);
   const [productTriggersFound, setProductTriggersFound] = useState<string[]>([]);
+  const [startTestPlan, setStartTestPlan] = useState(true);
 
   // ── Skin photos ──
   const { photos: skinPhotos, uploading: photoUploading, addPhoto, deletePhoto: deleteSkinPhoto } = useSkinPhotos();
@@ -549,11 +550,19 @@ export default function SkinScreen() {
     setProductPhotoUri(null);
     setProductScanError(null);
     setProductTriggersFound([]);
+    setStartTestPlan(true);
   };
 
   const handleAddProduct = async () => {
     if (!newProductName.trim()) return;
-    await addProduct(newProductName.trim(), newProductStatus, newProductNotes.trim() || undefined);
+    const effectiveStatus = startTestPlan && newProductStatus !== 'trigger' ? 'testing' : newProductStatus;
+    const today = new Date().toISOString().split('T')[0];
+    await addProduct(
+      newProductName.trim(),
+      effectiveStatus,
+      newProductNotes.trim() || undefined,
+      startTestPlan && effectiveStatus === 'testing' ? { testingStartDate: today } : undefined,
+    );
     resetProductForm();
     setShowAddProduct(false);
   };
@@ -952,6 +961,7 @@ export default function SkinScreen() {
                     onLogUsage={(rating, note) => logProductUsage(p.id, rating, note)}
                     onViewDetail={() => setDetailProductId(p.id)}
                     onDelete={() => deleteProduct(p.id)}
+                    onStartTesting={() => updateProductStatus(p.id, 'testing')}
                   />
                 ))}
               </View>
@@ -1095,6 +1105,30 @@ export default function SkinScreen() {
                   multiline
                   numberOfLines={3}
                 />
+
+                {/* Test plan toggle */}
+                {newProductStatus !== 'trigger' && (
+                  <TouchableOpacity
+                    style={styles.testPlanToggle}
+                    onPress={() => setStartTestPlan(!startTestPlan)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.toggleBox, startTestPlan && styles.toggleBoxActive]}>
+                      {startTestPlan && <Text style={styles.toggleCheck}>✓</Text>}
+                    </View>
+                    <Text style={styles.testPlanLabel}>🧪 Start 28-day test plan</Text>
+                  </TouchableOpacity>
+                )}
+                {startTestPlan && newProductStatus !== 'trigger' && (
+                  <Text style={styles.testPlanHint}>
+                    28-day test plan starts today. Log daily reactions to track if this product works for you.
+                  </Text>
+                )}
+                {productTriggersFound.length > 0 && newProductStatus === 'trigger' && (
+                  <Text style={styles.testPlanHint}>
+                    Test plan unavailable — known trigger ingredients detected. You can still change the status above to test anyway.
+                  </Text>
+                )}
 
                 <View style={styles.formButtons}>
                   <PixelButton
@@ -1418,6 +1452,7 @@ function ProductRow({
   onLogUsage,
   onViewDetail,
   onDelete,
+  onStartTesting,
 }: {
   product: SkincareProduct;
   todayUsage?: ProductUsageEntry;
@@ -1426,6 +1461,7 @@ function ProductRow({
   onLogUsage: (rating: ReactionRating, note?: string) => void;
   onViewDetail: () => void;
   onDelete: () => void;
+  onStartTesting?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [reactionNote, setReactionNote] = useState('');
@@ -1504,6 +1540,13 @@ function ProductRow({
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Start testing (safe products only) */}
+          {status === 'safe' && onStartTesting && (
+            <TouchableOpacity onPress={onStartTesting} style={styles.startTestingBtn}>
+              <Text style={styles.startTestingText}>🧪 Start 28-Day Test</Text>
+            </TouchableOpacity>
+          )}
 
           {/* View history */}
           {usageCount > 0 && (
@@ -2191,6 +2234,44 @@ const styles = StyleSheet.create({
     minHeight: 60,
     textAlignVertical: 'top',
   },
+  testPlanToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  toggleBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Colors.textMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  toggleBoxActive: {
+    borderColor: Colors.purple,
+    backgroundColor: Colors.purple,
+  },
+  toggleCheck: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700' as const,
+  },
+  testPlanLabel: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    color: Colors.textPrimary,
+  },
+  testPlanHint: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+    marginTop: Spacing.xs,
+    marginLeft: 30,
+    lineHeight: 18,
+  },
 
   // Plan tab
   planHeaderRow: {
@@ -2270,6 +2351,22 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
     backgroundColor: Colors.cardBackground,
+  },
+  startTestingBtn: {
+    marginTop: Spacing.sm,
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: Colors.purple + '15',
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.purple + '40',
+  },
+  startTestingText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.purple,
+    fontWeight: '600' as const,
   },
   viewHistoryBtn: {
     marginTop: Spacing.sm,
