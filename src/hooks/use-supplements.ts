@@ -176,22 +176,49 @@ export function useSupplements(date?: Date) {
     async (name: string, dosage: string, timeOfDay: string, notes?: string) => {
       if (!user) return;
 
-      // Get next sort_order
-      const maxSort = supplements.reduce((max, s) => Math.max(max, s.sort_order), -1);
+      // Check if a supplement with the same name already exists for this user
+      const existing = supplements.find(
+        (s) => s.supplement_name.toLowerCase() === name.toLowerCase(),
+      );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
-      const { error } = await (supabase.from('user_supplements') as any).insert({
-        user_id: user.id,
-        supplement_name: name,
-        dosage: dosage || null,
-        frequency: 'daily',
-        time_of_day: timeOfDay,
-        notes: notes || null,
-        is_active: true,
-        sort_order: maxSort + 1,
-      });
+      if (existing) {
+        // Merge time_of_day (e.g. "morning" + "evening" → "morning,evening")
+        const existingTimes = existing.time_of_day.split(',').map((t) => t.trim());
+        const newTimes = timeOfDay.split(',').map((t) => t.trim());
+        const mergedTimes = Array.from(new Set([...existingTimes, ...newTimes])).join(',');
 
-      if (error) throw error;
+        if (mergedTimes !== existing.time_of_day) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+          const { error } = await (supabase.from('user_supplements') as any)
+            .update({
+              time_of_day: mergedTimes,
+              ...(dosage ? { dosage } : {}),
+              ...(notes ? { notes } : {}),
+            })
+            .eq('id', existing.id)
+            .eq('user_id', user.id);
+
+          if (error) throw error;
+        }
+      } else {
+        // Get next sort_order
+        const maxSort = supplements.reduce((max, s) => Math.max(max, s.sort_order), -1);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+        const { error } = await (supabase.from('user_supplements') as any).insert({
+          user_id: user.id,
+          supplement_name: name,
+          dosage: dosage || null,
+          frequency: 'daily',
+          time_of_day: timeOfDay,
+          notes: notes || null,
+          is_active: true,
+          sort_order: maxSort + 1,
+        });
+
+        if (error) throw error;
+      }
+
       await fetchSupplements();
     },
     [user, supplements, fetchSupplements],
