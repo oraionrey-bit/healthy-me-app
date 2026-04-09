@@ -1519,7 +1519,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
   },
-  // Recent foods section
   // Star button on entry
   starBtn: {
     width: 28,
