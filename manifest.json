@@ -1,15 +1,17 @@
 {
   "name": "Healthy Me",
   "short_name": "Healthy Me",
-  "start_url": "/healthy-me-app/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#F8F0FF",
   "theme_color": "#B388FF",
   "icons": [
     {
-      "src": "/healthy-me-app/assets/images/character/character-default.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "/assets/assets/images/character/character-default.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
     }
   ]
 }
