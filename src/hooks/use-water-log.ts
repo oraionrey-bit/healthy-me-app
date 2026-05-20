@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useUserProfile } from './use-user-profile';
@@ -6,13 +6,18 @@ import { toDateKey } from '../utils/storage';
 
 const DEFAULT_WATER_GOAL = 8; // 8 glasses (250ml each = 2000ml)
 
-export function useWaterLog() {
+/**
+ * useWaterLog — water tracking for a given day.
+ *
+ * `date` defaults to today (May 7 bundle: hook accepts `date?: Date`).
+ */
+export function useWaterLog(date: Date = new Date()) {
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const [glasses, setGlasses] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const todayKey = toDateKey(new Date());
+  const dateKey = useMemo(() => toDateKey(date), [date]);
   const waterGoal = profile?.water_target ?? DEFAULT_WATER_GOAL;
   const waterMl = glasses * 250;
   const waterGoalMl = waterGoal * 250;
@@ -25,7 +30,7 @@ export function useWaterLog() {
         .from('water_logs')
         .select('glasses')
         .eq('user_id', user.id)
-        .eq('log_date', todayKey)
+        .eq('log_date', dateKey)
         .maybeSingle();
 
       if (!error && data) {
@@ -36,7 +41,7 @@ export function useWaterLog() {
     } finally {
       setLoading(false);
     }
-  }, [user, todayKey]);
+  }, [user, dateKey]);
 
   useEffect(() => {
     fetchWater();
@@ -55,7 +60,7 @@ export function useWaterLog() {
         .from('water_logs')
         .select('id')
         .eq('user_id', user.id)
-        .eq('log_date', todayKey)
+        .eq('log_date', dateKey)
         .maybeSingle();
 
       let error;
@@ -68,7 +73,7 @@ export function useWaterLog() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
         ({ error } = await (supabase.from('water_logs') as any).insert({
           user_id: user.id,
-          log_date: todayKey,
+          log_date: dateKey,
           glasses: newTotal,
         }));
       }
@@ -77,7 +82,7 @@ export function useWaterLog() {
         setGlasses(glasses); // Revert optimistic update
       }
     },
-    [user, glasses, todayKey],
+    [user, glasses, dateKey],
   );
 
   const resetWater = useCallback(async () => {
@@ -88,7 +93,7 @@ export function useWaterLog() {
       .from('water_logs')
       .select('id')
       .eq('user_id', user.id)
-      .eq('log_date', todayKey)
+      .eq('log_date', dateKey)
       .maybeSingle();
 
     if (existing) {
@@ -101,7 +106,7 @@ export function useWaterLog() {
         await fetchWater(); // Re-fetch to get correct state
       }
     }
-  }, [user, todayKey, fetchWater]);
+  }, [user, dateKey, fetchWater]);
 
   return {
     glasses,

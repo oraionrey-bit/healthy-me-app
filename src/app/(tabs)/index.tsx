@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Text,
   View,
@@ -23,12 +23,13 @@ import { useDailyScore } from '../../hooks/use-daily-score';
 import type { ScoreBreakdown } from '../../hooks/use-daily-score';
 import { useStreak } from '../../hooks/use-streak';
 import { useWeeklySummary } from '../../hooks/use-weekly-summary';
-import { toDateKey, formatDate } from '../../utils/storage';
+import { toDateKey } from '../../utils/storage';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { useUserProfile } from '../../hooks/use-user-profile';
 import { WaterTracker } from '../../components/home/water-tracker';
 import { CalfTrackerCard } from '../../components/home/calf-tracker-card';
+import { DateNavigator } from '../../components/shared/date-navigator';
 import { useOura, getBestSteps } from '../../hooks/use-oura';
 import { useWeeklyInsights } from '../../hooks/use-weekly-insights';
 import { CalorieBalanceCard } from '../../components/home/calorie-balance-card';
@@ -42,16 +43,6 @@ function formatSyncTime(date: Date): string {
   if (diffMin < 60) return `${diffMin} min ago`;
   const diffHr = Math.floor(diffMin / 60);
   return `${diffHr}h ago`;
-}
-
-// ── Helpers ──
-
-function formatDisplayDate(): string {
-  return new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
 }
 
 const MOOD_OPTIONS: Array<{ value: number; emoji: string }> = [
@@ -238,24 +229,16 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const { calorieTarget, proteinTarget } = useUserProfile();
-  const todayKey = toDateKey(new Date());
-  const { totals } = useFoodLog(todayKey);
 
-  // Supplement date navigation
-  const [suppDate, setSuppDate] = useState(new Date());
-  const isSuppToday = toDateKey(suppDate) === toDateKey(new Date());
+  // ── Time-travel date navigation (restored May 7) ──
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const isToday = useMemo(
+    () => selectedDate.toDateString() === new Date().toDateString(),
+    [selectedDate],
+  );
+  const selectedDateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
 
-  const suppGoBack = () => {
-    const prev = new Date(suppDate);
-    prev.setDate(prev.getDate() - 1);
-    setSuppDate(prev);
-  };
-  const suppGoForward = () => {
-    if (isSuppToday) return;
-    const next = new Date(suppDate);
-    next.setDate(next.getDate() + 1);
-    setSuppDate(next);
-  };
+  const { totals } = useFoodLog(selectedDateKey);
 
   const {
     morningSupplements,
@@ -266,10 +249,10 @@ export default function HomeScreen() {
     isSupplementTaken,
     toggleSupplement,
     addSupplement,
-  } = useSupplements(suppDate);
-  const { mood: savedMood, energy: savedEnergy, saveMoodEnergy } = useMoodEnergy();
-  const { symptomLogs, addSymptom, removeSymptom, updateSymptomLog } = useSymptomLog();
-  const { dailyLog, saveDailyLog } = useDailyLog();
+  } = useSupplements(selectedDate);
+  const { mood: savedMood, energy: savedEnergy, saveMoodEnergy } = useMoodEnergy(selectedDate);
+  const { symptomLogs, addSymptom, removeSymptom, updateSymptomLog } = useSymptomLog(selectedDate);
+  const { dailyLog, saveDailyLog } = useDailyLog(selectedDate);
   const { score: dailyScoreValue, breakdown: dailyBreakdown, tips: dailyTips } = useDailyScore();
   const [scoreExpanded, setScoreExpanded] = useState(false);
   const { currentStreak, isMilestone } = useStreak();
@@ -414,7 +397,7 @@ export default function HomeScreen() {
           .from('period_logs')
           .select('id')
           .eq('user_id', user.id)
-          .eq('log_date', toDateKey(new Date()))
+          .eq('log_date', selectedDateKey)
           .maybeSingle();
 
         if (existing.data) {
@@ -426,7 +409,7 @@ export default function HomeScreen() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
           await (supabase.from('period_logs') as any).insert({
             user_id: user.id,
-            log_date: toDateKey(new Date()),
+            log_date: selectedDateKey,
             flow,
             cramps: 0,
             headache: false,
@@ -443,7 +426,7 @@ export default function HomeScreen() {
       const { data: existingLog } = await (supabase.from('daily_logs') as any)
         .select('health_notes')
         .eq('user_id', user.id)
-        .eq('log_date', toDateKey(new Date()))
+        .eq('log_date', selectedDateKey)
         .maybeSingle();
 
       // Build JSON blob merging existing data with notes + love
@@ -514,6 +497,7 @@ export default function HomeScreen() {
   }, [
     user, mood, energy, periodStatus, love, selectedSymptoms, notes,
     saveMoodEnergy, symptomLogs, removeSymptom, addSymptom, updateSymptomLog, saveDailyLog,
+    selectedDateKey,
   ]);
 
   const hasFoodData = totals.calories > 0 || totals.protein > 0;
@@ -542,8 +526,23 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Date */}
-            <Text style={styles.date}>{formatDisplayDate()}</Text>
+            {/* Date navigation (restored May 7) */}
+            <DateNavigator
+              selectedDate={selectedDate}
+              isToday={isToday}
+              onBack={() => {
+                const d = new Date(selectedDate);
+                d.setDate(d.getDate() - 1);
+                setSelectedDate(d);
+              }}
+              onForward={() => {
+                if (isToday) return;
+                const d = new Date(selectedDate);
+                d.setDate(d.getDate() + 1);
+                setSelectedDate(d);
+              }}
+              onTapDate={() => setSelectedDate(new Date())}
+            />
 
             {/* Character — centered, celebrating on milestones */}
             <View style={styles.characterWrap}>
@@ -840,7 +839,7 @@ export default function HomeScreen() {
             {/* Content cards */}
             <View style={styles.contentWrap}>
             {/* Water Tracker */}
-            <WaterTracker />
+            <WaterTracker date={selectedDate} />
 
             {/* Supplement Checklist */}
             <View style={[styles.accentCard, styles.accentGreen]}>
@@ -851,23 +850,6 @@ export default function HomeScreen() {
                   <Text style={styles.progress}>
                     {supplementsLoading ? '...' : `${takenCount}/${totalCount} done`}
                   </Text>
-                </View>
-
-                {/* Date Navigation */}
-                <View style={styles.suppDateNav}>
-                  <TouchableOpacity onPress={suppGoBack} style={styles.suppNavArrow}>
-                    <Text style={styles.suppNavArrowText}>◀</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.suppDateText}>
-                    {isSuppToday ? 'TODAY' : formatDate(suppDate)}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={suppGoForward}
-                    style={[styles.suppNavArrow, isSuppToday && styles.suppNavArrowDisabled]}
-                    disabled={isSuppToday}
-                  >
-                    <Text style={[styles.suppNavArrowText, isSuppToday && styles.suppNavArrowTextDisabled]}>▶</Text>
-                  </TouchableOpacity>
                 </View>
 
                 {supplementsLoading ? (

@@ -1,5 +1,5 @@
 import { toDateKey } from '../utils/storage';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { DailyLog } from '../types/database';
@@ -12,10 +12,16 @@ interface SaveDailyLogInput {
   health_notes?: string;
 }
 
-export function useDailyLog() {
+/**
+ * useDailyLog — daily-log row for a given day.
+ *
+ * `date` defaults to today (May 7 bundle: hook accepts `date?: Date`).
+ */
+export function useDailyLog(date: Date = new Date()) {
   const { user } = useAuth();
   const [dailyLog, setDailyLog] = useState<DailyLog | null>(null);
   const [loading, setLoading] = useState(true);
+  const dateKey = useMemo(() => toDateKey(date), [date]);
 
   const fetchDailyLog = useCallback(async () => {
     if (!user) return;
@@ -25,7 +31,7 @@ export function useDailyLog() {
         .from('daily_logs')
         .select('*')
         .eq('user_id', user.id)
-        .eq('log_date', toDateKey(new Date()))
+        .eq('log_date', dateKey)
         .maybeSingle();
 
       if (error) throw error;
@@ -33,7 +39,7 @@ export function useDailyLog() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, dateKey]);
 
   useEffect(() => {
     fetchDailyLog();
@@ -43,7 +49,6 @@ export function useDailyLog() {
     async (input: SaveDailyLogInput) => {
       if (!user) return;
 
-      const today = toDateKey(new Date());
       const moodValue = JSON.stringify({
         mood: input.mood ?? null,
         energy: input.energy ?? null,
@@ -64,7 +69,7 @@ export function useDailyLog() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
         const { error } = await (supabase.from('daily_logs') as any).insert({
           user_id: user.id,
-          log_date: today,
+          log_date: dateKey,
           mood: moodValue,
           period: input.period ?? null,
           exercise: input.exercise ?? null,
@@ -75,7 +80,7 @@ export function useDailyLog() {
 
       await fetchDailyLog();
     },
-    [user, dailyLog, fetchDailyLog],
+    [user, dailyLog, dateKey, fetchDailyLog],
   );
 
   return {

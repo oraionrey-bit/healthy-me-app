@@ -1,23 +1,36 @@
 import { toDateKey } from '../utils/storage';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { WeightLog } from '../types/database';
 
-export function useWeight() {
+/**
+ * useWeight — weight log entries with optional per-day focus.
+ *
+ * `date` defaults to today (May 7 bundle: hook accepts `date?: Date`).
+ *
+ * Returns:
+ *  - `lastWeight`: most recent overall entry (history pointer)
+ *  - `todayWeight`: entry for today (kept for back-compat)
+ *  - `entryForDay`: entry for the `date` argument (new in May 7)
+ *  - `recentWeights`: last 10 entries
+ *  - `logWeight(weight)` / `saveWeight(weight)`: upsert weight on `date`
+ *  - `deleteWeight()`: delete entry on `date` (new in May 7)
+ */
+export function useWeight(date: Date = new Date()) {
   const { user } = useAuth();
   const [lastWeight, setLastWeight] = useState<WeightLog | null>(null);
-  const [todayWeight, setTodayWeight] = useState<WeightLog | null>(null);
+  const [entryForDay, setEntryForDay] = useState<WeightLog | null>(null);
   const [recentWeights, setRecentWeights] = useState<WeightLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const today = toDateKey(new Date());
+  const dateKey = useMemo(() => toDateKey(date), [date]);
 
   const fetchLastWeight = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [lastRes, todayRes, recentRes] = await Promise.all([
+      const [lastRes, dayRes, recentRes] = await Promise.all([
         supabase
           .from('weight_logs')
           .select('*')
@@ -28,7 +41,7 @@ export function useWeight() {
           .from('weight_logs')
           .select('*')
           .eq('user_id', user.id)
-          .eq('log_date', today)
+          .eq('log_date', dateKey)
           .maybeSingle(),
         supabase
           .from('weight_logs')
@@ -44,8 +57,8 @@ export function useWeight() {
           ? (lastRes.data[0] as WeightLog)
           : null,
       );
-      setTodayWeight(
-        todayRes.data ? (todayRes.data as WeightLog) : null,
+      setEntryForDay(
+        dayRes.data ? (dayRes.data as WeightLog) : null,
       );
       setRecentWeights(
         recentRes.data ? (recentRes.data as WeightLog[]) : [],
@@ -53,7 +66,7 @@ export function useWeight() {
     } finally {
       setLoading(false);
     }
-  }, [user, today]);
+  }, [user, dateKey]);
 
   useEffect(() => {
     fetchLastWeight();
@@ -63,19 +76,19 @@ export function useWeight() {
     async (weight: number) => {
       if (!user) return;
 
-      if (todayWeight) {
-        // Update existing entry for today
+      if (entryForDay) {
+        // Update existing entry for the selected day
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
         const { error } = await (supabase.from('weight_logs') as any)
           .update({ weight })
-          .eq('id', todayWeight.id);
+          .eq('id', entryForDay.id);
         if (error) throw error;
       } else {
-        // Insert new entry
+        // Insert new entry on the selected day
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
         const { error } = await (supabase.from('weight_logs') as any).insert({
           user_id: user.id,
-          log_date: today,
+          log_date: dateKey,
           weight,
           notes: null,
         });
@@ -84,8 +97,31 @@ export function useWeight() {
 
       await fetchLastWeight();
     },
-    [user, today, todayWeight, fetchLastWeight],
+    [user, dateKey, entryForDay, fetchLastWeight],
   );
 
-  return { lastWeight, todayWeight, recentWeights, loading, logWeight, refetch: fetchLastWeight };
+  const deleteWeight = useCallback(async () => {
+    if (!user || !entryForDay) return;
+    const { error } = await supabase
+      .from('weight_logs')
+      .delete()
+      .eq('id', entryForDay.id)
+      .eq('user_id', user.id);
+    if (error) throw error;
+    await fetchLastWeight();
+  }, [user, entryForDay, fetchLastWeight]);
+
+  return {
+    lastWeight,
+    /** alias for back-compat with baseline callers */
+    todayWeight: entryForDay,
+    entryForDay,
+    recentWeights,
+    loading,
+    logWeight,
+    /** alias used by the May 7 WeightEntry scaffold */
+    saveWeight: logWeight,
+    deleteWeight,
+    refetch: fetchLastWeight,
+  };
 }

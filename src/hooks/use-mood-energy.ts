@@ -1,5 +1,5 @@
 import { toDateKey } from '../utils/storage';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { Symptom } from '../types/database';
@@ -9,10 +9,16 @@ interface SaveMoodEnergyInput {
   energy: number; // 1-5
 }
 
-export function useMoodEnergy() {
+/**
+ * useMoodEnergy — mood/energy row for a given day.
+ *
+ * `date` defaults to today (May 7 bundle: hook accepts `date?: Date`).
+ */
+export function useMoodEnergy(date: Date = new Date()) {
   const { user } = useAuth();
   const [todaySymptom, setTodaySymptom] = useState<Symptom | null>(null);
   const [loading, setLoading] = useState(true);
+  const dateKey = useMemo(() => toDateKey(date), [date]);
 
   const fetchTodaySymptom = useCallback(async () => {
     if (!user) return;
@@ -22,7 +28,7 @@ export function useMoodEnergy() {
         .from('symptoms')
         .select('*')
         .eq('user_id', user.id)
-        .eq('log_date', toDateKey(new Date()))
+        .eq('log_date', dateKey)
         .maybeSingle();
 
       if (error) throw error;
@@ -30,7 +36,7 @@ export function useMoodEnergy() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, dateKey]);
 
   useEffect(() => {
     fetchTodaySymptom();
@@ -39,8 +45,6 @@ export function useMoodEnergy() {
   const saveMoodEnergy = useCallback(
     async (input: SaveMoodEnergyInput) => {
       if (!user) return;
-
-      const today = toDateKey(new Date());
 
       if (todaySymptom) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
@@ -55,7 +59,7 @@ export function useMoodEnergy() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
         const { error } = await (supabase.from('symptoms') as any).insert({
           user_id: user.id,
-          log_date: today,
+          log_date: dateKey,
           bloating: 0,
           acne: 0,
           hair_loss: 0,
@@ -73,7 +77,7 @@ export function useMoodEnergy() {
 
       await fetchTodaySymptom();
     },
-    [user, todaySymptom, fetchTodaySymptom],
+    [user, todaySymptom, dateKey, fetchTodaySymptom],
   );
 
   return {
