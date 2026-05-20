@@ -18,7 +18,7 @@ import { useUserProfile } from '../hooks/use-user-profile';
 import { useSupplements } from '../hooks/use-supplements';
 import { SupplementManager } from '../components/settings/supplement-manager';
 import { useOura } from '../hooks/use-oura';
-import { useExportData } from '../hooks/use-export-data';
+import { useExportData, EXPORT_SHEETS } from '../hooks/use-export-data';
 import { WeightEntry } from '../components/health/weight-entry';
 import { useWeight } from '../hooks/use-weight';
 
@@ -90,7 +90,14 @@ export default function SettingsScreen() {
     deleteSupplement,
   } = useSupplements();
   const { isConnected: ouraConnected, loading: ouraLoading, connectOura, disconnectOura, syncing: ouraSyncing, syncOura } = useOura();
-  const { loading: exportLoading, error: exportError, success: exportSuccess, exportData, exportDashboard } = useExportData(user?.id);
+  const {
+    loading: exportLoading,
+    error: exportError,
+    success: exportSuccess,
+    exportData,
+    selectedSheets: exportSelectedSheets,
+    toggleSheet: exportToggleSheet,
+  } = useExportData(user?.id);
   const { recentWeights } = useWeight();
 
   const handleSignOut = async () => {
@@ -269,27 +276,37 @@ export default function SettingsScreen() {
             <Text style={styles.sectionDescription}>
               Export your health data as a CSV file.
             </Text>
+            <View style={styles.sheetSelector}>
+              {EXPORT_SHEETS.map(({ key, label }) => {
+                const checked = exportSelectedSheets.has(key);
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={styles.sheetCheckRow}
+                    onPress={() => exportToggleSheet(key)}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={[styles.sheetCheckbox, checked && styles.sheetCheckboxActive]}
+                    >
+                      {checked && <Text style={styles.sheetCheckmark}>✓</Text>}
+                    </View>
+                    <Text style={styles.sheetLabel}>{label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
             <View style={styles.editButtonWrap}>
               {exportLoading ? (
                 <ActivityIndicator color={Colors.purple} />
               ) : (
-                <>
-                  <PixelButton
-                    title="📊 Daily Dashboard (90 days)"
-                    onPress={exportDashboard}
-                  />
-                  <View style={styles.exportButtonSpacer} />
-                  <PixelButton
-                    title="📋 Full Export (30 days)"
-                    variant="outline"
-                    onPress={exportData}
-                  />
-                </>
+                <PixelButton
+                  title={exportSuccess ? '✓ Downloaded!' : '📊 Export Selected (90 days)'}
+                  onPress={exportData}
+                  variant={exportSuccess ? 'secondary' : 'primary'}
+                />
               )}
             </View>
-            {exportSuccess && (
-              <Text style={styles.exportSuccess}>✓ Export downloaded!</Text>
-            )}
             {exportError != null && (
               <Text style={styles.exportError}>{exportError}</Text>
             )}
@@ -426,6 +443,40 @@ const styles = StyleSheet.create({
   // Export buttons
   exportButtonSpacer: {
     height: Spacing.sm,
+  },
+
+  // Export sheet selector (May 7)
+  sheetSelector: {
+    marginBottom: Spacing.md,
+  },
+  sheetCheckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs + 2,
+  },
+  sheetCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Colors.lavender,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  sheetCheckboxActive: {
+    backgroundColor: Colors.lavender,
+    borderColor: Colors.lavender,
+  },
+  sheetCheckmark: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sheetLabel: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
   },
 
   // Export feedback
