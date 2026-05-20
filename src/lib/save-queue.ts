@@ -249,7 +249,8 @@ export async function drain(): Promise<void> {
 }
 
 async function execute(it: QueueItem): Promise<void> {
-  const q = supabase.from(it.table);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+  const q = supabase.from(it.table) as any;
   if (it.operation === 'upsert') {
     const { error } = await q.upsert(
       it.payload,
