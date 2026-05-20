@@ -78,10 +78,22 @@ function InfoRow({
   );
 }
 
+const HIDE_WEIGHTS_KEY = 'healthy-me-hide-weights';
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { profile, loading } = useUserProfile();
+
+  // Weight privacy toggle — persists across reloads in localStorage (web).
+  const [weightsHidden, setWeightsHidden] = React.useState<boolean>(() => {
+    if (typeof localStorage === 'undefined') return false;
+    return localStorage.getItem(HIDE_WEIGHTS_KEY) === '1';
+  });
+  React.useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(HIDE_WEIGHTS_KEY, weightsHidden ? '1' : '0');
+  }, [weightsHidden]);
   const {
     supplements,
     loading: supplementsLoading,
@@ -249,11 +261,22 @@ export default function SettingsScreen() {
 
           {/* Weight */}
           <SettingsSection title="Weight" icon={SECTION_ICONS.scale}>
+            <TouchableOpacity
+              onPress={() => setWeightsHidden(!weightsHidden)}
+              style={styles.privacyToggle}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.privacyToggleText}>
+                {weightsHidden
+                  ? '🙈 Weights hidden — tap to show'
+                  : '👀 Weights visible — tap to hide'}
+              </Text>
+            </TouchableOpacity>
             <Text style={styles.sectionDescription}>
               Log your daily weight to track progress over time.
             </Text>
-            <WeightEntry />
-            {recentWeights.length > 0 && (
+            {!weightsHidden && <WeightEntry />}
+            {!weightsHidden && recentWeights.length > 0 && (
               <View style={styles.weightHistory}>
                 <Text style={styles.weightHistoryTitle}>Recent Entries</Text>
                 {recentWeights.map((entry) => (
@@ -268,6 +291,11 @@ export default function SettingsScreen() {
                   </View>
                 ))}
               </View>
+            )}
+            {weightsHidden && (
+              <Text style={styles.privacyHidden}>
+                ••• Weight entry + history hidden. Tap above to reveal.
+              </Text>
             )}
           </SettingsSection>
 
@@ -493,6 +521,30 @@ const styles = StyleSheet.create({
     color: Colors.error,
     marginTop: Spacing.sm,
     textAlign: 'center',
+  },
+
+  // Weight privacy toggle (May 7)
+  privacyToggle: {
+    backgroundColor: Colors.softPurple,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+    alignItems: 'center',
+  },
+  privacyToggleText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+  },
+  privacyHidden: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: Spacing.sm,
   },
 
   // Weight history
