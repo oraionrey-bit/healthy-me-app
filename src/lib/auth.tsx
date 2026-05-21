@@ -48,11 +48,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string) => {
+    const redirectTo =
+      typeof window !== 'undefined' && window.location?.origin
+        ? `${window.location.origin}/`
+        : 'https://app.withluna.dev/';
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: 'https://app.withluna.dev/',
-      },
+      options: { emailRedirectTo: redirectTo },
     });
     return { error: error as Error | null };
   };
