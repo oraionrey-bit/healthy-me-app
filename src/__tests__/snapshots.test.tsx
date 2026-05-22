@@ -11,6 +11,38 @@
 import React from 'react';
 import { render, waitFor } from './test-utils';
 
+const RealDate = Date;
+const SNAPSHOT_DATE = new RealDate('2026-05-21T12:00:00-07:00');
+
+beforeAll(() => {
+  class FixedDate extends RealDate {
+    constructor(
+      ...args:
+        | [value?: string | number | Date]
+        | [year: number, monthIndex: number, date?: number, hours?: number, minutes?: number, seconds?: number, ms?: number]
+    ) {
+      if (args.length === 0) {
+        super(SNAPSHOT_DATE);
+      } else if (args.length === 1) {
+        super(args[0] ?? SNAPSHOT_DATE);
+      } else {
+        const [year, monthIndex, date = 1, hours = 0, minutes = 0, seconds = 0, ms = 0] = args as [number, number, number?, number?, number?, number?, number?];
+        super(year, monthIndex, date, hours, minutes, seconds, ms);
+      }
+    }
+
+    static now() {
+      return SNAPSHOT_DATE.getTime();
+    }
+  }
+
+  global.Date = FixedDate as DateConstructor;
+});
+
+afterAll(() => {
+  global.Date = RealDate;
+});
+
 // ── Tab Screens ──
 
 describe('Snapshot: Home Screen', () => {
