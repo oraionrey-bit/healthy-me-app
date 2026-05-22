@@ -38,6 +38,17 @@ describe('process guardrails', () => {
     );
   });
 
+  it('opts GitHub Actions JavaScript runtime into Node 24', () => {
+    const deployWorkflow = readFileSync(
+      path.join(process.cwd(), '.github/workflows/deploy-pages.yml'),
+      'utf8'
+    );
+
+    for (const workflow of [ciWorkflow, deployWorkflow]) {
+      expect(workflow).toContain('FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true');
+    }
+  });
+
   it('uses real skincare routine column names in source and migrations', () => {
     const checkedText = [exportDataHook, skincareHook, skincareMigration].join('\n');
 
