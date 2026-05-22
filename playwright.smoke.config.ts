@@ -8,6 +8,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? localBaseURL;
 export default defineConfig({
   testDir: './e2e',
   testMatch: /.*\.smoke\.spec\.ts/,
+  testIgnore: 'prod-auth.smoke.spec.ts',
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
   use: {

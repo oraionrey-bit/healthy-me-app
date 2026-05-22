@@ -25,8 +25,59 @@ describe('process guardrails', () => {
       'test:e2e:smoke': 'playwright test -c playwright.smoke.config.ts',
       'test:e2e:preview': 'PLAYWRIGHT_USE_EXTERNAL_SERVER=1 playwright test -c playwright.smoke.config.ts',
       'test:e2e:manual': 'playwright test -c playwright.config.ts',
+      'test:e2e:prod:auth': 'node scripts/run-prod-auth-smoke.mjs',
       predeploy: 'bash scripts/pre-deploy-check.sh',
     });
+  });
+
+  it('defines a reusable production authenticated smoke check', () => {
+    const prodAuthConfig = readFileSync(
+      path.join(process.cwd(), 'playwright.prod-auth.config.ts'),
+      'utf8'
+    );
+    const prodAuthSpec = readFileSync(
+      path.join(process.cwd(), 'e2e/prod-auth.smoke.spec.ts'),
+      'utf8'
+    );
+    const createAuthStateScript = readFileSync(
+      path.join(process.cwd(), 'scripts/create-prod-auth-state.mjs'),
+      'utf8'
+    );
+    const runProdAuthScript = readFileSync(
+      path.join(process.cwd(), 'scripts/run-prod-auth-smoke.mjs'),
+      'utf8'
+    );
+
+    expect(prodAuthConfig).toContain('prod-auth.smoke.spec.ts');
+    expect(prodAuthConfig).toContain('e2e/.auth/prod-state.json');
+    expect(prodAuthConfig).toContain('https://app.withluna.dev');
+    expect(prodAuthConfig).toContain("trace: 'off'");
+    expect(prodAuthConfig).toContain("video: 'off'");
+    expect(prodAuthConfig).toContain("screenshot: 'off'");
+    expect(prodAuthConfig).toContain("outputDir: 'test-results/prod-auth'");
+    expect(prodAuthSpec).toContain("getByRole('tab', { name: 'Food' })");
+    expect(prodAuthSpec).toContain('expect(consoleErrors.length).toBe(0)');
+    expect(createAuthStateScript).toContain('admin/generate_link');
+    expect(createAuthStateScript).toContain('/auth/v1/verify');
+    expect(createAuthStateScript).toContain('storageState');
+    expect(createAuthStateScript).not.toContain('SUPABASE_SERVICE_ROLE_KEY=');
+    expect(createAuthStateScript).not.toContain('PROD_SMOKE_AUTH_STATE');
+    expect(createAuthStateScript).not.toContain('PROD_SMOKE_BASE_URL');
+    expect(runProdAuthScript).toContain('scripts/create-prod-auth-state.mjs');
+    expect(runProdAuthScript).toContain('playwright.prod-auth.config.ts');
+    expect(runProdAuthScript).toContain('e2e/.auth/prod-state.json');
+    expect(runProdAuthScript).toContain('test-results/prod-auth');
+    expect(runProdAuthScript).toContain('cleanup');
+  });
+
+  it('keeps production authenticated smoke out of the default PR smoke config', () => {
+    const smokeConfig = readFileSync(
+      path.join(process.cwd(), 'playwright.smoke.config.ts'),
+      'utf8'
+    );
+
+    expect(smokeConfig).toContain('testIgnore');
+    expect(smokeConfig).toContain('prod-auth.smoke.spec.ts');
   });
 
   it('keeps PR smoke CI bootable without repository secrets', () => {
