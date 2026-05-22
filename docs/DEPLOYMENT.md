@@ -60,6 +60,14 @@ The existing authenticated/manual suite remains separate:
 npm run test:e2e:manual
 ```
 
+After a production deploy, use the dedicated authenticated smoke check:
+
+```bash
+npm run test:e2e:prod:auth
+```
+
+This command reads the public Supabase URL and anon key from the deployed JavaScript bundle, creates a fresh Supabase magic-link session using `SUPABASE_SERVICE_ROLE_KEY`, writes a temporary Playwright storage state under `e2e/.auth/`, verifies the live dashboard and Food tab load without browser console errors or failed requests, then deletes the temporary auth state and prod-auth Playwright output directory. The prod-auth Playwright config disables traces, screenshots, and videos so authenticated session artifacts are not retained. Never commit or paste `SUPABASE_SERVICE_ROLE_KEY`; keep it in local `.env` or a protected secret store only. This command is intentionally not part of PR/default smoke CI.
+
 ## Web build commands
 
 - `npm run build:web` creates the Expo static export in `dist/`.
@@ -98,7 +106,11 @@ To deploy production after a green `main`:
 gh workflow run deploy-pages.yml --ref main
 ```
 
-After the workflow finishes, run a production smoke check against `https://app.withluna.dev`.
+After the workflow finishes, run the production smoke check:
+
+```bash
+npm run test:e2e:prod:auth
+```
 
 ## Pull requests
 

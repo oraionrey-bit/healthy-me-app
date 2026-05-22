@@ -19,7 +19,8 @@
     "predeploy": "bash scripts/pre-deploy-check.sh",
     "test:e2e:smoke": "playwright test -c playwright.smoke.config.ts",
     "test:e2e:preview": "PLAYWRIGHT_USE_EXTERNAL_SERVER=1 playwright test -c playwright.smoke.config.ts",
-    "test:e2e:manual": "playwright test -c playwright.config.ts"
+    "test:e2e:manual": "playwright test -c playwright.config.ts",
+    "test:e2e:prod:auth": "node scripts/run-prod-auth-smoke.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
