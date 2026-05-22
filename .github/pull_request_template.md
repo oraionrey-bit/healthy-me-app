@@ -9,7 +9,8 @@
 - [ ] `npm run typecheck` passes
 - [ ] `npm run test:unit` passes
 - [ ] `npm run build:web:pages` passes
-- [ ] Playwright checked if UI changed
+- [ ] `npm run test:e2e:smoke` passes if browser/UI changed
+- [ ] Preview URL checked with `npm run test:e2e:preview` if available
 
 ## Deployment risk
 

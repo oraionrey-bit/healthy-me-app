@@ -14,7 +14,10 @@ describe('process guardrails', () => {
       'build:web:pages': 'npm run build:web && node scripts/prepare-pages-build.mjs',
       verify: 'npm run typecheck && npm run test:unit && npm run build:web:pages',
       'verify:full': 'npm run verify && npm run test:e2e',
-      'test:e2e': 'playwright test',
+      'test:e2e': 'npm run test:e2e:smoke',
+      'test:e2e:smoke': 'playwright test -c playwright.smoke.config.ts',
+      'test:e2e:preview': 'PLAYWRIGHT_USE_EXTERNAL_SERVER=1 playwright test -c playwright.smoke.config.ts',
+      'test:e2e:manual': 'playwright test -c playwright.config.ts',
       predeploy: 'bash scripts/pre-deploy-check.sh',
     });
   });
