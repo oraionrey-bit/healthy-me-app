@@ -44,6 +44,12 @@ jobs:
           test -n "$EXPO_PUBLIC_SUPABASE_ANON_KEY"
           test "$EXPO_PUBLIC_SUPABASE_URL" != "https://example.supabase.co"
           test "$EXPO_PUBLIC_SUPABASE_ANON_KEY" != "dummy-anon-key"
+          curl --fail --silent --show-error \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --header "apikey: ${EXPO_PUBLIC_SUPABASE_ANON_KEY}" \
+            --header "Authorization: Bearer ${EXPO_PUBLIC_SUPABASE_ANON_KEY}" \
+            "${EXPO_PUBLIC_SUPABASE_URL}/auth/v1/settings" >/dev/null
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
