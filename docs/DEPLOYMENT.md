@@ -36,7 +36,29 @@ npm run build:web:pages
 npm run verify
 ```
 
-Use `npm run verify:full` only when Playwright is ready for the target environment.
+Use `npm run verify:full` when the local smoke test should also run.
+
+## Playwright smoke tests
+
+Use the smoke config for quick unauthenticated browser checks:
+
+```bash
+npm run test:e2e:smoke
+```
+
+This builds the web app, serves `dist/` locally, and verifies the public unauthenticated shell loads.
+
+For preview URLs, set the target URL and run the preview command:
+
+```bash
+PLAYWRIGHT_BASE_URL=https://preview.example.com npm run test:e2e:preview
+```
+
+The existing authenticated/manual suite remains separate:
+
+```bash
+npm run test:e2e:manual
+```
 
 ## Web build commands
 
@@ -59,7 +81,8 @@ It runs on PRs and selected pushes:
 2. `npm run typecheck`
 3. `npm run test:unit -- --ci`
 4. `npm run build:web:pages`
-5. uploads `dist/` as an artifact
+5. `npm run test:e2e:smoke`
+6. uploads `dist/` as an artifact
 
 A PR should not be merged if CI is red.
 

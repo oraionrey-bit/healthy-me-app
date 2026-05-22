@@ -17,8 +17,9 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+      # Public client config only; fallbacks keep PR smoke tests bootable when repo secrets are absent.
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://example.supabase.co' }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'dummy-anon-key' }}
 
     steps:
       - name: Checkout
@@ -41,6 +42,12 @@ jobs:
 
       - name: Build web for GitHub Pages
         run: npm run build:web:pages
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke test web build
+        run: npm run test:e2e:smoke
 
       - name: Upload web build artifact
         uses: actions/upload-artifact@v4
