@@ -75,6 +75,11 @@ describe('process guardrails', () => {
     expect(deployWorkflow).toContain('secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY');
     expect(deployWorkflow).not.toContain("secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://example.supabase.co'");
     expect(deployWorkflow).not.toContain("secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'dummy-anon-key'");
+    expect(deployWorkflow).toContain('/auth/v1/settings');
+    expect(deployWorkflow).toContain('Authorization: Bearer ${EXPO_PUBLIC_SUPABASE_ANON_KEY}');
+    expect(deployWorkflow).toContain('curl --fail');
+    expect(deployWorkflow).toContain('--connect-timeout 10');
+    expect(deployWorkflow).toContain('--max-time 30');
     expect(deployWorkflow).toContain('npm run verify:full');
     expect(deployWorkflow).toContain('actions/upload-pages-artifact@v3');
     expect(deployWorkflow).toContain('actions/deploy-pages@v4');
