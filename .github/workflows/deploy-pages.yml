@@ -1,0 +1,64 @@
+name: Deploy GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Verify and deploy Pages
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      # Public client config only. Production deploys require the real public
+      # Supabase project values from protected repository/environment secrets.
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate production public config
+        run: |
+          test -n "$EXPO_PUBLIC_SUPABASE_URL"
+          test -n "$EXPO_PUBLIC_SUPABASE_ANON_KEY"
+          test "$EXPO_PUBLIC_SUPABASE_URL" != "https://example.supabase.co"
+          test "$EXPO_PUBLIC_SUPABASE_ANON_KEY" != "dummy-anon-key"
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify production build and smoke test
+        run: npm run verify:full
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
