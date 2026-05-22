@@ -1,6 +1,6 @@
 ## Summary
 
-- 
+-
 
 ## Test plan
 
@@ -20,4 +20,3 @@
 - [ ] Custom domain/static hosting files preserved if web build changed
 
 ## Notes / screenshots
-

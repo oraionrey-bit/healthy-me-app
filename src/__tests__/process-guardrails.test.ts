@@ -6,6 +6,12 @@ describe('process guardrails', () => {
     readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')
   );
   const ciWorkflow = readFileSync(path.join(process.cwd(), '.github/workflows/ci.yml'), 'utf8');
+  const exportDataHook = readFileSync(path.join(process.cwd(), 'src/hooks/use-export-data.ts'), 'utf8');
+  const skincareHook = readFileSync(path.join(process.cwd(), 'src/hooks/use-skincare.ts'), 'utf8');
+  const skincareMigration = readFileSync(
+    path.join(process.cwd(), 'supabase/migrations/006_skincare_logs.sql'),
+    'utf8'
+  );
 
   it('defines canonical verification and build scripts', () => {
     expect(packageJson.scripts).toMatchObject({
@@ -31,4 +37,25 @@ describe('process guardrails', () => {
       "EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'dummy-anon-key' }}"
     );
   });
+
+  it('uses real skincare routine column names in source and migrations', () => {
+    const checkedText = [exportDataHook, skincareHook, skincareMigration].join('\n');
+
+    expect(checkedText).not.toContain('***');
+    expect(checkedText).not.toContain('am_ste...eted');
+    expect(checkedText).toContain('am_routine_done');
+    expect(checkedText).toContain('am_steps_completed');
+  });
+
+  it('resets daily check-in state when the selected date has no saved data', () => {
+    const homeScreen = readFileSync(path.join(process.cwd(), 'src/app/(tabs)/index.tsx'), 'utf8');
+
+    expect(homeScreen).toContain('setMood(savedMood);');
+    expect(homeScreen).toContain('setEnergy(savedEnergy);');
+    expect(homeScreen).toContain('setSelectedSymptoms(map);');
+    expect(homeScreen).toContain("setPeriodStatus('off');");
+    expect(homeScreen).toContain("setLove(false);");
+    expect(homeScreen).toContain("setNotes('');");
+  });
+
 });

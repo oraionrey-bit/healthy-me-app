@@ -193,30 +193,35 @@ export default function HomeScreen() {
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
 
-  // Sync saved values when they load
+  // Sync saved values whenever the selected date's saved values change.
+  // Important: set nulls too, otherwise navigating from a logged date to an
+  // empty date leaves stale mood/energy selected in the form.
   React.useEffect(() => {
-    if (savedMood !== null) setMood(savedMood);
-    if (savedEnergy !== null) setEnergy(savedEnergy);
+    setMood(savedMood);
+    setEnergy(savedEnergy);
   }, [savedMood, savedEnergy]);
 
-  // Sync existing symptom logs to chip state
+  // Sync existing symptom logs to chip state. Empty dates must clear the map.
   React.useEffect(() => {
-    if (symptomLogs.length > 0) {
-      const map = new Map<SymptomType, number>();
-      // DB stores severity as text ('mild'/'moderate'/'severe'), UI uses numbers 1-5
-      const textToNum: Record<string, number> = { mild: 2, moderate: 3, severe: 4 };
-      for (const log of symptomLogs) {
-        const numSeverity = typeof log.severity === 'number'
-          ? log.severity
-          : (textToNum[String(log.severity)] ?? 3);
-        map.set(log.symptom_type as SymptomType, numSeverity);
-      }
-      setSelectedSymptoms(map);
+    const map = new Map<SymptomType, number>();
+    // DB stores severity as text ('mild'/'moderate'/'severe'), UI uses numbers 1-5
+    const textToNum: Record<string, number> = { mild: 2, moderate: 3, severe: 4 };
+    for (const log of symptomLogs) {
+      const numSeverity = typeof log.severity === 'number'
+        ? log.severity
+        : (textToNum[String(log.severity)] ?? 3);
+      map.set(log.symptom_type as SymptomType, numSeverity);
     }
+    setSelectedSymptoms(map);
   }, [symptomLogs]);
 
-  // Sync daily log data
+  // Sync daily log data. Start from blank defaults so navigating to a date
+  // without a daily_log does not preserve notes/period/love from another day.
   React.useEffect(() => {
+    setPeriodStatus('off');
+    setLove(false);
+    setNotes('');
+
     if (dailyLog) {
       if (dailyLog.health_notes) {
         const hn = dailyLog.health_notes;
@@ -225,8 +230,8 @@ export default function HomeScreen() {
           try {
             const parsed = JSON.parse(hn);
             if (typeof parsed === 'object' && parsed !== null) {
-              if (parsed.love) setLove(true);
-              if (parsed.userNotes) setNotes(parsed.userNotes);
+              setLove(Boolean(parsed.love));
+              setNotes(parsed.userNotes ?? '');
             }
           } catch {
             // Plain text notes
@@ -236,10 +241,8 @@ export default function HomeScreen() {
           // Extract userNotes and love from skincare JSON
           try {
             const parsed = JSON.parse(hn);
-            if (parsed.userNotes) {
-              setNotes(parsed.userNotes);
-            }
-            if (parsed.love) setLove(true);
+            setNotes(parsed.userNotes ?? '');
+            setLove(Boolean(parsed.love));
           } catch {
             // ignore parse errors
           }
