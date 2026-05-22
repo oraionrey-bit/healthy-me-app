@@ -96,6 +96,7 @@ describe('Home Screen', () => {
     fireEvent.click(screen.getByText('📝 Daily Check-in'));
     expect(screen.getByText('Stomach')).toBeTruthy();
     expect(screen.getByText('Bloating')).toBeTruthy();
+    expect(screen.getByText('Irritated')).toBeTruthy();
   });
 
   it('renders period options in expanded check-in', async () => {

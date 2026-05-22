@@ -9,8 +9,14 @@ import {
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useWaterLog } from '../../hooks/use-water-log';
 
-export function WaterTracker() {
-  const { glasses, waterMl, waterGoal, waterGoalMl, addWater, resetWater } = useWaterLog();
+interface WaterTrackerProps {
+  /** Optional date. Defaults to today. (Added May 7.) */
+  date?: Date;
+}
+
+export function WaterTracker({ date }: WaterTrackerProps = {}) {
+  const { glasses, waterMl, waterGoal, waterGoalMl, addWater, resetWater } =
+    useWaterLog(date);
 
   const progress = Math.min(glasses / waterGoal, 1);
   const isComplete = glasses >= waterGoal;

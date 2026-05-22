@@ -353,6 +353,7 @@ export type SymptomType =
   | 'cramps'
   | 'brain_fog'
   | 'fatigue'
+  | 'irritated'
   | 'anxiety'
   | 'other';
 

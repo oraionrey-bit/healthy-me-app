@@ -3,6 +3,25 @@ import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { toDateKey } from '../utils/storage';
 
+/**
+ * The 5 sheet keys exposed by the May 7 export overhaul.
+ * Defaults: all five selected. Export window: last 90 days.
+ */
+export const EXPORT_SHEETS: Array<{ key: ExportSheetKey; label: string }> = [
+  { key: 'daily', label: 'Daily Log' },
+  { key: 'food', label: 'Food Logs' },
+  { key: 'skincare', label: 'Skincare' },
+  { key: 'supplements', label: 'Supplements' },
+  { key: 'labs', label: 'Health Labs' },
+];
+
+export type ExportSheetKey =
+  | 'daily'
+  | 'food'
+  | 'skincare'
+  | 'supplements'
+  | 'labs';
+
 function toCSV(headers: string[], rows: string[][]): string {
   const escape = (v: string) => {
     if (v.includes(',') || v.includes('"') || v.includes('\n')) {
@@ -74,10 +93,26 @@ export function useExportData(userId?: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [selectedSheets, setSelectedSheets] = useState<Set<ExportSheetKey>>(
+    () => new Set<ExportSheetKey>(['daily', 'food', 'skincare', 'supplements', 'labs']),
+  );
+
+  const toggleSheet = useCallback((key: ExportSheetKey) => {
+    setSelectedSheets((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   const exportData = useCallback(async () => {
     if (!userId) {
       setError('Not logged in');
+      return;
+    }
+    if (selectedSheets.size === 0) {
+      setError('Select at least one sheet');
       return;
     }
     setLoading(true);
@@ -85,9 +120,10 @@ export function useExportData(userId?: string) {
     setSuccess(false);
 
     try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const startDate = toDateKey(thirtyDaysAgo);
+      // 90-day window (May 7 export overhaul).
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const startDate = toDateKey(ninetyDaysAgo);
       const endDate = toDateKey(new Date());
 
       // Fetch all data in parallel
@@ -513,24 +549,42 @@ export function useExportData(userId?: string) {
       ]);
 
       // ============================================
-      // Combine all sections into one multi-section CSV
+      // Combine selected sections into one multi-section CSV
       // ============================================
-      const sections: { title: string; headers: string[]; rows: string[][] }[] = [
-        { title: 'DAILY SUMMARY', headers: summaryHeaders, rows: summaryRows },
-        { title: 'FOOD LOGS', headers: foodHeaders, rows: foodRows },
-        { title: 'WATER LOGS', headers: waterHeaders, rows: waterRows },
-        { title: 'SUPPLEMENT LOGS', headers: supplementHeaders, rows: supplementRows },
-        { title: 'MY SUPPLEMENTS', headers: userSuppHeaders, rows: userSuppRows },
-        { title: 'EXERCISE LOGS', headers: exerciseHeaders, rows: exerciseRows },
-        { title: 'WEIGHT LOGS', headers: weightHeaders, rows: weightRows },
-        { title: 'SYMPTOMS', headers: symptomHeaders, rows: symptomRows },
-        { title: 'PERIOD LOGS', headers: periodHeaders, rows: periodRows },
-        { title: 'SKIN PHOTOS', headers: skinPhotoHeaders, rows: skinPhotoRows },
-        { title: 'SKINCARE LOGS', headers: skincareHeaders, rows: skincareRows },
-        { title: 'CALF MEASUREMENTS', headers: calfHeaders, rows: calfRows },
-        { title: 'SAVED MEALS', headers: savedMealHeaders, rows: savedMealRows },
-        { title: 'HEALTH LABS', headers: labHeaders, rows: labRows },
-      ];
+      // The May 7 export overhaul groups the 14 baseline tabs into 5 user-selectable
+      // sheets: daily (combined daily log + water/symptoms/exercise/period/calf),
+      // food, skincare (skincare logs + skin photos), supplements (user supplements +
+      // taken logs), labs (health labs).
+      type Section = { title: string; headers: string[]; rows: string[][] };
+      const sectionsByKey: Record<ExportSheetKey, Section[]> = {
+        daily: [
+          { title: 'DAILY SUMMARY', headers: summaryHeaders, rows: summaryRows },
+          { title: 'WATER LOGS', headers: waterHeaders, rows: waterRows },
+          { title: 'EXERCISE LOGS', headers: exerciseHeaders, rows: exerciseRows },
+          { title: 'WEIGHT LOGS', headers: weightHeaders, rows: weightRows },
+          { title: 'SYMPTOMS', headers: symptomHeaders, rows: symptomRows },
+          { title: 'PERIOD LOGS', headers: periodHeaders, rows: periodRows },
+          { title: 'CALF MEASUREMENTS', headers: calfHeaders, rows: calfRows },
+        ],
+        food: [
+          { title: 'FOOD LOGS', headers: foodHeaders, rows: foodRows },
+          { title: 'SAVED MEALS', headers: savedMealHeaders, rows: savedMealRows },
+        ],
+        skincare: [
+          { title: 'SKINCARE LOGS', headers: skincareHeaders, rows: skincareRows },
+          { title: 'SKIN PHOTOS', headers: skinPhotoHeaders, rows: skinPhotoRows },
+        ],
+        supplements: [
+          { title: 'MY SUPPLEMENTS', headers: userSuppHeaders, rows: userSuppRows },
+          { title: 'SUPPLEMENT LOGS', headers: supplementHeaders, rows: supplementRows },
+        ],
+        labs: [{ title: 'HEALTH LABS', headers: labHeaders, rows: labRows }],
+      };
+
+      const sections: Section[] = [];
+      for (const { key } of EXPORT_SHEETS) {
+        if (selectedSheets.has(key)) sections.push(...sectionsByKey[key]);
+      }
 
       const csvParts: string[] = [];
       for (const section of sections) {
@@ -547,7 +601,7 @@ export function useExportData(userId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, selectedSheets]);
 
   const exportDashboard = useCallback(async () => {
     if (!userId) {
@@ -892,5 +946,13 @@ export function useExportData(userId?: string) {
     }
   }, [userId]);
 
-  return { loading, error, success, exportData, exportDashboard };
+  return {
+    loading,
+    error,
+    success,
+    exportData,
+    exportDashboard,
+    selectedSheets,
+    toggleSheet,
+  };
 }

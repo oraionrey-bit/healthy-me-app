@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { ScreenWrapper, PixelCard, PixelButton } from '../../components/ui';
+import { DateNavigator } from '../../components/shared/date-navigator';
 import { useUserProfile } from '../../hooks/use-user-profile';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import {
@@ -133,7 +134,10 @@ const GENERAL_RECOMMENDATIONS = [
 
 export default function MoveScreen() {
   const { isPcos } = useUserProfile();
-  const dateKey = toDateKey(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const isToday =
+    selectedDate.toDateString() === new Date().toDateString();
+  const dateKey = toDateKey(selectedDate);
   const { entries, loading, addEntry, deleteEntry, totals } = useExerciseLog(dateKey);
   const { weeklyTotals } = useWeeklyExerciseSummary();
   const { workouts: ouraWorkouts, totals: ouraTotals } = useOuraWorkouts(dateKey);
@@ -218,6 +222,24 @@ export default function MoveScreen() {
     <ScreenWrapper scrollable>
       {/* Title */}
       <Text style={styles.pageTitle}>Move</Text>
+
+      {/* Date Navigation (restored May 7) */}
+      <DateNavigator
+        selectedDate={selectedDate}
+        isToday={isToday}
+        onBack={() => {
+          const d = new Date(selectedDate);
+          d.setDate(d.getDate() - 1);
+          setSelectedDate(d);
+        }}
+        onForward={() => {
+          if (isToday) return;
+          const d = new Date(selectedDate);
+          d.setDate(d.getDate() + 1);
+          setSelectedDate(d);
+        }}
+        onTapDate={() => setSelectedDate(new Date())}
+      />
 
       {/* Success Toast */}
       {showSuccess && (

@@ -1,5 +1,5 @@
 import { toDateKey } from '../utils/storage';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type { SymptomLog, SymptomType } from '../types/database';
@@ -15,10 +15,16 @@ const SEVERITY_MAP: Record<number, string> = {
   1: 'mild', 2: 'mild', 3: 'moderate', 4: 'severe', 5: 'severe',
 };
 
-export function useSymptomLog() {
+/**
+ * useSymptomLog — symptom logs for a given day.
+ *
+ * `date` defaults to today (May 7 bundle: hook accepts `date?: Date`).
+ */
+export function useSymptomLog(date: Date = new Date()) {
   const { user } = useAuth();
   const [symptomLogs, setSymptomLogs] = useState<SymptomLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const dateKey = useMemo(() => toDateKey(date), [date]);
 
   const fetchSymptomLogs = useCallback(async () => {
     if (!user) return;
@@ -28,14 +34,14 @@ export function useSymptomLog() {
         .from('symptom_logs')
         .select('*')
         .eq('user_id', user.id)
-        .eq('log_date', toDateKey(new Date()));
+        .eq('log_date', dateKey);
 
       if (error) throw error;
       setSymptomLogs((data as SymptomLog[]) ?? []);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, dateKey]);
 
   useEffect(() => {
     fetchSymptomLogs();
@@ -54,7 +60,7 @@ export function useSymptomLog() {
         severity: severityText,
         notes: input.notes ?? null,
         triggers: input.triggers ?? null,
-        log_date: toDateKey(new Date()),
+        log_date: dateKey,
       });
 
       if (error) {
@@ -63,7 +69,7 @@ export function useSymptomLog() {
       }
       await fetchSymptomLogs();
     },
-    [user, fetchSymptomLogs],
+    [user, dateKey, fetchSymptomLogs],
   );
 
   const updateSymptomLog = useCallback(

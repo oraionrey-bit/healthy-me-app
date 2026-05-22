@@ -5,7 +5,7 @@
  * targets, and sign out functionality.
  */
 import React from 'react';
-import { render, fireEvent, waitFor, act, screen } from './test-utils';
+import { render, fireEvent, waitFor, screen } from './test-utils';
 
 async function renderSettings() {
   const SettingsScreen = require('../app/settings').default;
@@ -68,7 +68,7 @@ describe('Settings Screen', () => {
 
   it('renders supplements section', async () => {
     await renderSettings();
-    expect(screen.getByText('Supplements')).toBeTruthy();
+    expect(screen.getAllByText('Supplements').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Manage your daily supplement checklist')).toBeTruthy();
   });
 
@@ -107,9 +107,7 @@ describe('Settings Screen', () => {
   it('calls signOut and navigates on "Sign Out" press', async () => {
     const { router } = require('expo-router');
     await renderSettings();
-    await act(async () => {
-      fireEvent.click(screen.getByText('Sign Out'));
-    });
+    fireEvent.click(screen.getByText('Sign Out'));
     await waitFor(() => {
       expect(router.replace).toHaveBeenCalledWith('/(auth)/login');
     }, { timeout: 10000 });

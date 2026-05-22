@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Text,
   View,
@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { PixelCard, PixelButton } from '../../components/ui';
+import { PixelCard } from '../../components/ui';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useFoodLog } from '../../hooks/use-food-log';
 import { useSupplements } from '../../hooks/use-supplements';
@@ -23,12 +23,15 @@ import { useDailyScore } from '../../hooks/use-daily-score';
 import type { ScoreBreakdown } from '../../hooks/use-daily-score';
 import { useStreak } from '../../hooks/use-streak';
 import { useWeeklySummary } from '../../hooks/use-weekly-summary';
-import { toDateKey, formatDate } from '../../utils/storage';
+import { toDateKey } from '../../utils/storage';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { useUserProfile } from '../../hooks/use-user-profile';
 import { WaterTracker } from '../../components/home/water-tracker';
 import { CalfTrackerCard } from '../../components/home/calf-tracker-card';
+import { DateNavigator } from '../../components/shared/date-navigator';
+import { DailyCheckinCard } from '../../components/home/daily-checkin-card';
+import { WeeklyInsightsCard } from '../../components/home/weekly-insights-card';
 import { useOura, getBestSteps } from '../../hooks/use-oura';
 import { useWeeklyInsights } from '../../hooks/use-weekly-insights';
 import { CalorieBalanceCard } from '../../components/home/calorie-balance-card';
@@ -44,50 +47,8 @@ function formatSyncTime(date: Date): string {
   return `${diffHr}h ago`;
 }
 
-// ── Helpers ──
-
-function formatDisplayDate(): string {
-  return new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
-}
-
-const MOOD_OPTIONS: Array<{ value: number; emoji: string }> = [
-  { value: 1, emoji: '😢' },
-  { value: 2, emoji: '😕' },
-  { value: 3, emoji: '😐' },
-  { value: 4, emoji: '🙂' },
-  { value: 5, emoji: '😊' },
-];
-
-const ENERGY_OPTIONS: Array<{ value: number; emoji: string }> = [
-  { value: 1, emoji: '🪫' },
-  { value: 2, emoji: '😴' },
-  { value: 3, emoji: '😐' },
-  { value: 4, emoji: '⚡' },
-  { value: 5, emoji: '🔋' },
-];
-
-const PERIOD_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'off', label: 'Off' },
-  { value: 'on', label: 'On' },
-  { value: 'spotting', label: 'Spotting' },
-];
-
-const SYMPTOM_OPTIONS: Array<{ type: SymptomType; label: string }> = [
-  { type: 'stomach', label: 'Stomach' },
-  { type: 'histamine', label: 'Histamine' },
-  { type: 'headache', label: 'Headache' },
-  { type: 'bloating', label: 'Bloating' },
-  { type: 'acne', label: 'Acne' },
-  { type: 'cramps', label: 'Cramps' },
-  { type: 'brain_fog', label: 'Brain Fog' },
-  { type: 'fatigue', label: 'Fatigue' },
-  { type: 'anxiety', label: 'Anxiety' },
-  { type: 'other', label: 'Other' },
-];
+// MOOD_OPTIONS/ENERGY_OPTIONS/PERIOD_OPTIONS/SYMPTOM_OPTIONS now live in
+// src/constants/check-in.ts and are consumed by DailyCheckinCard directly.
 
 // ── Supplement Icons ──
 
@@ -151,86 +112,8 @@ const SupplementGroup = React.memo(function SupplementGroup({
   );
 });
 
-// ── Emoji Picker Component ──
-
-const EmojiPicker = React.memo(function EmojiPicker({
-  options,
-  selected,
-  onSelect,
-}: {
-  options: Array<{ value: number; emoji: string }>;
-  selected: number | null;
-  onSelect: (value: number) => void;
-}) {
-  return (
-    <View style={styles.emojiRow}>
-      {options.map((opt) => (
-        <TouchableOpacity
-          key={opt.value}
-          onPress={() => onSelect(opt.value)}
-          style={[
-            styles.emojiButton,
-            selected === opt.value && styles.emojiButtonSelected,
-          ]}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.emojiText}>{opt.emoji}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-});
-
-// ── Symptom Chip Component ──
-
-const SymptomChip = React.memo(function SymptomChip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[styles.chip, active && styles.chipActive]}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-});
-
-// ── Severity Dots Component ──
-
-const SeverityDots = React.memo(function SeverityDots({
-  severity,
-  onSelect,
-}: {
-  severity: number;
-  onSelect: (value: number) => void;
-}) {
-  return (
-    <View style={styles.severityRow}>
-      {[1, 2, 3, 4, 5].map((v) => (
-        <TouchableOpacity
-          key={v}
-          onPress={() => onSelect(v)}
-          style={[styles.severityDot, v <= severity && styles.severityDotActive]}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.severityDotText, v <= severity && styles.severityDotTextActive]}>
-            {v}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-});
+// EmojiPicker / SymptomChip / SeverityDots are now imported from
+// src/components/home/{emoji-picker,symptom-chip,severity-dots} (May 7 split).
 
 // ── Main Screen ──
 
@@ -238,24 +121,16 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const { calorieTarget, proteinTarget } = useUserProfile();
-  const todayKey = toDateKey(new Date());
-  const { totals } = useFoodLog(todayKey);
 
-  // Supplement date navigation
-  const [suppDate, setSuppDate] = useState(new Date());
-  const isSuppToday = toDateKey(suppDate) === toDateKey(new Date());
+  // ── Time-travel date navigation (restored May 7) ──
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const isToday = useMemo(
+    () => selectedDate.toDateString() === new Date().toDateString(),
+    [selectedDate],
+  );
+  const selectedDateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
 
-  const suppGoBack = () => {
-    const prev = new Date(suppDate);
-    prev.setDate(prev.getDate() - 1);
-    setSuppDate(prev);
-  };
-  const suppGoForward = () => {
-    if (isSuppToday) return;
-    const next = new Date(suppDate);
-    next.setDate(next.getDate() + 1);
-    setSuppDate(next);
-  };
+  const { totals } = useFoodLog(selectedDateKey);
 
   const {
     morningSupplements,
@@ -266,10 +141,10 @@ export default function HomeScreen() {
     isSupplementTaken,
     toggleSupplement,
     addSupplement,
-  } = useSupplements(suppDate);
-  const { mood: savedMood, energy: savedEnergy, saveMoodEnergy } = useMoodEnergy();
-  const { symptomLogs, addSymptom, removeSymptom, updateSymptomLog } = useSymptomLog();
-  const { dailyLog, saveDailyLog } = useDailyLog();
+  } = useSupplements(selectedDate);
+  const { mood: savedMood, energy: savedEnergy, saveMoodEnergy } = useMoodEnergy(selectedDate);
+  const { symptomLogs, addSymptom, removeSymptom, updateSymptomLog } = useSymptomLog(selectedDate);
+  const { dailyLog, saveDailyLog } = useDailyLog(selectedDate);
   const { score: dailyScoreValue, breakdown: dailyBreakdown, tips: dailyTips } = useDailyScore();
   const [scoreExpanded, setScoreExpanded] = useState(false);
   const { currentStreak, isMilestone } = useStreak();
@@ -316,31 +191,37 @@ export default function HomeScreen() {
   const [selectedSymptoms, setSelectedSymptoms] = useState<Map<SymptomType, number>>(new Map());
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
 
-  // Sync saved values when they load
+  // Sync saved values whenever the selected date's saved values change.
+  // Important: set nulls too, otherwise navigating from a logged date to an
+  // empty date leaves stale mood/energy selected in the form.
   React.useEffect(() => {
-    if (savedMood !== null) setMood(savedMood);
-    if (savedEnergy !== null) setEnergy(savedEnergy);
+    setMood(savedMood);
+    setEnergy(savedEnergy);
   }, [savedMood, savedEnergy]);
 
-  // Sync existing symptom logs to chip state
+  // Sync existing symptom logs to chip state. Empty dates must clear the map.
   React.useEffect(() => {
-    if (symptomLogs.length > 0) {
-      const map = new Map<SymptomType, number>();
-      // DB stores severity as text ('mild'/'moderate'/'severe'), UI uses numbers 1-5
-      const textToNum: Record<string, number> = { mild: 2, moderate: 3, severe: 4 };
-      for (const log of symptomLogs) {
-        const numSeverity = typeof log.severity === 'number'
-          ? log.severity
-          : (textToNum[String(log.severity)] ?? 3);
-        map.set(log.symptom_type as SymptomType, numSeverity);
-      }
-      setSelectedSymptoms(map);
+    const map = new Map<SymptomType, number>();
+    // DB stores severity as text ('mild'/'moderate'/'severe'), UI uses numbers 1-5
+    const textToNum: Record<string, number> = { mild: 2, moderate: 3, severe: 4 };
+    for (const log of symptomLogs) {
+      const numSeverity = typeof log.severity === 'number'
+        ? log.severity
+        : (textToNum[String(log.severity)] ?? 3);
+      map.set(log.symptom_type as SymptomType, numSeverity);
     }
+    setSelectedSymptoms(map);
   }, [symptomLogs]);
 
-  // Sync daily log data
+  // Sync daily log data. Start from blank defaults so navigating to a date
+  // without a daily_log does not preserve notes/period/love from another day.
   React.useEffect(() => {
+    setPeriodStatus('off');
+    setLove(false);
+    setNotes('');
+
     if (dailyLog) {
       if (dailyLog.health_notes) {
         const hn = dailyLog.health_notes;
@@ -349,8 +230,8 @@ export default function HomeScreen() {
           try {
             const parsed = JSON.parse(hn);
             if (typeof parsed === 'object' && parsed !== null) {
-              if (parsed.love) setLove(true);
-              if (parsed.userNotes) setNotes(parsed.userNotes);
+              setLove(Boolean(parsed.love));
+              setNotes(parsed.userNotes ?? '');
             }
           } catch {
             // Plain text notes
@@ -360,10 +241,8 @@ export default function HomeScreen() {
           // Extract userNotes and love from skincare JSON
           try {
             const parsed = JSON.parse(hn);
-            if (parsed.userNotes) {
-              setNotes(parsed.userNotes);
-            }
-            if (parsed.love) setLove(true);
+            setNotes(parsed.userNotes ?? '');
+            setLove(Boolean(parsed.love));
           } catch {
             // ignore parse errors
           }
@@ -414,7 +293,7 @@ export default function HomeScreen() {
           .from('period_logs')
           .select('id')
           .eq('user_id', user.id)
-          .eq('log_date', toDateKey(new Date()))
+          .eq('log_date', selectedDateKey)
           .maybeSingle();
 
         if (existing.data) {
@@ -426,7 +305,7 @@ export default function HomeScreen() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
           await (supabase.from('period_logs') as any).insert({
             user_id: user.id,
-            log_date: toDateKey(new Date()),
+            log_date: selectedDateKey,
             flow,
             cramps: 0,
             headache: false,
@@ -443,7 +322,7 @@ export default function HomeScreen() {
       const { data: existingLog } = await (supabase.from('daily_logs') as any)
         .select('health_notes')
         .eq('user_id', user.id)
-        .eq('log_date', toDateKey(new Date()))
+        .eq('log_date', selectedDateKey)
         .maybeSingle();
 
       // Build JSON blob merging existing data with notes + love
@@ -506,14 +385,16 @@ export default function HomeScreen() {
         console.warn('Symptom save error (notes still saved):', symptomErr);
       }
 
-      // Collapse after save
-      setCheckinOpen(false);
+      // Show "Saved!" confirmation briefly (May 7 UX)
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 1800);
     } finally {
       setSaving(false);
     }
   }, [
     user, mood, energy, periodStatus, love, selectedSymptoms, notes,
     saveMoodEnergy, symptomLogs, removeSymptom, addSymptom, updateSymptomLog, saveDailyLog,
+    selectedDateKey,
   ]);
 
   const hasFoodData = totals.calories > 0 || totals.protein > 0;
@@ -542,8 +423,23 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Date */}
-            <Text style={styles.date}>{formatDisplayDate()}</Text>
+            {/* Date navigation (restored May 7) */}
+            <DateNavigator
+              selectedDate={selectedDate}
+              isToday={isToday}
+              onBack={() => {
+                const d = new Date(selectedDate);
+                d.setDate(d.getDate() - 1);
+                setSelectedDate(d);
+              }}
+              onForward={() => {
+                if (isToday) return;
+                const d = new Date(selectedDate);
+                d.setDate(d.getDate() + 1);
+                setSelectedDate(d);
+              }}
+              onTapDate={() => setSelectedDate(new Date())}
+            />
 
             {/* Character — centered, celebrating on milestones */}
             <View style={styles.characterWrap}>
@@ -770,77 +666,17 @@ export default function HomeScreen() {
 
             {/* Weekly Insights */}
             {weeklyInsights && weeklyInsights.insights.length > 0 && (
-              <View style={[styles.accentCard, styles.accentPurple, { marginBottom: Spacing.lg }]}>
-                <TouchableOpacity
-                  onPress={() => setShowInsights(!showInsights)}
-                  activeOpacity={0.7}
-                  style={styles.checkinHeader}
-                >
-                  <Text style={styles.sectionTitle}>💡 Weekly Insights</Text>
-                  <Text style={styles.collapseIcon}>
-                    {showInsights ? '▲' : '▼'}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Always show key metrics row */}
-                <View style={styles.insightsMetricsRow}>
-                  <View style={styles.insightMetric}>
-                    <Text style={styles.insightMetricValue}>
-                      {weeklyInsights.avgCalories}
-                    </Text>
-                    <Text style={styles.insightMetricLabel}>
-                      Avg Cal {weeklyInsights.calorieTrend === 'up' ? '↑' : weeklyInsights.calorieTrend === 'down' ? '↓' : '→'}
-                    </Text>
-                  </View>
-                  <View style={styles.insightMetric}>
-                    <Text style={styles.insightMetricValue}>
-                      {weeklyInsights.avgProtein}g
-                    </Text>
-                    <Text style={styles.insightMetricLabel}>
-                      Avg Prot {weeklyInsights.proteinTrend === 'up' ? '↑' : weeklyInsights.proteinTrend === 'down' ? '↓' : '→'}
-                    </Text>
-                  </View>
-                  {weeklyInsights.avgSleepScore !== null && (
-                    <View style={styles.insightMetric}>
-                      <Text style={styles.insightMetricValue}>
-                        {Math.round(weeklyInsights.avgSleepScore)}
-                      </Text>
-                      <Text style={styles.insightMetricLabel}>
-                        Sleep {weeklyInsights.sleepTrend === 'up' ? '↑' : weeklyInsights.sleepTrend === 'down' ? '↓' : '→'}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.insightMetric}>
-                    <Text style={styles.insightMetricValue}>
-                      {weeklyInsights.supplementAdherencePct}%
-                    </Text>
-                    <Text style={styles.insightMetricLabel}>Supps</Text>
-                  </View>
-                </View>
-
-                {showInsights && (
-                  <View style={styles.insightsList}>
-                    {weeklyInsights.insights.map((insight, idx) => (
-                      <View key={idx} style={styles.insightItem}>
-                        <Text style={styles.insightEmoji}>{insight.emoji}</Text>
-                        <Text style={styles.insightText}>{insight.text}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {!showInsights && (
-                  <TouchableOpacity onPress={() => setShowInsights(true)}>
-                    <Text style={styles.viewInsightsBtn}>View This Week&apos;s Insights</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              <WeeklyInsightsCard
+                data={weeklyInsights}
+                showInsights={showInsights}
+                setShowInsights={setShowInsights}
+              />
             )}
 
             {/* Content cards */}
             <View style={styles.contentWrap}>
             {/* Water Tracker */}
-            <WaterTracker />
+            <WaterTracker date={selectedDate} />
 
             {/* Supplement Checklist */}
             <View style={[styles.accentCard, styles.accentGreen]}>
@@ -851,23 +687,6 @@ export default function HomeScreen() {
                   <Text style={styles.progress}>
                     {supplementsLoading ? '...' : `${takenCount}/${totalCount} done`}
                   </Text>
-                </View>
-
-                {/* Date Navigation */}
-                <View style={styles.suppDateNav}>
-                  <TouchableOpacity onPress={suppGoBack} style={styles.suppNavArrow}>
-                    <Text style={styles.suppNavArrowText}>◀</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.suppDateText}>
-                    {isSuppToday ? 'TODAY' : formatDate(suppDate)}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={suppGoForward}
-                    style={[styles.suppNavArrow, isSuppToday && styles.suppNavArrowDisabled]}
-                    disabled={isSuppToday}
-                  >
-                    <Text style={[styles.suppNavArrowText, isSuppToday && styles.suppNavArrowTextDisabled]}>▶</Text>
-                  </TouchableOpacity>
                 </View>
 
                 {supplementsLoading ? (
@@ -996,124 +815,29 @@ export default function HomeScreen() {
             </View>
 
             {/* Daily Check-in */}
-            <View style={[styles.accentCard, styles.accentPink]}>
-              <TouchableOpacity
-                onPress={() => setCheckinOpen(!checkinOpen)}
-                activeOpacity={0.7}
-                style={styles.checkinHeader}
-              >
-                <Text style={styles.sectionTitle}>📝 Daily Check-in</Text>
-                <Text style={styles.collapseIcon}>
-                  {checkinOpen ? '▲' : hasSubmittedToday ? '✅' : '▼'}
-                </Text>
-              </TouchableOpacity>
-
-                {checkinOpen && (
-                  <View style={styles.checkinBody}>
-                    {/* Mood */}
-                    <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>Mood</Text>
-                      <EmojiPicker options={MOOD_OPTIONS} selected={mood} onSelect={setMood} />
-                    </View>
-
-                    {/* Energy */}
-                    <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>Energy</Text>
-                      <EmojiPicker options={ENERGY_OPTIONS} selected={energy} onSelect={setEnergy} />
-                    </View>
-
-                    {/* Period */}
-                    <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>Period</Text>
-                      <View style={styles.periodRow}>
-                        {PERIOD_OPTIONS.map((opt) => (
-                          <TouchableOpacity
-                            key={opt.value}
-                            onPress={() => setPeriodStatus(opt.value)}
-                            style={[
-                              styles.periodPill,
-                              periodStatus === opt.value && (opt.value === 'off' ? styles.periodPillOff : styles.periodPillOn),
-                            ]}
-                            activeOpacity={0.7}
-                          >
-                            <Text
-                              style={[
-                                styles.periodPillText,
-                                periodStatus === opt.value && styles.periodPillTextActive,
-                              ]}
-                            >
-                              {opt.label}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    </View>
-
-                    {/* Love */}
-                    <View style={styles.fieldGroup}>
-                      <TouchableOpacity
-                        onPress={() => setLove(!love)}
-                        style={[styles.lovePill, love && styles.lovePillActive]}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.lovePillText, love && styles.lovePillTextActive]}>
-                          {love ? '❤️' : '🤍'} Love
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Symptoms */}
-                    <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>Symptoms</Text>
-                      <View style={styles.chipWrap}>
-                        {SYMPTOM_OPTIONS.map((opt) => (
-                          <SymptomChip
-                            key={opt.type}
-                            label={opt.label}
-                            active={selectedSymptoms.has(opt.type)}
-                            onPress={() => toggleSymptom(opt.type)}
-                          />
-                        ))}
-                      </View>
-                      {/* Severity for selected symptoms */}
-                      {Array.from(selectedSymptoms.entries()).map(([type, severity]) => {
-                        const label = SYMPTOM_OPTIONS.find((o) => o.type === type)?.label ?? type;
-                        return (
-                          <View key={type} style={styles.severitySection}>
-                            <Text style={styles.severityLabel}>{label} severity</Text>
-                            <SeverityDots
-                              severity={severity}
-                              onSelect={(v) => updateSymptomSeverity(type, v)}
-                            />
-                          </View>
-                        );
-                      })}
-                    </View>
-
-                    {/* Notes */}
-                    <View style={styles.fieldGroup}>
-                      <Text style={styles.fieldLabel}>Notes</Text>
-                      <TextInput
-                        style={styles.notesInput}
-                        value={notes}
-                        onChangeText={setNotes}
-                        placeholder="How are you feeling today?"
-                        placeholderTextColor={Colors.textMuted}
-                        multiline
-                        numberOfLines={3}
-                      />
-                    </View>
-
-                    {/* Save */}
-                    <PixelButton
-                      title={saving ? 'Saving...' : 'Save Check-in'}
-                      onPress={handleSave}
-                      loading={saving}
-                      disabled={saving}
-                    />
-                  </View>
-                )}
-            </View>
+            <DailyCheckinCard
+              checkinOpen={checkinOpen}
+              setCheckinOpen={setCheckinOpen}
+              hasSubmittedToday={hasSubmittedToday}
+              savedMood={savedMood}
+              savedEnergy={savedEnergy}
+              mood={mood}
+              setMood={setMood}
+              energy={energy}
+              setEnergy={setEnergy}
+              periodStatus={periodStatus}
+              setPeriodStatus={setPeriodStatus}
+              love={love}
+              setLove={setLove}
+              selectedSymptoms={selectedSymptoms}
+              toggleSymptom={toggleSymptom}
+              updateSymptomSeverity={updateSymptomSeverity}
+              notes={notes}
+              setNotes={setNotes}
+              saving={saving}
+              justSaved={justSaved}
+              onSave={handleSave}
+            />
           </View>
         </View>
       </ScrollView>

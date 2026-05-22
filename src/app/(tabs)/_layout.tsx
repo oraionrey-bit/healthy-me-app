@@ -1,6 +1,8 @@
+import { Fragment } from 'react';
 import { Tabs } from 'expo-router';
 import { Text, Image, StyleSheet, ImageSourcePropType } from 'react-native';
 import { Colors, Fonts, FontSizes } from '../../constants/theme';
+import { SaveStatusBadge } from '../../components/shared/save-status-badge';
 
 function TabIcon({ source, focused }: { source: ImageSourcePropType; focused: boolean }) {
   return (
@@ -26,14 +28,16 @@ function TabLabel({ label, focused }: { label: string; focused: boolean }) {
 
 export default function TabsLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        lazy: true,
-        tabBarStyle: styles.tabBar,
-        tabBarItemStyle: styles.tabBarItem,
-      }}
-    >
+    <Fragment>
+      <SaveStatusBadge />
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          lazy: true,
+          tabBarStyle: styles.tabBar,
+          tabBarItemStyle: styles.tabBarItem,
+        }}
+      >
       <Tabs.Screen
         name="index"
         options={{
@@ -84,7 +88,8 @@ export default function TabsLayout() {
           tabBarLabel: ({ focused }) => <TabLabel label="Health" focused={focused} />,
         }}
       />
-    </Tabs>
+      </Tabs>
+    </Fragment>
   );
 }
 

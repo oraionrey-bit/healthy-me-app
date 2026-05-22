@@ -18,7 +18,7 @@ import { useUserProfile } from '../hooks/use-user-profile';
 import { useSupplements } from '../hooks/use-supplements';
 import { SupplementManager } from '../components/settings/supplement-manager';
 import { useOura } from '../hooks/use-oura';
-import { useExportData } from '../hooks/use-export-data';
+import { useExportData, EXPORT_SHEETS } from '../hooks/use-export-data';
 import { WeightEntry } from '../components/health/weight-entry';
 import { useWeight } from '../hooks/use-weight';
 
@@ -78,10 +78,22 @@ function InfoRow({
   );
 }
 
+const HIDE_WEIGHTS_KEY = 'healthy-me-hide-weights';
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { profile, loading } = useUserProfile();
+
+  // Weight privacy toggle — persists across reloads in localStorage (web).
+  const [weightsHidden, setWeightsHidden] = React.useState<boolean>(() => {
+    if (typeof localStorage === 'undefined') return false;
+    return localStorage.getItem(HIDE_WEIGHTS_KEY) === '1';
+  });
+  React.useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(HIDE_WEIGHTS_KEY, weightsHidden ? '1' : '0');
+  }, [weightsHidden]);
   const {
     supplements,
     loading: supplementsLoading,
@@ -90,7 +102,14 @@ export default function SettingsScreen() {
     deleteSupplement,
   } = useSupplements();
   const { isConnected: ouraConnected, loading: ouraLoading, connectOura, disconnectOura, syncing: ouraSyncing, syncOura } = useOura();
-  const { loading: exportLoading, error: exportError, success: exportSuccess, exportData, exportDashboard } = useExportData(user?.id);
+  const {
+    loading: exportLoading,
+    error: exportError,
+    success: exportSuccess,
+    exportData,
+    selectedSheets: exportSelectedSheets,
+    toggleSheet: exportToggleSheet,
+  } = useExportData(user?.id);
   const { recentWeights } = useWeight();
 
   const handleSignOut = async () => {
@@ -242,11 +261,22 @@ export default function SettingsScreen() {
 
           {/* Weight */}
           <SettingsSection title="Weight" icon={SECTION_ICONS.scale}>
+            <TouchableOpacity
+              onPress={() => setWeightsHidden(!weightsHidden)}
+              style={styles.privacyToggle}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.privacyToggleText}>
+                {weightsHidden
+                  ? '🙈 Weights hidden — tap to show'
+                  : '👀 Weights visible — tap to hide'}
+              </Text>
+            </TouchableOpacity>
             <Text style={styles.sectionDescription}>
               Log your daily weight to track progress over time.
             </Text>
-            <WeightEntry />
-            {recentWeights.length > 0 && (
+            {!weightsHidden && <WeightEntry />}
+            {!weightsHidden && recentWeights.length > 0 && (
               <View style={styles.weightHistory}>
                 <Text style={styles.weightHistoryTitle}>Recent Entries</Text>
                 {recentWeights.map((entry) => (
@@ -262,6 +292,11 @@ export default function SettingsScreen() {
                 ))}
               </View>
             )}
+            {weightsHidden && (
+              <Text style={styles.privacyHidden}>
+                ••• Weight entry + history hidden. Tap above to reveal.
+              </Text>
+            )}
           </SettingsSection>
 
           {/* Data */}
@@ -269,27 +304,37 @@ export default function SettingsScreen() {
             <Text style={styles.sectionDescription}>
               Export your health data as a CSV file.
             </Text>
+            <View style={styles.sheetSelector}>
+              {EXPORT_SHEETS.map(({ key, label }) => {
+                const checked = exportSelectedSheets.has(key);
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={styles.sheetCheckRow}
+                    onPress={() => exportToggleSheet(key)}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={[styles.sheetCheckbox, checked && styles.sheetCheckboxActive]}
+                    >
+                      {checked && <Text style={styles.sheetCheckmark}>✓</Text>}
+                    </View>
+                    <Text style={styles.sheetLabel}>{label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
             <View style={styles.editButtonWrap}>
               {exportLoading ? (
                 <ActivityIndicator color={Colors.purple} />
               ) : (
-                <>
-                  <PixelButton
-                    title="📊 Daily Dashboard (90 days)"
-                    onPress={exportDashboard}
-                  />
-                  <View style={styles.exportButtonSpacer} />
-                  <PixelButton
-                    title="📋 Full Export (30 days)"
-                    variant="outline"
-                    onPress={exportData}
-                  />
-                </>
+                <PixelButton
+                  title={exportSuccess ? '✓ Downloaded!' : '📊 Export Selected (90 days)'}
+                  onPress={exportData}
+                  variant={exportSuccess ? 'secondary' : 'primary'}
+                />
               )}
             </View>
-            {exportSuccess && (
-              <Text style={styles.exportSuccess}>✓ Export downloaded!</Text>
-            )}
             {exportError != null && (
               <Text style={styles.exportError}>{exportError}</Text>
             )}
@@ -428,6 +473,40 @@ const styles = StyleSheet.create({
     height: Spacing.sm,
   },
 
+  // Export sheet selector (May 7)
+  sheetSelector: {
+    marginBottom: Spacing.md,
+  },
+  sheetCheckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs + 2,
+  },
+  sheetCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Colors.lavender,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  sheetCheckboxActive: {
+    backgroundColor: Colors.lavender,
+    borderColor: Colors.lavender,
+  },
+  sheetCheckmark: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sheetLabel: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
+  },
+
   // Export feedback
   exportSuccess: {
     fontFamily: Fonts.body,
@@ -442,6 +521,30 @@ const styles = StyleSheet.create({
     color: Colors.error,
     marginTop: Spacing.sm,
     textAlign: 'center',
+  },
+
+  // Weight privacy toggle (May 7)
+  privacyToggle: {
+    backgroundColor: Colors.softPurple,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+    alignItems: 'center',
+  },
+  privacyToggleText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+  },
+  privacyHidden: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.textMuted,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: Spacing.sm,
   },
 
   // Weight history

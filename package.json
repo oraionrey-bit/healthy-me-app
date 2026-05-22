@@ -8,8 +8,18 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest --forceExit",
+    "test:unit": "jest --forceExit",
     "test:watch": "jest --watch --forceExit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:web": "expo export --platform web",
+    "build:web:pages": "npm run build:web && node scripts/prepare-pages-build.mjs",
+    "test:e2e": "npm run test:e2e:smoke",
+    "verify": "npm run typecheck && npm run test:unit && npm run build:web:pages",
+    "verify:full": "npm run verify && npm run test:e2e",
+    "predeploy": "bash scripts/pre-deploy-check.sh",
+    "test:e2e:smoke": "playwright test -c playwright.smoke.config.ts",
+    "test:e2e:preview": "PLAYWRIGHT_USE_EXTERNAL_SERVER=1 playwright test -c playwright.smoke.config.ts",
+    "test:e2e:manual": "playwright test -c playwright.config.ts"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
