@@ -58,4 +58,26 @@ describe('process guardrails', () => {
     expect(homeScreen).toContain("setNotes('');");
   });
 
+
+  it('gates GitHub Pages deployment behind manual main-branch verification', () => {
+    const deployWorkflow = readFileSync(
+      path.join(process.cwd(), '.github/workflows/deploy-pages.yml'),
+      'utf8'
+    );
+
+    expect(deployWorkflow).toContain('workflow_dispatch:');
+    expect(deployWorkflow).not.toContain('pull_request:');
+    expect(deployWorkflow).not.toContain('push:');
+    expect(deployWorkflow).toContain("github.ref == 'refs/heads/main'");
+    expect(deployWorkflow).toContain('node-version: 22');
+    expect(deployWorkflow).toContain('Validate production public config');
+    expect(deployWorkflow).toContain('secrets.EXPO_PUBLIC_SUPABASE_URL');
+    expect(deployWorkflow).toContain('secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY');
+    expect(deployWorkflow).not.toContain("secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://example.supabase.co'");
+    expect(deployWorkflow).not.toContain("secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'dummy-anon-key'");
+    expect(deployWorkflow).toContain('npm run verify:full');
+    expect(deployWorkflow).toContain('actions/upload-pages-artifact@v3');
+    expect(deployWorkflow).toContain('actions/deploy-pages@v4');
+  });
+
 });

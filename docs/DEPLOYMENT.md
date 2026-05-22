@@ -86,6 +86,20 @@ It runs on PRs and selected pushes:
 
 A PR should not be merged if CI is red.
 
+## Deploy workflow
+
+`.github/workflows/deploy-pages.yml` is manual-only via `workflow_dispatch`.
+
+The deploy job is gated so it only runs on `refs/heads/main`. It requires real production `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` values from protected repository/environment secrets, runs `npm run verify:full`, then uploads the `dist/` artifact and deploys with GitHub Pages. Do not add `pull_request` or automatic `push` triggers to this workflow unless the production release policy changes.
+
+To deploy production after a green `main`:
+
+```bash
+gh workflow run deploy-pages.yml --ref main
+```
+
+After the workflow finishes, run a production smoke check against `https://app.withluna.dev`.
+
 ## Pull requests
 
 Use small branches and conventional commits:
