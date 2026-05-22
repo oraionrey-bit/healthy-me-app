@@ -35,6 +35,7 @@ export const SYMPTOM_OPTIONS: Array<{ type: SymptomType; label: string }> = [
   { type: 'cramps', label: 'Cramps' },
   { type: 'brain_fog', label: 'Brain Fog' },
   { type: 'fatigue', label: 'Fatigue' },
+  { type: 'irritated', label: 'Irritated' },
   { type: 'anxiety', label: 'Anxiety' },
   { type: 'other', label: 'Other' },
 ];

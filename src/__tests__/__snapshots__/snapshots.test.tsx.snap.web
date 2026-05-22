@@ -102,7 +102,7 @@ exports[`Snapshot: Food Screen matches snapshot 1`] = `
             class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93"
             dir="auto"
           >
-            Wednesday, Apr 8
+            Thursday, May 21
           </div>
           <div
             aria-disabled="true"
@@ -456,7 +456,7 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93"
                   dir="auto"
                 >
-                  April 2026
+                  May 2026
                 </div>
                 <div
                   aria-disabled="true"
@@ -549,6 +549,36 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
               <div
                 class="css-view-g5y9jx r-flexDirection-18u37iz r-flexWrap-1w6e6rj"
               >
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-fpub7"
+                      dir="auto"
+                    />
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-fpub7"
+                      dir="auto"
+                    />
+                  </div>
+                </div>
                 <div
                   aria-disabled="true"
                   class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
@@ -712,7 +742,7 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   tabindex="0"
                 >
                   <div
-                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx r-borderColor-xl8vh5 r-borderWidth-1rf8fdq"
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
                       class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
@@ -723,16 +753,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       9
@@ -740,16 +769,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       10
@@ -757,16 +785,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       11
@@ -774,16 +801,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       12
@@ -791,16 +817,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       13
@@ -808,16 +833,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       14
@@ -825,16 +849,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       15
@@ -842,16 +865,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       16
@@ -859,16 +881,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       17
@@ -876,16 +897,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       18
@@ -893,16 +913,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       19
@@ -910,16 +929,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
                     class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       20
@@ -927,16 +945,15 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                   </div>
                 </div>
                 <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7"
                   style="transition-duration: 0s;"
-                  tabindex="-1"
+                  tabindex="0"
                 >
                   <div
-                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx r-borderColor-xl8vh5 r-borderWidth-1rf8fdq"
                   >
                     <div
-                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-10x49cs"
                       dir="auto"
                     >
                       21
@@ -1094,6 +1111,83 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                     >
                       30
                     </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    >
+                      31
+                    </div>
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    />
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    />
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    />
+                  </div>
+                </div>
+                <div
+                  aria-disabled="true"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-minHeight-ero68b r-paddingBlock-cnw61z r-width-3ayno7 r-pointerEvents-12vffkv"
+                  style="transition-duration: 0s;"
+                  tabindex="-1"
+                >
+                  <div
+                    class="css-view-g5y9jx r-alignItems-1awozwy r-borderRadius-t23y2h r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc r-opacity-12c3ph5"
+                      dir="auto"
+                    />
                   </div>
                 </div>
                 <div
@@ -1295,10 +1389,45 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
             </div>
           </div>
           <div
-            class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1i10wst r-marginBottom-1ifxtd0 r-marginTop-knv0ih r-textAlign-q4m81j"
-            dir="auto"
+            class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-f4gmv6 r-justifyContent-1777fci r-marginBottom-1ifxtd0 r-marginTop-knv0ih"
           >
-            Wednesday, April 8
+            <div
+              class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-mabqd8 r-justifyContent-1777fci r-width-1yvhtrz"
+              style="transition-duration: 0s;"
+              tabindex="0"
+            >
+              <div
+                class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                dir="auto"
+              >
+                ◀
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-minWidth-pfqljz"
+              style="transition-duration: 0s;"
+              tabindex="0"
+            >
+              <div
+                class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1i10wst r-textAlign-q4m81j"
+                dir="auto"
+              >
+                Thursday, May 21
+              </div>
+            </div>
+            <div
+              aria-disabled="true"
+              class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-mabqd8 r-justifyContent-1777fci r-width-1yvhtrz r-opacity-todpsx r-pointerEvents-12vffkv"
+              style="transition-duration: 0s;"
+              tabindex="-1"
+            >
+              <div
+                class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-1enofrn r-color-jwiekc"
+                dir="auto"
+              >
+                ▶
+              </div>
+            </div>
           </div>
           <div
             class="css-view-g5y9jx r-alignItems-1awozwy r-marginBottom-1peese0"
@@ -1443,41 +1572,6 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
                   dir="auto"
                 >
                   ...
-                </div>
-              </div>
-              <div
-                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-gap-1cmwbt1 r-justifyContent-1777fci r-marginBottom-1ifxtd0"
-              >
-                <div
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx"
-                  style="transition-duration: 0s;"
-                  tabindex="0"
-                >
-                  <div
-                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-10x49cs"
-                    dir="auto"
-                  >
-                    ◀
-                  </div>
-                </div>
-                <div
-                  class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-minWidth-j03pct r-textAlign-q4m81j"
-                  dir="auto"
-                >
-                  TODAY
-                </div>
-                <div
-                  aria-disabled="true"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-height-h0d30l r-justifyContent-1777fci r-width-1iww7jx r-opacity-todpsx r-pointerEvents-12vffkv"
-                  style="transition-duration: 0s;"
-                  tabindex="-1"
-                >
-                  <div
-                    class="css-text-146c3p1 r-fontFamily-1aoiedr r-fontSize-10x49cs r-color-jwiekc"
-                    dir="auto"
-                  >
-                    ▶
-                  </div>
                 </div>
               </div>
               <div
@@ -2235,7 +2329,7 @@ exports[`Snapshot: Skin Screen matches snapshot 1`] = `
                     dir="auto"
                   >
                     Day 
-                    14
+                    57
                   </div>
                 </div>
               </div>
