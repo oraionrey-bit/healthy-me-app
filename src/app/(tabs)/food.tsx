@@ -13,8 +13,6 @@ import {
 import { ScreenWrapper, PixelCard, PixelButton } from '../../components/ui';
 
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../lib/auth';
 import { useFoodLog } from '../../hooks/use-food-log';
 import { useFoodCalendar } from '../../hooks/use-food-calendar';
 import { useUserProfile } from '../../hooks/use-user-profile';
@@ -24,42 +22,9 @@ import { usePantry } from '../../hooks/use-pantry';
 import { PantrySection } from '../../components/food/pantry-section';
 import { FoodCalendar } from '../../components/food/food-calendar';
 import { DaySummaryCard } from '../../components/food/day-summary-card';
-import { MealSuggestions } from '../../components/food/meal-suggestions';
 import { FoodTrends } from '../../components/food/food-trends';
-import { FoodAutoSuggest } from '../../components/food/food-auto-suggest';
 import { formatDate, toDateKey } from '../../utils/storage';
-import type { FoodLog, SavedMeal } from '../../types/database';
-
-// ── Quick-Add Parser ──
-
-interface ParsedMacros {
-  calories: number | null;
-  protein: number | null;
-  carbs: number | null;
-  fat: number | null;
-}
-
-function parseQuickAddText(text: string): ParsedMacros {
-  const result: ParsedMacros = { calories: null, protein: null, carbs: null, fat: null };
-
-  const calMatch = text.match(/(\d+)\s*cal/i);
-  if (calMatch) result.calories = parseInt(calMatch[1], 10);
-
-  const protMatch = text.match(/(\d+)\s*g?\s*protein/i);
-  if (protMatch) result.protein = parseInt(protMatch[1], 10);
-
-  const carbMatch = text.match(/(\d+)\s*g?\s*carb/i);
-  if (carbMatch) result.carbs = parseInt(carbMatch[1], 10);
-
-  const fatMatch = text.match(/(\d+)\s*g?\s*fat/i);
-  if (fatMatch) result.fat = parseInt(fatMatch[1], 10);
-
-  return result;
-}
-
-function hasParsedMacros(macros: ParsedMacros): boolean {
-  return macros.calories !== null || macros.protein !== null;
-}
+import type { FoodLog } from '../../types/database';
 
 type MealType = FoodLog['meal_type'];
 
@@ -138,6 +103,7 @@ function FoodEntry({
               {entry.description || 'No description'}
             </Text>
           </View>
+          {entry.meal_time ? <Text style={styles.entryMealTime}>🕒 {entry.meal_time}</Text> : null}
           {hasAnalysis ? (
             <View>
               <Text style={styles.entryNutrition}>
@@ -311,8 +277,7 @@ function FoodEntry({
 }
 
 export default function FoodScreen() {
-  const { user } = useAuth();
-  const { calorieTarget, proteinTarget, isPcos, profile } = useUserProfile();
+  const { calorieTarget, proteinTarget } = useUserProfile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<MealType>(getSmartMealType());
@@ -327,13 +292,11 @@ export default function FoodScreen() {
   const leftoversInputRef = useRef<HTMLInputElement | null>(null);
 
   const [showTrends, setShowTrends] = useState(false);
-  const [showQuickAdd, setShowQuickAdd] = useState(false);
-  const [quickAddText, setQuickAddText] = useState('');
-  const [quickAddSaving, setQuickAddSaving] = useState(false);
+  const [mealTime, setMealTime] = useState('');
 
   const calendar = useFoodCalendar();
   const { savedMeals, saveMeal, logSavedMeal, deleteSavedMeal } = useSavedMeals();
-  const { searchFoods, autoSaveFromAnalysis, updateFromUserEdit } = usePersonalFoods();
+  const { autoSaveFromAnalysis, updateFromUserEdit } = usePersonalFoods();
   const { pantryItems, loading: pantryLoading, addToPantry, removeFromPantry, logFromPantry } = usePantry();
   const [favSaved, setFavSaved] = useState(false);
   const prevEntriesRef = useRef<FoodLog[]>([]);
@@ -452,12 +415,14 @@ export default function FoodScreen() {
     const result = await addEntry({
       meal_type: selectedMeal,
       description: description.trim(),
+      meal_time: mealTime || null,
       photos: photoFiles.length > 0 ? photoFiles : undefined,
       leftovers_photos: leftoversFiles.length > 0 ? leftoversFiles : undefined,
     });
 
     if (!result?.error) {
       setDescription('');
+      setMealTime('');
       setPhotos([]);
       setLeftoversPhotos([]);
       setShowForm(false);
@@ -474,90 +439,10 @@ export default function FoodScreen() {
   const resetForm = () => {
     setShowForm(false);
     setDescription('');
+    setMealTime('');
     setPhotos([]);
     setLeftoversPhotos([]);
     setSelectedMeal(getSmartMealType());
-  };
-
-  const handleSelectPersonalFood = async (meal: SavedMeal) => {
-    setQuickAddSaving(true);
-    // Log directly from personal food — skip AI analysis
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.from('food_logs') as any).insert({
-      user_id: user?.id,
-      log_date: dateKey,
-      meal_type: meal.meal_type ?? getSmartMealType(),
-      description: meal.name,
-      calories: meal.calories,
-      protein: meal.protein,
-      carbs: meal.carbs,
-      fat: meal.fat,
-      fiber: meal.fiber,
-      sugar: null,
-      ai_analyzed: true,
-      ai_confidence: 1.0,
-      ai_pcos_notes: meal.pcos_notes,
-      photo_url: null,
-      photo_urls: null,
-      user_edited: false,
-      notes: meal.source === 'ai_analyzed' ? 'from_personal_food|ai' : 'from_personal_food',
-    });
-
-    if (!error) {
-      // Increment use_count on the personal food
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('saved_meals') as any)
-        .update({
-          use_count: (meal.use_count ?? 0) + 1,
-          last_used_at: new Date().toISOString(),
-        })
-        .eq('id', meal.id);
-
-      setQuickAddText('');
-      setShowQuickAdd(false);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
-      // Refresh food log
-      await fetchEntries();
-    }
-    setQuickAddSaving(false);
-  };
-
-  const handleQuickAdd = async () => {
-    const trimmed = quickAddText.trim();
-    if (!trimmed) return;
-    setQuickAddSaving(true);
-
-    const parsed = parseQuickAddText(trimmed);
-    const hasMacros = hasParsedMacros(parsed);
-
-    // Remove macro text to get clean description
-    let desc = trimmed
-      .replace(/\d+\s*cal(ories?)?/gi, '')
-      .replace(/\d+\s*g?\s*protein/gi, '')
-      .replace(/\d+\s*g?\s*carb(s|ohydrate)?/gi, '')
-      .replace(/\d+\s*g?\s*fat/gi, '')
-      .replace(/[,;]+\s*/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (!desc) desc = trimmed;
-
-    const result = await addEntry({
-      meal_type: getSmartMealType(),
-      description: desc,
-      calories: hasMacros ? parsed.calories : null,
-      protein: hasMacros ? parsed.protein : null,
-      carbs: hasMacros ? parsed.carbs : null,
-      fat: hasMacros ? parsed.fat : null,
-    });
-
-    if (!result?.error) {
-      setQuickAddText('');
-      setShowQuickAdd(false);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
-    }
-    setQuickAddSaving(false);
   };
 
   // Group entries by meal type
@@ -666,23 +551,6 @@ export default function FoodScreen() {
         </View>
       </PixelCard>
 
-      {/* 🤖 Meal Suggestions */}
-      {isToday && (
-        <MealSuggestions
-          calorieTarget={calorieTarget}
-          proteinTarget={proteinTarget}
-          caloriesConsumed={totals.calories}
-          proteinConsumed={totals.protein}
-          onSelectMeal={(desc) => {
-            setDescription(desc);
-            setShowForm(true);
-            setSelectedMeal(getSmartMealType());
-          }}
-          isPcos={isPcos}
-          cuisinePreferences={profile?.cuisine_preferences ?? []}
-        />
-      )}
-
       {/* 🏪 My Pantry Section */}
       {!calendarOpen && !showTrends && (
         <PantrySection
@@ -749,43 +617,12 @@ export default function FoodScreen() {
         </View>
       )}
 
-      {/* Quick Add with Auto-Suggest */}
-      {showQuickAdd && (
-        <PixelCard style={styles.quickAddCard}>
-          <Text style={styles.quickAddTitle}>⚡ Quick Add</Text>
-          <FoodAutoSuggest
-            value={quickAddText}
-            onChangeText={setQuickAddText}
-            onSelectFood={handleSelectPersonalFood}
-            onSubmit={handleQuickAdd}
-            searchFoods={searchFoods}
-            autoFocus
-            saving={quickAddSaving}
-          />
-          <View style={styles.quickAddRow}>
-            <TouchableOpacity onPress={() => { setShowQuickAdd(false); setQuickAddText(''); }} style={styles.quickAddCancel}>
-              <Text style={styles.quickAddCancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <PixelButton
-              title={quickAddSaving ? 'Saving...' : 'Save'}
-              onPress={handleQuickAdd}
-              disabled={quickAddSaving || !quickAddText.trim()}
-            />
-          </View>
-        </PixelCard>
-      )}
-
       {/* Add Meal Button / Form */}
       {!showForm ? (
         <View style={styles.addMealRow}>
           <TouchableOpacity style={styles.addMealBtn} onPress={() => setShowForm(true)}>
             <Text style={styles.addMealText}>+ Add Meal</Text>
           </TouchableOpacity>
-          {!showQuickAdd && (
-            <TouchableOpacity style={styles.quickAddBtn} onPress={() => setShowQuickAdd(true)}>
-              <Text style={styles.quickAddBtnText}>⚡ Quick Add</Text>
-            </TouchableOpacity>
-          )}
         </View>
       ) : (
         <PixelCard style={styles.formCard}>
@@ -811,6 +648,17 @@ export default function FoodScreen() {
               ))}
             </View>
           </ScrollView>
+
+          {/* Time eaten */}
+          <Text style={styles.formLabel}>Time eaten</Text>
+          <TextInput
+            style={styles.timeInput}
+            value={mealTime}
+            onChangeText={setMealTime}
+            placeholder="Optional, like 8:30 AM"
+            placeholderTextColor={Colors.textMuted}
+            inputMode="text"
+          />
 
           {/* Photo upload */}
           <Text style={styles.formLabel}>Photos</Text>
@@ -1081,52 +929,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.bodyMd,
     color: Colors.textOnDark,
   },
-  quickAddBtn: {
-    backgroundColor: Colors.warning,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickAddBtnText: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodySm,
-    color: Colors.textOnDark,
-  },
-  quickAddCard: {
-    marginBottom: Spacing.md,
-  },
-  quickAddTitle: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyMd,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
-  quickAddInput: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodyMd,
-    backgroundColor: Colors.background,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    borderColor: Colors.tabBarBorder,
-    padding: Spacing.md,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
-  quickAddRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  quickAddCancel: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-  },
-  quickAddCancelText: {
-    fontFamily: Fonts.body,
-    fontSize: FontSizes.bodySm,
-    color: Colors.textMuted,
-  },
   formCard: {
     marginBottom: Spacing.lg,
   },
@@ -1232,6 +1034,16 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
+  timeInput: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyMd,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: Colors.tabBarBorder,
+    padding: Spacing.md,
+    color: Colors.textPrimary,
+  },
   formButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1273,6 +1085,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodySm,
     color: Colors.textPrimary,
+  },
+  entryMealTime: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
+    marginTop: 2,
   },
   entryNutrition: {
     fontFamily: Fonts.body,

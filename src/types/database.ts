@@ -151,6 +151,7 @@ export interface FoodLog {
   created_at: string;
   log_date: string;
   meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  meal_time: string | null;
   description: string;
   calories: number | null;
   protein: number | null;
