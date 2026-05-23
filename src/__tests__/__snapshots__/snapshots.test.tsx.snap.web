@@ -3,7 +3,7 @@
 exports[`Snapshot: CalorieBalanceCard matches snapshot 1`] = `
 <div>
   <div
-    class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+    class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-1azax52 r-padding-d23pfw"
   >
     <div
       class="css-text-146c3p1 r-color-g14633 r-fontFamily-1murz1w r-fontSize-1b43r93 r-marginBottom-1ifxtd0"
@@ -143,7 +143,7 @@ exports[`Snapshot: Food Screen matches snapshot 1`] = `
           </div>
         </div>
         <div
-          class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw r-marginBottom-1peese0"
+          class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-1azax52 r-padding-d23pfw r-marginBottom-1peese0"
         >
           <div
             class="css-view-g5y9jx r-alignItems-1habvwh r-flexDirection-18u37iz"
@@ -217,7 +217,7 @@ exports[`Snapshot: Food Screen matches snapshot 1`] = `
           </div>
         </div>
         <div
-          class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw r-marginBottom-1ifxtd0"
+          class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-1azax52 r-padding-d23pfw r-marginBottom-1ifxtd0"
         >
           <div
             class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-5oul0u"
@@ -373,7 +373,7 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
             </div>
           </div>
           <div
-            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-et2tpa r-marginBottom-1ifxtd0 r-padding-nsbfu8"
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1azax52 r-marginBottom-1ifxtd0 r-padding-nsbfu8"
             style="border-left-color: rgba(255,128,171,1.00);"
           >
             <div
@@ -394,7 +394,7 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
             </div>
           </div>
           <div
-            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-et2tpa r-marginBottom-1ifxtd0 r-padding-nsbfu8"
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1azax52 r-marginBottom-1ifxtd0 r-padding-nsbfu8"
             style="border-left-color: rgba(129,199,132,1.00);"
           >
             <div
@@ -415,7 +415,7 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
             </div>
           </div>
           <div
-            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-et2tpa r-marginBottom-1ifxtd0 r-padding-nsbfu8"
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1azax52 r-marginBottom-1ifxtd0 r-padding-nsbfu8"
             style="border-left-color: rgba(252,228,236,1.00);"
           >
             <div
@@ -1293,7 +1293,7 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
             class="css-view-g5y9jx r-marginTop-11c0sde"
           >
             <div
-              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-et2tpa r-marginBottom-1ifxtd0 r-padding-nsbfu8"
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1azax52 r-marginBottom-1ifxtd0 r-padding-nsbfu8"
               style="border-left-color: rgba(255,183,77,1.00);"
             >
               <div
@@ -1321,7 +1321,7 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
             class="css-view-g5y9jx r-marginTop-11c0sde"
           >
             <div
-              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-et2tpa r-marginBottom-1ifxtd0 r-padding-nsbfu8"
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1azax52 r-marginBottom-1ifxtd0 r-padding-nsbfu8"
               style="border-left-color: rgba(129,212,250,1.00);"
             >
               <div
@@ -1441,7 +1441,7 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
             </div>
           </div>
           <div
-            class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderRadius-1867qdf r-boxShadow-1w565t7 r-gap-9aw3ui r-marginBottom-1ifxtd0 r-paddingBlock-11f147o r-paddingInline-3pj75a"
+            class="css-view-g5y9jx r-alignItems-1awozwy r-backgroundColor-14lw9ot r-borderRadius-1867qdf r-boxShadow-hga61s r-gap-9aw3ui r-marginBottom-1ifxtd0 r-paddingBlock-11f147o r-paddingInline-3pj75a"
           >
             <div
               class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-width-13qz1uu"
@@ -1485,7 +1485,7 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
             style="margin-bottom: 24px;"
           >
             <div
-              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-1azax52 r-padding-d23pfw"
             >
               <div
                 class="css-text-146c3p1 r-color-g14633 r-fontFamily-1murz1w r-fontSize-1b43r93 r-marginBottom-1ifxtd0"
@@ -1505,7 +1505,7 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
             class="css-view-g5y9jx r-gap-1fdih9r r-width-13qz1uu"
           >
             <div
-              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftColor-112ynna r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1w565t7 r-padding-nsbfu8"
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftColor-112ynna r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-hga61s r-padding-nsbfu8"
             >
               <div
                 class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-5oul0u"
@@ -1596,7 +1596,7 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
               </div>
             </div>
             <div
-              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1w565t7 r-padding-nsbfu8 r-borderLeftColor-1hse7qf"
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-hga61s r-padding-nsbfu8 r-borderLeftColor-1hse7qf"
             >
               <div
                 class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-1ifxtd0"
@@ -1737,7 +1737,7 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
               </div>
             </div>
             <div
-              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-et2tpa r-padding-nsbfu8 r-borderLeftColor-1uxd5dk"
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1azax52 r-padding-nsbfu8 r-borderLeftColor-1uxd5dk"
             >
               <div
                 class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-1ifxtd0"
@@ -1904,7 +1904,7 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
               </div>
             </div>
             <div
-              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1w565t7 r-padding-nsbfu8 r-borderLeftColor-1ykzvab"
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-hga61s r-padding-nsbfu8 r-borderLeftColor-1ykzvab"
             >
               <div
                 class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-1ifxtd0"
@@ -1928,7 +1928,7 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
               </div>
             </div>
             <div
-              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1w565t7 r-padding-nsbfu8 r-borderLeftColor-tt226n"
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-hga61s r-padding-nsbfu8 r-borderLeftColor-tt226n"
             >
               <div
                 class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep"
@@ -1960,7 +1960,7 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
 exports[`Snapshot: PantrySection matches snapshot 1`] = `
 <div>
   <div
-    class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw r-marginBottom-1ifxtd0"
+    class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-1azax52 r-padding-d23pfw r-marginBottom-1ifxtd0"
   >
     <div
       class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-5oul0u"
@@ -2077,7 +2077,7 @@ exports[`Snapshot: Skin Screen matches snapshot 1`] = `
             class="css-view-g5y9jx r-marginBottom-1peese0"
           >
             <div
-              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-1azax52 r-padding-d23pfw"
             >
               <div
                 class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-5oul0u"
@@ -2517,7 +2517,7 @@ exports[`Snapshot: Skin Screen matches snapshot 1`] = `
             </div>
           </div>
           <div
-            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-1azax52 r-padding-d23pfw"
           >
             <div
               class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-1ifxtd0"
@@ -2596,7 +2596,7 @@ exports[`Snapshot: Skin Screen matches snapshot 1`] = `
             </div>
           </div>
           <div
-            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-1azax52 r-padding-d23pfw"
           >
             <div
               class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-1ifxtd0"
@@ -2692,7 +2692,7 @@ exports[`Snapshot: Skin Screen matches snapshot 1`] = `
             </div>
           </div>
           <div
-            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-1azax52 r-padding-d23pfw"
           >
             <div
               class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1b43r93 r-marginBottom-5oul0u"
@@ -2807,7 +2807,7 @@ exports[`Snapshot: Skin Screen matches snapshot 1`] = `
 exports[`Snapshot: SkinProfileCard matches snapshot 1`] = `
 <div>
   <div
-    class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-et2tpa r-padding-d23pfw"
+    class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderColor-qd0bky r-borderRadius-1867qdf r-borderWidth-rs99b7 r-boxShadow-1azax52 r-padding-d23pfw"
   >
     <div
       class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep r-marginBottom-5oul0u"

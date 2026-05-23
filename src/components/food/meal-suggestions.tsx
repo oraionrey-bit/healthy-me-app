@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 
 interface MealSuggestion {
@@ -247,11 +247,18 @@ const styles = StyleSheet.create({
     borderColor: Colors.tabBarBorder,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
-    shadowColor: '#7c4dff',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(124, 77, 255, 0.08)',
+      },
+      default: {
+        shadowColor: '#7c4dff',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+      },
+    }),
   },
   title: {
     fontFamily: Fonts.body,

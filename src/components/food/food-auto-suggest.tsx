@@ -207,12 +207,17 @@ const styles = StyleSheet.create({
     borderColor: Colors.tabBarBorder,
     marginTop: Spacing.xs,
     maxHeight: 260,
-    ...({
-      shadowColor: '#7c4dff',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 12,
-      elevation: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 12px rgba(124, 77, 255, 0.15)',
+      },
+      default: {
+        shadowColor: '#7c4dff',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 8,
+      },
     }),
   },
   suggestionsHeader: {

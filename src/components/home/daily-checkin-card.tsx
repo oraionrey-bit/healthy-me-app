@@ -15,7 +15,7 @@
  * saving, justSaved). The card is purely presentational.
  */
 import React from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Platform } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { PixelButton } from '../ui';
 import { EmojiPicker } from './emoji-picker';
@@ -228,11 +228,18 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderLeftWidth: 4,
     padding: Spacing.md,
-    shadowColor: '#7c4dff',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(124, 77, 255, 0.06)',
+      },
+      default: {
+        shadowColor: '#7c4dff',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
+      },
+    }),
   },
   accentPink: { borderLeftColor: '#f48fb1' },
   sectionTitle: {

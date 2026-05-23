@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useCalfTracker, type CalfMeasurement } from '../../hooks/use-calf-tracker';
@@ -303,11 +304,18 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderLeftWidth: 4,
     padding: Spacing.md,
-    shadowColor: Colors.purple,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(124, 77, 255, 0.08)',
+      },
+      default: {
+        shadowColor: Colors.purple,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+      },
+    }),
   },
   accentTeal: {
     borderLeftColor: '#4db6ac',
