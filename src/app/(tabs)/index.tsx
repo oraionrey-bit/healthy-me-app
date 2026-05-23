@@ -9,6 +9,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   ImageSourcePropType,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -924,11 +925,18 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     alignItems: 'center',
     gap: Spacing.xs,
-    shadowColor: '#7c4dff',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(124, 77, 255, 0.06)',
+      },
+      default: {
+        shadowColor: '#7c4dff',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
+      },
+    }),
   },
   streakText: {
     fontFamily: Fonts.pixel,
@@ -1099,11 +1107,18 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderLeftWidth: 4,
     padding: Spacing.md,
-    shadowColor: '#7c4dff',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(124, 77, 255, 0.06)',
+      },
+      default: {
+        shadowColor: '#7c4dff',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3,
+      },
+    }),
   },
   accentGreen: {
     borderLeftColor: '#81c784',
