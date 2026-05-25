@@ -14,6 +14,7 @@ interface AddFoodInput {
   protein?: number | null;
   carbs?: number | null;
   fat?: number | null;
+  meal_time?: string | null;
   photos?: File[];
   leftovers_photos?: File[];
 }
@@ -162,6 +163,7 @@ export function useFoodLog(date: string) {
       user_id: user.id,
       log_date: date,
       meal_type: entry.meal_type,
+      meal_time: entry.meal_time ?? null,
       description: entry.description,
       calories: entry.calories ?? null,
       protein: entry.protein ?? null,

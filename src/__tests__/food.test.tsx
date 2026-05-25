@@ -53,8 +53,35 @@ describe('Food Screen', () => {
     await renderFood();
     fireEvent.click(screen.getByText('+ Add Meal'));
     expect(screen.getByText('Meal Type')).toBeTruthy();
+    expect(screen.getByText('Time eaten')).toBeTruthy();
     expect(screen.getByText('Description')).toBeTruthy();
     expect(screen.getByPlaceholderText('What did you eat?')).toBeTruthy();
+  });
+
+  it('does not render quick add or food suggestion sections', async () => {
+    await renderFood();
+    expect(screen.queryByText(/Quick Add/)).toBeNull();
+    expect(screen.queryByText(/Suggestions/)).toBeNull();
+    expect(screen.queryByText(/My Pantry/)).toBeNull();
+    expect(screen.queryByText(/Favorites/)).toBeNull();
+    expect(screen.queryByText(/Your foods auto-save/)).toBeNull();
+  });
+
+  it('can type a simple meal time', async () => {
+    await renderFood();
+    fireEvent.click(screen.getByText('+ Add Meal'));
+    const timeInput = screen.getByPlaceholderText('Optional, like 8:30 AM') as HTMLInputElement;
+    fireEvent.change(timeInput, { target: { value: '12:30 PM' } });
+    expect(timeInput.value).toBe('12:30 PM');
+  });
+
+  it('can mark meal time as not remembered', async () => {
+    await renderFood();
+    fireEvent.click(screen.getByText('+ Add Meal'));
+    const timeInput = screen.getByPlaceholderText('Optional, like 8:30 AM') as HTMLInputElement;
+    fireEvent.change(timeInput, { target: { value: '12:30 PM' } });
+    fireEvent.click(screen.getByText('N/A'));
+    expect(timeInput.value).toBe('');
   });
 
   it('renders meal type pills in form (breakfast/lunch/dinner/snack)', async () => {
