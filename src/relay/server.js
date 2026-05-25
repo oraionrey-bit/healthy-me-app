@@ -13,17 +13,23 @@ const { createClient } = require('@supabase/supabase-js');
 const Busboy = require('busboy');
 const crypto = require('crypto');
 const path = require('path');
+const {
+  buildTelegramNotificationPayload,
+  shouldNotifyOraion,
+} = require('./routing');
+const { loadRelayConfig, chooseAiProvider } = require('./config');
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
-const PORT = parseInt(process.env.PORT || '7700', 10);
-const CHAT_TOKEN = process.env.CHAT_TOKEN || '';
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const CLAWROUTER_API_KEY = process.env.CLAWROUTER_API_KEY || '';
-const TINA_CHAT_ID = '5052308275';
+const CONFIG = loadRelayConfig();
+const PORT = CONFIG.port;
+const CHAT_TOKEN = CONFIG.chatToken;
+const SUPABASE_URL = CONFIG.supabaseUrl;
+const TELEGRAM_BOT_TOKEN = CONFIG.telegramBotToken;
+const CLAWROUTER_API_KEY = CONFIG.clawRouterApiKey;
+const GEMINI_API_KEY = CONFIG.geminiApiKey;
+const OPENROUTER_API_KEY = CONFIG.openRouterApiKey;
+const OPENROUTER_MODEL = CONFIG.openRouterModel;
 const TINA_USER_ID = 'e454325f-b8e6-4251-9a49-9d706eef99c3';
 
 // ── AI Analysis System Prompts ──────────────────────────────────────────────
@@ -55,7 +61,7 @@ const RATE_WINDOW_MS = 60 * 1000;
 let globalRequests = { count: 0, resetTime: Date.now() + RATE_WINDOW_MS };
 
 // Supabase client — service role key bypasses RLS (server-side only, never exposed to client)
-const supabaseKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+const supabaseKey = CONFIG.supabaseKey;
 const supabase = createClient(SUPABASE_URL, supabaseKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
@@ -116,17 +122,13 @@ async function notifyOraion(messageId, messageType, description) {
     console.log('[relay] No Telegram bot token — skipping notification');
     return;
   }
-  const text = [
-    '📸 [Photo Analysis Request]',
-    `Type: ${messageType}`,
-    `Description: "${description || '(no description)'}"`,
-    `Chat Message ID: ${messageId}`,
-    '',
-    'Oraion: analyze this and respond in-app.',
-  ].join('\n');
 
   try {
-    const payload = JSON.stringify({ chat_id: TINA_CHAT_ID, text, parse_mode: 'HTML' });
+    const payload = JSON.stringify(buildTelegramNotificationPayload({
+      messageId,
+      messageType,
+      description,
+    }));
     const options = {
       hostname: 'api.telegram.org',
       path: `/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
@@ -245,6 +247,155 @@ async function callClawRouter(systemPrompt, photos, userText) {
   });
 }
 
+async function callGemini(systemPrompt, photos, userText) {
+  if (!GEMINI_API_KEY) {
+    throw new Error('No AI provider configured');
+  }
+
+  const parts = [];
+  for (const photo of photos) {
+    parts.push({
+      inline_data: {
+        mime_type: photo.mimeType,
+        data: photo.buffer.toString('base64'),
+      },
+    });
+  }
+  parts.push({ text: userText || 'Please analyze this image.' });
+
+  const payload = JSON.stringify({
+    system_instruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ role: 'user', parts }],
+    generationConfig: { maxOutputTokens: 1500 },
+  });
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    };
+
+    let timer;
+    const apiReq = https.request(options, (apiRes) => {
+      let data = '';
+      apiRes.on('data', (c) => (data += c));
+      apiRes.on('end', () => {
+        clearTimeout(timer);
+        try {
+          const parsed = JSON.parse(data);
+          const parts = parsed.candidates?.[0]?.content?.parts || [];
+          const text = parts.map((part) => part.text || '').join('').trim();
+          if (text) {
+            resolve(text);
+          } else {
+            reject(new Error(`Unexpected Gemini response: ${data.slice(0, 200)}`));
+          }
+        } catch (e) {
+          reject(new Error(`Failed to parse Gemini response: ${e.message}`));
+        }
+      });
+    });
+
+    apiReq.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    timer = setTimeout(() => {
+      apiReq.destroy();
+      reject(new Error('Gemini request timed out'));
+    }, AI_TIMEOUT_MS);
+
+    apiReq.write(payload);
+    apiReq.end();
+  });
+}
+
+async function callOpenRouter(systemPrompt, photos, userText) {
+  if (!OPENROUTER_API_KEY) {
+    throw new Error('No AI provider configured');
+  }
+
+  const userContent = [];
+  for (const photo of photos) {
+    userContent.push({
+      type: 'image_url',
+      image_url: { url: `data:${photo.mimeType};base64,${photo.buffer.toString('base64')}` },
+    });
+  }
+  userContent.push({ type: 'text', text: userText || 'Please analyze this image.' });
+
+  const payload = JSON.stringify({
+    model: OPENROUTER_MODEL,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userContent },
+    ],
+    max_tokens: 1500,
+  });
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'openrouter.ai',
+      path: '/api/v1/chat/completions',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://app.withluna.dev',
+        'X-Title': 'Healthy Me Oraion Relay',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    };
+
+    let timer;
+    const apiReq = https.request(options, (apiRes) => {
+      let data = '';
+      apiRes.on('data', (c) => (data += c));
+      apiRes.on('end', () => {
+        clearTimeout(timer);
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.message?.content;
+          if (content) {
+            resolve(content);
+          } else {
+            reject(new Error(`Unexpected OpenRouter response: ${data.slice(0, 200)}`));
+          }
+        } catch (e) {
+          reject(new Error(`Failed to parse OpenRouter response: ${e.message}`));
+        }
+      });
+    });
+
+    apiReq.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    timer = setTimeout(() => {
+      apiReq.destroy();
+      reject(new Error('OpenRouter request timed out'));
+    }, AI_TIMEOUT_MS);
+
+    apiReq.write(payload);
+    apiReq.end();
+  });
+}
+
+async function callAiProvider(systemPrompt, photos, userText) {
+  const provider = chooseAiProvider(CONFIG);
+  if (provider === 'clawrouter') return callClawRouter(systemPrompt, photos, userText);
+  if (provider === 'gemini') return callGemini(systemPrompt, photos, userText);
+  if (provider === 'openrouter') return callOpenRouter(systemPrompt, photos, userText);
+  throw new Error('No AI provider configured');
+}
+
 async function autoProcessAnalysis(messageId, messageType, description, photos) {
   const systemPrompt = ANALYSIS_PROMPTS[messageType];
   if (!systemPrompt) {
@@ -254,7 +405,7 @@ async function autoProcessAnalysis(messageId, messageType, description, photos) 
 
   try {
     console.log(`[relay] Auto-processing ${messageType} for message ${messageId} (${photos.length} photos)...`);
-    const aiResponse = await callClawRouter(systemPrompt, photos, description);
+    const aiResponse = await callAiProvider(systemPrompt, photos, description);
 
     // Insert AI response as Oraion's message
     const { data: responseMsg, error: insertError } = await supabase
@@ -382,11 +533,10 @@ async function handleAnalyze(req, res) {
         sendJson(res, 200, { id: messageId, status: 'pending', photo_urls: photoUrls });
         console.log(`[relay] Analyze request saved: ${messageId} (${messageType}, ${photos.length} photos)`);
 
-        // Wait for AI processing, then notify Telegram
+        // Wait for AI processing. Successful auto-processing writes directly
+        // back into the app; only send Telegram if manual follow-up is needed.
         aiProcessing.then((success) => {
-          if (success) {
-            notifyOraion(messageId, messageType, description + ' [✅ AI auto-processed]').catch(() => {});
-          } else {
+          if (shouldNotifyOraion({ aiProcessed: success })) {
             // AI failed — notify for manual processing
             notifyOraion(messageId, messageType, description + ' [⚠️ AI failed — needs manual response]').catch(() => {});
           }
@@ -567,4 +717,5 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`[relay] Auth: ${CHAT_TOKEN ? 'configured' : 'WARNING: no CHAT_TOKEN'}`);
   console.log(`[relay] Supabase: ${SUPABASE_URL ? 'configured' : 'WARNING: no SUPABASE_URL'}`);
   console.log(`[relay] Telegram: ${TELEGRAM_BOT_TOKEN ? 'configured' : 'WARNING: no bot token'}`);
+  console.log(`[relay] AI provider: ${CLAWROUTER_API_KEY ? 'clawrouter' : GEMINI_API_KEY ? 'gemini' : 'WARNING: none'}`);
 });
