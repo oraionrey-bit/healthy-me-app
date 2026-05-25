@@ -347,6 +347,7 @@ export interface DailyLog {
 
 export type SymptomType =
   | 'stomach'
+  | 'diarrhea'
   | 'histamine'
   | 'headache'
   | 'bloating'

@@ -95,6 +95,7 @@ describe('Home Screen', () => {
     await renderHome();
     fireEvent.click(screen.getByText('📝 Daily Check-in'));
     expect(screen.getByText('Stomach')).toBeTruthy();
+    expect(screen.getByText('Diarrhea')).toBeTruthy();
     expect(screen.getByText('Bloating')).toBeTruthy();
     expect(screen.getByText('Irritated')).toBeTruthy();
   });
