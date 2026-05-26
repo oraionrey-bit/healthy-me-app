@@ -105,14 +105,12 @@ These require separate confirmation before removal:
 - `docs/favicon.ico`
 - `docs/_redirects`
 - `netlify.toml`
-- `.netlify/state.json`
-- `.netlify/netlify.toml`
 - `BUILD-LOG.md` Netlify references
 
 Notes:
 
 - Current deployment docs say GitHub Pages is canonical and the old Netlify path should not be primary unless explicitly re-enabled.
-- `.netlify/netlify.toml` has been observed to contain a machine-specific absolute path from an older workspace. That is a strong cleanup candidate, but removal should be its own tiny PR because it is tracked state.
+- The tracked `.netlify/` local state was removed in a focused cleanup PR after verifying GitHub Pages is the active production source and `.gitignore` already ignores `.netlify`.
 - The tracked `docs/` static export may be historical deployment output. Do not delete until GitHub Pages workflow and repository Pages source are verified.
 
 ## Oversized files to split carefully
