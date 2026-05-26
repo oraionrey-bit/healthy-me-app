@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import path from 'path';
 
@@ -169,6 +170,17 @@ describe('process guardrails', () => {
     expect(homeScreen).toContain("setNotes('');");
   });
 
+
+  it('keeps Supabase CLI temp state out of source control', () => {
+    const gitignore = readFileSync(path.join(process.cwd(), '.gitignore'), 'utf8');
+    const trackedSupabaseTemp = execSync('git ls-files --cached supabase/.temp', {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+    }).trim();
+
+    expect(gitignore).toContain('supabase/.temp/');
+    expect(trackedSupabaseTemp).toBe('');
+  });
 
   it('gates GitHub Pages deployment behind manual main-branch verification', () => {
     const deployWorkflow = readFileSync(

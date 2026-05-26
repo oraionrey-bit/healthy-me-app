@@ -44,6 +44,9 @@ yarn-error.*
 # Local Netlify folder
 .netlify
 
+# Local Supabase CLI state
+supabase/.temp/
+
 # Playwright
 test-results/
 playwright-report/

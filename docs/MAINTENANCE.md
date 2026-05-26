@@ -90,6 +90,7 @@ These are already ignored and should not be reviewed as source changes:
 - `playwright-report/`
 - `blob-report/`
 - `e2e/.auth/`
+- `supabase/.temp/`
 - `.env` and `.env*.local`
 - `.DS_Store`
 
@@ -111,6 +112,7 @@ Notes:
 
 - Current deployment docs say GitHub Pages is canonical and the old Netlify path should not be primary unless explicitly re-enabled.
 - The tracked `.netlify/` local state was removed in a focused cleanup PR after verifying GitHub Pages is the active production source and `.gitignore` already ignores `.netlify`.
+- The tracked `supabase/.temp/` local CLI state was removed from source control in a focused cleanup PR and is now ignored; local copies remain available on developer machines.
 - The tracked `docs/` static export may be historical deployment output. Do not delete until GitHub Pages workflow and repository Pages source are verified.
 
 ## Oversized files to split carefully
