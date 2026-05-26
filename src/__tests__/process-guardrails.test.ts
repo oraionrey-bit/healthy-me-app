@@ -40,6 +40,24 @@ describe('process guardrails', () => {
     expect(preDeployCheck).not.toContain('--forceExit');
   });
 
+  it('keeps vault-backed maintenance helpers portable and env-first', () => {
+    const preDeployCheck = readFileSync(
+      path.join(process.cwd(), 'scripts/pre-deploy-check.sh'),
+      'utf8'
+    );
+    const authSetup = readFileSync(path.join(process.cwd(), 'e2e/auth.setup.ts'), 'utf8');
+
+    for (const helper of [preDeployCheck, authSetup]) {
+      expect(helper).not.toContain('.openclaw/workspace/scripts/vault');
+    }
+    expect(preDeployCheck).toContain('SUPABASE_URL="${SUPABASE_URL:-${EXPO_PUBLIC_SUPABASE_URL:-}}"');
+    expect(preDeployCheck).toContain('SUPABASE_KEY="${SUPABASE_KEY:-${SUPABASE_SERVICE_ROLE_KEY:-}}"');
+    expect(preDeployCheck).toContain('find_vault_script()');
+    expect(authSetup).toContain('process.env.SUPABASE_URL ?? process.env.EXPO_PUBLIC_SUPABASE_URL');
+    expect(authSetup).toContain('process.env.SUPABASE_SERVICE_ROLE_KEY');
+    expect(authSetup).toContain('findVaultScript()');
+  });
+
   it('defines a reusable production authenticated smoke check', () => {
     const prodAuthConfig = readFileSync(
       path.join(process.cwd(), 'playwright.prod-auth.config.ts'),
