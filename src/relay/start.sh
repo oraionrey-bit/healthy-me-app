@@ -5,8 +5,9 @@
 
 set -euo pipefail
 
-APP_DIR="/Users/oraion/Projects/healthy-me-app"
-HERMES_ENV="/Users/oraion/.hermes/.env"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="${APP_DIR:-$(cd -- "$SCRIPT_DIR/../.." && pwd)}"
+HERMES_ENV="${HERMES_ENV:-$HOME/.hermes/.env}"
 APP_ENV="$APP_DIR/.env"
 
 load_selected_env_file() {
@@ -69,4 +70,17 @@ if [ ${#missing[@]} -gt 0 ]; then
   exit 1
 fi
 
-exec /opt/homebrew/bin/node "$APP_DIR/src/relay/server.js"
+find_node_bin() {
+  local candidate
+  for candidate in "${NODE_BIN:-}" "$(command -v node 2>/dev/null || true)" /opt/homebrew/bin/node /usr/local/bin/node; do
+    if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  printf '[relay] Missing required executable: node\n' >&2
+  return 1
+}
+
+exec "$(find_node_bin)" "$APP_DIR/src/relay/server.js"
