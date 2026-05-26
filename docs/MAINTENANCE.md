@@ -28,7 +28,7 @@ Known warnings during unit tests:
 - Node `punycode` deprecation warning.
 - React Native Web `props.pointerEvents` deprecation warning.
 - Multiple React test `act(...)` warnings around hook/component updates.
-- Jest force-exit warning, suggesting some async handles are not shutting down cleanly.
+- Jest no longer needs `--forceExit`; a focused maintenance pass removed that flag from unit scripts after verifying the suite exits cleanly without it.
 
 ## Active architecture map
 
