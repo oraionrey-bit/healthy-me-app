@@ -58,6 +58,17 @@ describe('process guardrails', () => {
     expect(authSetup).toContain('findVaultScript()');
   });
 
+  it('keeps the relay launcher independent of a local checkout path', () => {
+    const relayStart = readFileSync(path.join(process.cwd(), 'src/relay/start.sh'), 'utf8');
+
+    expect(relayStart).not.toContain('/Users/oraion/Projects/healthy-me-app');
+    expect(relayStart).toContain('SCRIPT_DIR=');
+    expect(relayStart).toContain('APP_DIR="${APP_DIR:-');
+    expect(relayStart).toContain('find_node_bin()');
+    expect(relayStart).toContain('/opt/homebrew/bin/node');
+    expect(relayStart).toContain('exec "$(find_node_bin)" "$APP_DIR/src/relay/server.js"');
+  });
+
   it('defines a reusable production authenticated smoke check', () => {
     const prodAuthConfig = readFileSync(
       path.join(process.cwd(), 'playwright.prod-auth.config.ts'),
