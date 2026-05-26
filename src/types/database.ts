@@ -349,6 +349,7 @@ export type SymptomType =
   | 'stomach'
   | 'diarrhea'
   | 'histamine'
+  | 'zyrtec'
   | 'headache'
   | 'bloating'
   | 'acne'

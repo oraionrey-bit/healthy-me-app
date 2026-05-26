@@ -261,6 +261,56 @@ describe('Skin Screen', () => {
     }
   });
 
+  it('stops polling and shows a manual-entry message when product analysis is marked error', async () => {
+    (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValueOnce({
+      canceled: false,
+      assets: [{ uri: 'file://skin-product.jpg' }],
+    });
+
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === 'file://skin-product.jpg') {
+        return { blob: async () => new Blob(['img'], { type: 'image/jpeg' }) } as Response;
+      }
+      if (url.endsWith('/health')) return { ok: true } as Response;
+      if (url.endsWith('/analyze')) {
+        return { ok: true, status: 200, json: async () => ({ id: 'scan-error' }) } as Response;
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    }) as jest.Mock;
+
+    const originalFrom = supabase.from as jest.Mock;
+    const defaultFrom = originalFrom.getMockImplementation();
+    originalFrom.mockImplementation((table: string) => {
+      if (table !== 'chat_messages') return defaultFrom?.(table);
+
+      const builder: any = {};
+      builder.select = jest.fn(() => builder);
+      builder.eq = jest.fn(() => builder);
+      builder.order = jest.fn(() => builder);
+      builder.limit = jest.fn(() => builder);
+      builder.single = jest.fn(() => Promise.resolve({ data: { status: 'error' }, error: null }));
+      return builder;
+    });
+
+    try {
+      await renderSkin();
+      fireEvent.click(screen.getByText('Products'));
+      await waitFor(() => expect(screen.getByText('+ Add')).toBeTruthy());
+      fireEvent.click(screen.getByText('+ Add'));
+      await waitFor(() => expect(screen.getByText('🖼️ Gallery')).toBeTruthy());
+      fireEvent.click(screen.getByText('🖼️ Gallery'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Photo analysis could not finish/)).toBeTruthy();
+      });
+    } finally {
+      global.fetch = originalFetch;
+      originalFrom.mockImplementation(defaultFrom);
+    }
+  });
+
   // ── Routine Insights & Tester Dashboard ──
 
   it('shows "How It\'s Going" insights card in routine tab', async () => {

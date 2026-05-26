@@ -18,6 +18,7 @@ const {
   shouldNotifyOraion,
 } = require('./routing');
 const { loadRelayConfig, chooseAiProvider } = require('./config');
+const { ERROR_STATUS } = require('./status');
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -441,7 +442,7 @@ async function autoProcessAnalysis(messageId, messageType, description, photos) 
     console.error(`[relay] AI auto-process failed for ${messageId}: ${err.message}`);
     const { error: updateError } = await supabase
       .from('chat_messages')
-      .update({ status: 'failed' })
+      .update({ status: ERROR_STATUS })
       .eq('id', messageId);
     if (updateError) {
       console.error(`[relay] Failed to mark message failed: ${updateError.message}`);
@@ -724,5 +725,5 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`[relay] Auth: ${CHAT_TOKEN ? 'configured' : 'WARNING: no CHAT_TOKEN'}`);
   console.log(`[relay] Supabase: ${SUPABASE_URL ? 'configured' : 'WARNING: no SUPABASE_URL'}`);
   console.log(`[relay] Telegram: ${TELEGRAM_BOT_TOKEN ? 'configured' : 'WARNING: no bot token'}`);
-  console.log(`[relay] AI provider: ${CLAWROUTER_API_KEY ? 'clawrouter' : GEMINI_API_KEY ? 'gemini' : 'WARNING: none'}`);
+  console.log(`[relay] AI provider: ${chooseAiProvider(CONFIG) === 'manual' ? 'WARNING: none' : chooseAiProvider(CONFIG)}`);
 });

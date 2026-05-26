@@ -193,6 +193,7 @@ export default function HomeScreen() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Sync saved values whenever the selected date's saved values change.
   // Important: set nulls too, otherwise navigating from a logged date to an
@@ -281,6 +282,7 @@ export default function HomeScreen() {
   const handleSave = useCallback(async () => {
     if (!user) return;
     setSaving(true);
+    setSaveError(null);
     try {
       // Save mood + energy to symptoms table
       if (mood !== null && energy !== null) {
@@ -389,6 +391,9 @@ export default function HomeScreen() {
       // Show "Saved!" confirmation briefly (May 7 UX)
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 1800);
+    } catch (err) {
+      console.error('Check-in save failed:', err);
+      setSaveError('Check-in did not save. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -837,6 +842,7 @@ export default function HomeScreen() {
               setNotes={setNotes}
               saving={saving}
               justSaved={justSaved}
+              saveError={saveError}
               onSave={handleSave}
             />
           </View>
