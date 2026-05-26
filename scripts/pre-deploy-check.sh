@@ -58,7 +58,7 @@ echo ""
 
 # ── 2. Tests ───────────────────────────────────────────────────────────
 echo -e "${BOLD}[2/7] Jest Tests${NC}"
-if npx jest --forceExit --silent 2>/dev/null; then
+if npm --silent run test:unit -- --silent 2>/dev/null; then
   pass "All tests pass"
 else
   fail "Jest tests failed"

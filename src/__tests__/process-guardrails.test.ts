@@ -30,6 +30,16 @@ describe('process guardrails', () => {
     });
   });
 
+  it('keeps pre-deploy checks aligned with canonical test scripts', () => {
+    const preDeployCheck = readFileSync(
+      path.join(process.cwd(), 'scripts/pre-deploy-check.sh'),
+      'utf8'
+    );
+
+    expect(preDeployCheck).toContain('npm --silent run test:unit -- --silent');
+    expect(preDeployCheck).not.toContain('--forceExit');
+  });
+
   it('defines a reusable production authenticated smoke check', () => {
     const prodAuthConfig = readFileSync(
       path.join(process.cwd(), 'playwright.prod-auth.config.ts'),
