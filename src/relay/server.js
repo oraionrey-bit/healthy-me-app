@@ -46,7 +46,7 @@ const ANALYSIS_PROMPTS = {
   supplement_product: 'You are a supplement label analyst specializing in PCOS. Analyze this supplement product photo. Extract:\n- Product name\n- Brand\n- Dosage per serving (e.g. "2000 IU", "500mg")\n- Key ingredients with amounts\n- Form (capsule, tablet, gummy, powder, liquid)\n- Any PCOS-relevant notes (e.g. contains inositol, vitamin D, etc.)\n\nReturn ONLY valid JSON (no markdown, no explanation):\n{"name": "...", "brand": "...", "dosage": "...", "ingredients": [{"name": "...", "amount": "..."}], "form": "...", "pcos_notes": "brief relevance to PCOS"}',
 };
 
-const AI_TIMEOUT_MS = 30000;
+const AI_TIMEOUT_MS = 90000;
 
 const MAX_TEXT_LENGTH = 5000;
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10MB
@@ -439,6 +439,13 @@ async function autoProcessAnalysis(messageId, messageType, description, photos) 
     return true;
   } catch (err) {
     console.error(`[relay] AI auto-process failed for ${messageId}: ${err.message}`);
+    const { error: updateError } = await supabase
+      .from('chat_messages')
+      .update({ status: 'failed' })
+      .eq('id', messageId);
+    if (updateError) {
+      console.error(`[relay] Failed to mark message failed: ${updateError.message}`);
+    }
     return false;
   }
 }

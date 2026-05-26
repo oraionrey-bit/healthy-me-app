@@ -24,6 +24,8 @@ import { supabase } from '../../lib/supabase';
 import { CHAT_RELAY_URL } from '../../constants/chat';
 
 const CHAT_TOKEN = process.env.EXPO_PUBLIC_CHAT_TOKEN ?? '';
+const PRODUCT_SCAN_MAX_WAIT_MS = 95000;
+const PRODUCT_SCAN_POLL_MS = 2000;
 
 import {
   useSkincare,
@@ -338,6 +340,11 @@ export default function SkinScreen() {
   const [productScanning, setProductScanning] = useState(false);
   const [productScanError, setProductScanError] = useState<string | null>(null);
   const [productTriggersFound, setProductTriggersFound] = useState<string[]>([]);
+  const [newProductDetails, setNewProductDetails] = useState<{
+    ingredients?: string[];
+    brand?: string;
+    product_type?: string;
+  }>({});
   const [startTestPlan, setStartTestPlan] = useState(true);
 
   // ── Skin photos ──
@@ -457,16 +464,22 @@ export default function SkinScreen() {
       const data = await res.json();
       const messageId = data.id as string;
 
-      // Poll supabase for AI response (max 35s)
+      // Poll supabase for AI response. Product vision can run longer on full-size
+      // phone photos, so keep waiting slightly longer than the relay/provider timeout.
       const start = Date.now();
-      while (Date.now() - start < 35000) {
-        await new Promise((r) => setTimeout(r, 2500));
+      while (Date.now() - start < PRODUCT_SCAN_MAX_WAIT_MS) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
         const { data: original } = await (supabase.from('chat_messages') as any)
           .select('status')
           .eq('id', messageId)
           .single();
-        if (original?.status !== 'complete') continue;
+        if (original?.status === 'failed') {
+          throw new Error('Photo analysis took too long. The image is saved here — please type the product name and notes manually.');
+        }
+        if (original?.status !== 'complete') {
+          await new Promise((r) => setTimeout(r, PRODUCT_SCAN_POLL_MS));
+          continue;
+        }
 
         // Fetch the AI response
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
@@ -503,6 +516,11 @@ export default function SkinScreen() {
             if (parsed.ingredients?.length) noteParts.push(`Key ingredients: ${parsed.ingredients.join(', ')}`);
             if (parsed.notes) noteParts.push(parsed.notes);
             if (noteParts.length) setNewProductNotes(noteParts.join('. '));
+            setNewProductDetails({
+              ingredients: parsed.ingredients,
+              brand: parsed.brand,
+              product_type: parsed.product_type,
+            });
 
             // Handle triggers
             if (parsed.triggers_found && parsed.triggers_found.length > 0) {
@@ -561,6 +579,7 @@ export default function SkinScreen() {
     setProductPhotoUri(null);
     setProductScanError(null);
     setProductTriggersFound([]);
+    setNewProductDetails({});
     setStartTestPlan(true);
   };
 
@@ -572,7 +591,11 @@ export default function SkinScreen() {
       newProductName.trim(),
       effectiveStatus,
       newProductNotes.trim() || undefined,
-      startTestPlan && effectiveStatus === 'testing' ? { testingStartDate: today } : undefined,
+      startTestPlan && effectiveStatus === 'testing'
+        ? { testingStartDate: today, ...newProductDetails }
+        : Object.keys(newProductDetails).length > 0
+          ? newProductDetails
+          : undefined,
     );
     resetProductForm();
     setShowAddProduct(false);
@@ -1056,12 +1079,21 @@ export default function SkinScreen() {
                   </View>
                 )}
 
-                {productPhotoUri && !productScanning && (
+                {productPhotoUri && (
                   <View style={styles.productPhotoPreview}>
-                    <Image source={{ uri: productPhotoUri }} style={styles.productPreviewImage} resizeMode="contain" />
-                    <TouchableOpacity onPress={() => { setProductPhotoUri(null); setProductScanError(null); setProductTriggersFound([]); }}>
-                      <Text style={styles.productRetakeText}>Retake photo</Text>
-                    </TouchableOpacity>
+                    <Image
+                      testID="skin-product-preview-image"
+                      source={{ uri: productPhotoUri }}
+                      style={styles.productPreviewImage}
+                      resizeMode="contain"
+                    />
+                    {productScanning ? (
+                      <Text style={styles.productScanHint}>Reading label and ingredient clues…</Text>
+                    ) : (
+                      <TouchableOpacity onPress={() => { setProductPhotoUri(null); setProductScanError(null); setProductTriggersFound([]); setNewProductDetails({}); }}>
+                        <Text style={styles.productRetakeText}>Retake photo</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
 
@@ -2219,6 +2251,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.bodyXs,
     color: Colors.purple,
     textDecorationLine: 'underline',
+  },
+  productScanHint: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
   productErrorText: {
     fontFamily: Fonts.body,

@@ -7,6 +7,10 @@
 import React from 'react';
 import { render, fireEvent, screen, waitFor } from './test-utils';
 import userEvent from '@testing-library/user-event';
+import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../lib/supabase';
+
+process.env.EXPO_PUBLIC_CHAT_TOKEN = 'test-chat-token';
 
 async function renderSkin() {
   const SkinScreen = require('../app/(tabs)/skin').default;
@@ -184,6 +188,77 @@ describe('Skin Screen', () => {
     // Product cards should have testIDs for expand
     const productCards = screen.getAllByTestId(/product-card-/);
     expect(productCards.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('keeps the chosen product photo visible and auto-fills concise skin product info after analysis', async () => {
+    (ImagePicker.launchImageLibraryAsync as jest.Mock).mockResolvedValueOnce({
+      canceled: false,
+      assets: [{ uri: 'file://skin-product.jpg' }],
+    });
+
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === 'file://skin-product.jpg') {
+        return { blob: async () => new Blob(['img'], { type: 'image/jpeg' }) } as Response;
+      }
+      if (url.endsWith('/health')) {
+        return { ok: true } as Response;
+      }
+      if (url.endsWith('/analyze')) {
+        return { ok: true, status: 200, json: async () => ({ id: 'scan-1' }) } as Response;
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    }) as jest.Mock;
+
+    const originalFrom = supabase.from as jest.Mock;
+    const defaultFrom = originalFrom.getMockImplementation();
+    originalFrom.mockImplementation((table: string) => {
+      if (table !== 'chat_messages') return defaultFrom?.(table);
+
+      let selected = '';
+      const builder: any = {};
+      builder.select = jest.fn((value: string) => {
+        selected = value;
+        return builder;
+      });
+      builder.eq = jest.fn(() => builder);
+      builder.order = jest.fn(() => builder);
+      builder.limit = jest.fn(() => builder);
+      builder.single = jest.fn(() => Promise.resolve({
+        data: selected === 'status'
+          ? { status: 'complete' }
+          : { content: JSON.stringify({
+              name: 'Azalea Cream',
+              brand: '태극제약',
+              ingredients: ['Azelaic acid 20%'],
+              product_type: 'treatment',
+              triggers_found: [],
+              notes: '20% azelaic acid treatment; start slowly and use sunscreen.',
+            }) },
+        error: null,
+      }));
+      return builder;
+    });
+
+    try {
+      await renderSkin();
+      fireEvent.click(screen.getByText('Products'));
+      await waitFor(() => expect(screen.getByText('+ Add')).toBeTruthy());
+      fireEvent.click(screen.getByText('+ Add'));
+      await waitFor(() => expect(screen.getByText('🖼️ Gallery')).toBeTruthy());
+
+      fireEvent.click(screen.getByText('🖼️ Gallery'));
+
+      await waitFor(() => expect(screen.getByTestId('skin-product-preview-image')).toBeTruthy());
+
+      await waitFor(() => expect(screen.getByDisplayValue('태극제약 Azalea Cream')).toBeTruthy());
+      expect(screen.getByDisplayValue(/Azelaic acid 20%/)).toBeTruthy();
+      expect(screen.getByDisplayValue(/start slowly and use sunscreen/)).toBeTruthy();
+    } finally {
+      global.fetch = originalFetch;
+      originalFrom.mockImplementation(defaultFrom);
+    }
   });
 
   // ── Routine Insights & Tester Dashboard ──
