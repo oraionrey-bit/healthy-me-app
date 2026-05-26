@@ -26,6 +26,7 @@ import { CHAT_RELAY_URL } from '../../constants/chat';
 const CHAT_TOKEN = process.env.EXPO_PUBLIC_CHAT_TOKEN ?? '';
 const PRODUCT_SCAN_MAX_WAIT_MS = 95000;
 const PRODUCT_SCAN_POLL_MS = 2000;
+const PRODUCT_SCAN_ERROR_STATUSES = new Set(['error', 'failed']);
 
 import {
   useSkincare,
@@ -473,8 +474,8 @@ export default function SkinScreen() {
           .select('status')
           .eq('id', messageId)
           .single();
-        if (original?.status === 'failed') {
-          throw new Error('Photo analysis took too long. The image is saved here — please type the product name and notes manually.');
+        if (PRODUCT_SCAN_ERROR_STATUSES.has(original?.status)) {
+          throw new Error('Photo analysis could not finish. The photo is saved here — please type the product name and notes manually.');
         }
         if (original?.status !== 'complete') {
           await new Promise((r) => setTimeout(r, PRODUCT_SCAN_POLL_MS));

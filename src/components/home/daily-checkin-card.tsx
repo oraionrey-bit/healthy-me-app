@@ -50,6 +50,7 @@ interface DailyCheckinCardProps {
   setNotes: (v: string) => void;
   saving: boolean;
   justSaved: boolean;
+  saveError: string | null;
   onSave: () => void;
 }
 
@@ -74,6 +75,7 @@ export const DailyCheckinCard = React.memo(function DailyCheckinCard({
   setNotes,
   saving,
   justSaved,
+  saveError,
   onSave,
 }: DailyCheckinCardProps) {
   return (
@@ -213,7 +215,12 @@ export const DailyCheckinCard = React.memo(function DailyCheckinCard({
           />
           {justSaved && (
             <Text style={styles.savedConfirmation}>
-              ✓ Check-in saved for this day
+              ✓ Check-in saved to cloud for this day
+            </Text>
+          )}
+          {saveError && (
+            <Text style={styles.saveError}>
+              ⚠ {saveError}
             </Text>
           )}
         </View>
@@ -280,6 +287,14 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodySm,
     color: Colors.success,
+    textAlign: 'center',
+    marginTop: Spacing.sm,
+    fontWeight: '600',
+  },
+  saveError: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodySm,
+    color: Colors.error,
     textAlign: 'center',
     marginTop: Spacing.sm,
     fontWeight: '600',

@@ -30,6 +30,7 @@ export const SYMPTOM_OPTIONS: Array<{ type: SymptomType; label: string }> = [
   { type: 'stomach', label: 'Stomach' },
   { type: 'diarrhea', label: 'Diarrhea' },
   { type: 'histamine', label: 'Histamine' },
+  { type: 'zyrtec', label: 'Zyrtec' },
   { type: 'headache', label: 'Headache' },
   { type: 'bloating', label: 'Bloating' },
   { type: 'acne', label: 'Acne' },

@@ -146,7 +146,9 @@ export function ProductAnalyzer<M extends ProductAnalyzerMode>({
         const data = await res.json();
         const messageId = data.id as string;
 
-        // Poll supabase for AI response (max 35s)
+        // Poll Supabase for AI response (max 35s). Stop early if the relay marks
+        // the request terminal-error; otherwise the UI misleadingly spins until
+        // timeout even when the server already knows manual entry is needed.
         const start = Date.now();
         while (Date.now() - start < 35000) {
           await new Promise((r) => setTimeout(r, 2500));
@@ -155,6 +157,10 @@ export function ProductAnalyzer<M extends ProductAnalyzerMode>({
             .select('status')
             .eq('id', messageId)
             .single();
+
+          if (original?.status === 'error' || original?.status === 'failed') {
+            throw new Error('Photo analysis could not finish — please enter it manually');
+          }
           if (original?.status !== 'complete') continue;
 
           // Fetch AI response

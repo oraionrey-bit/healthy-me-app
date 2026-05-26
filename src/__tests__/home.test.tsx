@@ -97,6 +97,7 @@ describe('Home Screen', () => {
     expect(screen.getByText('Stomach')).toBeTruthy();
     expect(screen.getByText('Diarrhea')).toBeTruthy();
     expect(screen.getByText('Bloating')).toBeTruthy();
+    expect(screen.getByText('Zyrtec')).toBeTruthy();
     expect(screen.getByText('Irritated')).toBeTruthy();
   });
 
