@@ -15,7 +15,7 @@ describe('process guardrails', () => {
 
   it('defines canonical verification and build scripts', () => {
     expect(packageJson.scripts).toMatchObject({
-      'test:unit': 'jest --forceExit',
+      'test:unit': 'jest',
       typecheck: 'tsc --noEmit',
       'build:web': 'expo export --platform web',
       'build:web:pages': 'npm run build:web && node scripts/prepare-pages-build.mjs',

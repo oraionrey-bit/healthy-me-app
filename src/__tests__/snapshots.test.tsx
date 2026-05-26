@@ -5,8 +5,8 @@
  * key sub-components. If a real component is replaced with a stub,
  * the snapshot diff will catch it immediately.
  *
- * Run: npx jest src/__tests__/snapshots.test.tsx --forceExit
- * Update snapshots: npx jest src/__tests__/snapshots.test.tsx --forceExit -u
+ * Run: npx jest src/__tests__/snapshots.test.tsx
+ * Update snapshots: npx jest src/__tests__/snapshots.test.tsx -u
  */
 import React from 'react';
 import { render, waitFor } from './test-utils';
