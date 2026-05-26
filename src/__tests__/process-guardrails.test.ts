@@ -119,6 +119,16 @@ describe('process guardrails', () => {
     expect(smokeConfig).toContain('prod-auth.smoke.spec.ts');
   });
 
+  it('keeps the analyze-food Gemini URL safely encoded', () => {
+    const analyzeFoodFunction = readFileSync(
+      path.join(process.cwd(), 'supabase/functions/analyze-food/index.ts'),
+      'utf8'
+    );
+
+    expect(analyzeFoodFunction).toContain('encodeURIComponent(GEMINI_API_KEY)');
+    expect(analyzeFoodFunction).not.toContain('key=${GEMINI_API_KEY}');
+  });
+
   it('keeps PR smoke CI bootable without repository secrets', () => {
     expect(ciWorkflow).toContain(
       "EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL || 'https://example.supabase.co' }}"
