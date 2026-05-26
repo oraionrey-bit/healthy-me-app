@@ -31,11 +31,36 @@ echo ""
 
 # ── Supabase credentials ──────────────────────────────────────────────
 PROJECT_REF="xkdagrpbgyjsbnzbpkxb"
-VAULT_SCRIPT="$HOME/.openclaw/workspace/scripts/vault"
 
-SUPABASE_URL=$("$VAULT_SCRIPT" get supabase-project-url 2>/dev/null) || true
-SUPABASE_KEY=$("$VAULT_SCRIPT" get supabase-service-role-key 2>/dev/null) || true
-ACCESS_TOKEN=$("$VAULT_SCRIPT" get supabase-access-token 2>/dev/null) || true
+find_vault_script() {
+  local candidate
+  for candidate in "${VAULT_SCRIPT:-}" "${HERMES_VAULT_SCRIPT:-}" "${OPENCLAW_VAULT_SCRIPT:-}"; do
+    if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  if command -v vault >/dev/null 2>&1; then
+    command -v vault
+  fi
+}
+
+vault_get() {
+  local name="$1"
+  local script
+  script="$(find_vault_script)" || return 0
+  [ -n "$script" ] || return 0
+  "$script" get "$name" 2>/dev/null || true
+}
+
+SUPABASE_URL="${SUPABASE_URL:-${EXPO_PUBLIC_SUPABASE_URL:-}}"
+SUPABASE_KEY="${SUPABASE_KEY:-${SUPABASE_SERVICE_ROLE_KEY:-}}"
+ACCESS_TOKEN="${SUPABASE_ACCESS_TOKEN:-${ACCESS_TOKEN:-}}"
+
+SUPABASE_URL="${SUPABASE_URL:-$(vault_get supabase-project-url)}"
+SUPABASE_KEY="${SUPABASE_KEY:-$(vault_get supabase-service-role-key)}"
+ACCESS_TOKEN="${ACCESS_TOKEN:-$(vault_get supabase-access-token)}"
 
 supabase_query() {
   local sql="$1"

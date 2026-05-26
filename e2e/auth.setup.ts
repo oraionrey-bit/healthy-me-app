@@ -1,5 +1,6 @@
 import { test as setup, expect } from '@playwright/test';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
+import { accessSync, constants } from 'fs';
 
 /**
  * Authenticate with the test account before running E2E tests.
@@ -52,12 +53,47 @@ setup('authenticate', async ({ page }) => {
 });
 
 function getVaultSecret(name: string): string {
+  const envBySecretName: Record<string, string | undefined> = {
+    'supabase-project-url': process.env.SUPABASE_URL ?? process.env.EXPO_PUBLIC_SUPABASE_URL,
+    'supabase-service-role-key': process.env.SUPABASE_SERVICE_ROLE_KEY,
+  };
+
+  const envValue = envBySecretName[name];
+  if (envValue) return envValue;
+
+  const vaultScript = findVaultScript();
+  if (!vaultScript) return '';
+
   try {
-    return execSync(
-      `bash ${process.env.HOME}/.openclaw/workspace/scripts/vault get ${name}`,
-      { encoding: 'utf-8' },
-    ).trim();
+    return execFileSync(vaultScript, ['get', name], { encoding: 'utf-8' }).trim();
   } catch {
     return '';
+  }
+}
+
+function findVaultScript(): string {
+  const candidates = [
+    process.env.VAULT_SCRIPT,
+    process.env.HERMES_VAULT_SCRIPT,
+    process.env.OPENCLAW_VAULT_SCRIPT,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && isExecutableFile(candidate)) return candidate;
+  }
+
+  try {
+    return execFileSync('which', ['vault'], { encoding: 'utf-8' }).trim();
+  } catch {
+    return '';
+  }
+}
+
+function isExecutableFile(filePath: string): boolean {
+  try {
+    accessSync(filePath, constants.X_OK);
+    return true;
+  } catch {
+    return false;
   }
 }
