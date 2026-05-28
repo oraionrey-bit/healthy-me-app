@@ -13,8 +13,8 @@ describe('check-in period persistence mapping', () => {
     expect(periodStatusToDailyLogPeriod('off')).toBeNull();
   });
 
-  it('keeps spotting as the DB-compatible spotting value', () => {
-    expect(periodStatusToDailyLogPeriod('spotting')).toBe('spotting');
+  it('does not write spotting into daily_logs because live DB stores spotting in period_logs only', () => {
+    expect(periodStatusToDailyLogPeriod('spotting')).toBeNull();
   });
 
   it('maps UI period states to synced period log flow values', () => {

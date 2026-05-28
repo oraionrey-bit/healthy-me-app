@@ -27,7 +27,6 @@ export const PERIOD_OPTIONS: Array<{ value: string; label: string }> = [
 ];
 
 export function periodStatusToDailyLogPeriod(periodStatus: string): string | null {
-  if (periodStatus === 'spotting') return 'spotting';
   if (periodStatus === 'on') return 'medium';
   return null;
 }

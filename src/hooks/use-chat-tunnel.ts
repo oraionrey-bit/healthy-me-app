@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
 import { CHAT_RELAY_URL } from '../constants/chat';
 import type { ChatMessage, ChatMessageType, FoodAnalysis } from '../types/database';
 
@@ -20,6 +21,7 @@ interface UseChatTunnelReturn {
 }
 
 export function useChatTunnel(): UseChatTunnelReturn {
+  const { user } = useAuth();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [response, setResponse] = useState<ChatMessage | null>(null);
@@ -70,6 +72,7 @@ export function useChatTunnel(): UseChatTunnelReturn {
         const formData = new FormData();
         formData.append('message_type', params.messageType);
         formData.append('description', params.description);
+        if (user?.id) formData.append('user_id', user.id);
 
         for (const photo of params.photos) {
           // Convert to File (Safari requires File, not Blob, in FormData)
@@ -114,7 +117,7 @@ export function useChatTunnel(): UseChatTunnelReturn {
         return null;
       }
     },
-    [],
+    [user?.id],
   );
 
   const sendChat = useCallback(async (content: string): Promise<string | null> => {
@@ -129,7 +132,7 @@ export function useChatTunnel(): UseChatTunnelReturn {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${CHAT_TOKEN}`,
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, user_id: user?.id }),
       });
 
       if (!res.ok) {
@@ -146,7 +149,7 @@ export function useChatTunnel(): UseChatTunnelReturn {
       setSending(false);
       return null;
     }
-  }, []);
+  }, [user?.id]);
 
   const clearResponse = useCallback(() => {
     setResponse(null);
