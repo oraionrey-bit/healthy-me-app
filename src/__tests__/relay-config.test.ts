@@ -34,10 +34,23 @@ describe('relay config', () => {
     expect(config.geminiApiKey).toBe('google-key');
   });
 
+  test('ignores placeholder AI keys so the relay does not pick a broken provider', () => {
+    const config = loadRelayConfig({
+      GEMINI_API_KEY: 'your_gemini_api_key_here_replace_before_use',
+      GOOGLE_API_KEY: 'your_google_api_key_here',
+      OPENROUTER_API_KEY: 'openrouter-key',
+    });
+
+    expect(config.geminiApiKey).toBe('');
+    expect(config.openRouterApiKey).toBe('openrouter-key');
+    expect(chooseAiProvider(config)).toBe('openrouter');
+  });
+
   test('chooses best available AI provider without old Claude thread dependency', () => {
     expect(chooseAiProvider({ clawRouterApiKey: 'claw', geminiApiKey: 'gemini', openRouterApiKey: 'openrouter' })).toBe('clawrouter');
     expect(chooseAiProvider({ geminiApiKey: 'gemini', openRouterApiKey: 'openrouter' })).toBe('gemini');
     expect(chooseAiProvider({ openRouterApiKey: 'openrouter' })).toBe('openrouter');
+    expect(chooseAiProvider({ supabaseUrl: 'https://example.supabase.co', supabaseServiceRoleKey: 'service-key' })).toBe('supabase');
     expect(chooseAiProvider({})).toBe('manual');
   });
 });

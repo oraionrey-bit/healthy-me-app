@@ -1,8 +1,15 @@
 const DEFAULT_OPENROUTER_MODEL = 'google/gemini-2.5-flash';
 
+function looksLikePlaceholder(value) {
+  const normalized = value.toLowerCase();
+  return normalized.includes('your_') || normalized.includes('_here') || normalized.includes('replace_before_use');
+}
+
 function firstNonEmpty(...values) {
   for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value !== 'string') continue;
+    const trimmed = value.trim();
+    if (trimmed && !looksLikePlaceholder(trimmed)) return trimmed;
   }
   return '';
 }
@@ -30,6 +37,7 @@ function chooseAiProvider(config) {
   if (config.clawRouterApiKey) return 'clawrouter';
   if (config.geminiApiKey) return 'gemini';
   if (config.openRouterApiKey) return 'openrouter';
+  if (config.supabaseUrl && config.supabaseServiceRoleKey) return 'supabase';
   return 'manual';
 }
 

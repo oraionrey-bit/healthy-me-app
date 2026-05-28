@@ -389,11 +389,59 @@ async function callOpenRouter(systemPrompt, photos, userText) {
   });
 }
 
+async function callSupabaseAnalyzer(systemPrompt, photos, userText) {
+  if (!CONFIG.supabaseUrl || !CONFIG.supabaseServiceRoleKey) {
+    throw new Error('Supabase analyzer not configured');
+  }
+
+  const payload = JSON.stringify({
+    systemPrompt,
+    description: userText || 'Please analyze this image.',
+    photos: photos.map((photo) => ({
+      mimeType: photo.mimeType,
+      base64: photo.buffer.toString('base64'),
+    })),
+  });
+
+  const endpoint = new URL('/functions/v1/analyze-product', CONFIG.supabaseUrl);
+  return new Promise((resolve, reject) => {
+    const apiReq = https.request(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${CONFIG.supabaseServiceRoleKey}`,
+        'apikey': CONFIG.supabaseServiceRoleKey,
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    }, (apiRes) => {
+      let data = '';
+      apiRes.on('data', (c) => (data += c));
+      apiRes.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (apiRes.statusCode >= 200 && apiRes.statusCode < 300 && parsed.content) {
+            resolve(parsed.content);
+          } else {
+            reject(new Error(`Supabase analyzer HTTP ${apiRes.statusCode}: ${data.slice(0, 200)}`));
+          }
+        } catch (e) {
+          reject(new Error(`Failed to parse Supabase analyzer response: ${e.message}`));
+        }
+      });
+    });
+
+    apiReq.on('error', reject);
+    apiReq.write(payload);
+    apiReq.end();
+  });
+}
+
 async function callAiProvider(systemPrompt, photos, userText) {
   const provider = chooseAiProvider(CONFIG);
   if (provider === 'clawrouter') return callClawRouter(systemPrompt, photos, userText);
   if (provider === 'gemini') return callGemini(systemPrompt, photos, userText);
   if (provider === 'openrouter') return callOpenRouter(systemPrompt, photos, userText);
+  if (provider === 'supabase') return callSupabaseAnalyzer(systemPrompt, photos, userText);
   throw new Error('No AI provider configured');
 }
 
