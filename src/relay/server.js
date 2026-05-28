@@ -15,6 +15,7 @@ const crypto = require('crypto');
 const path = require('path');
 const {
   buildTelegramNotificationPayload,
+  resolveMessageUserId,
   shouldNotifyOraion,
 } = require('./routing');
 const { loadRelayConfig, chooseAiProvider } = require('./config');
@@ -543,6 +544,7 @@ async function handleAnalyze(req, res) {
           ? fields.message_type
           : 'food_analysis';
         const description = fields.description || '';
+        const messageUserId = resolveMessageUserId(fields, TINA_USER_ID);
 
         if (photos.length === 0) {
           sendJson(res, 400, { error: 'No valid photos provided' });
@@ -564,7 +566,7 @@ async function handleAnalyze(req, res) {
         const { data, error } = await supabase
           .from('chat_messages')
           .insert({
-            user_id: TINA_USER_ID,
+            user_id: messageUserId,
             direction: 'user',
             content: description,
             photo_urls: photoUrls,
@@ -637,11 +639,12 @@ async function handleChat(req, res) {
   const messageType = VALID_MESSAGE_TYPES.includes(parsed.message_type)
     ? parsed.message_type
     : 'chat';
+  const messageUserId = resolveMessageUserId(parsed, TINA_USER_ID);
 
   const { data, error } = await supabase
     .from('chat_messages')
     .insert({
-      user_id: TINA_USER_ID,
+      user_id: messageUserId,
       direction: 'user',
       content,
       message_type: messageType,

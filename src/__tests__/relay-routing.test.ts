@@ -1,5 +1,6 @@
 const {
   buildTelegramNotificationPayload,
+  resolveMessageUserId,
   shouldNotifyOraion,
 } = require('../relay/routing');
 
@@ -23,5 +24,17 @@ describe('relay notification routing', () => {
 
   test('notifies Oraion when AI processing failed and manual response is needed', () => {
     expect(shouldNotifyOraion({ aiProcessed: false })).toBe(true);
+  });
+
+  test('routes relay-created messages to the signed-in app user when supplied', () => {
+    expect(resolveMessageUserId(
+      { user_id: '11111111-2222-4333-8444-555555555555' },
+      'fallback-user-id',
+    )).toBe('11111111-2222-4333-8444-555555555555');
+  });
+
+  test('falls back to Tina legacy user id when no valid app user is supplied', () => {
+    expect(resolveMessageUserId({ user_id: 'not-a-uuid' }, 'fallback-user-id')).toBe('fallback-user-id');
+    expect(resolveMessageUserId({}, 'fallback-user-id')).toBe('fallback-user-id');
   });
 });

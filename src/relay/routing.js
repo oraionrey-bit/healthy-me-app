@@ -1,4 +1,5 @@
 const DEFAULT_ORAION_CHAT_ID = '5052308275';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function configuredTelegramTarget(env = process.env) {
   return {
@@ -27,9 +28,15 @@ function shouldNotifyOraion({ aiProcessed }) {
   return aiProcessed !== true;
 }
 
+function resolveMessageUserId(fields = {}, fallbackUserId) {
+  const suppliedUserId = typeof fields.user_id === 'string' ? fields.user_id.trim() : '';
+  return UUID_RE.test(suppliedUserId) ? suppliedUserId : fallbackUserId;
+}
+
 module.exports = {
   DEFAULT_ORAION_CHAT_ID,
   configuredTelegramTarget,
   buildTelegramNotificationPayload,
+  resolveMessageUserId,
   shouldNotifyOraion,
 };
