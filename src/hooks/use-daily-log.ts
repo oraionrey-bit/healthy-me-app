@@ -7,7 +7,7 @@ import type { DailyLog } from '../types/database';
 interface SaveDailyLogInput {
   mood?: string;
   energy?: string;
-  period?: string;
+  period?: string | null;
   exercise?: string;
   health_notes?: string;
 }
@@ -55,11 +55,12 @@ export function useDailyLog(date: Date = new Date()) {
       });
 
       if (dailyLog) {
+        const hasPeriodInput = Object.prototype.hasOwnProperty.call(input, 'period');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
         const { error } = await (supabase.from('daily_logs') as any)
           .update({
             mood: moodValue,
-            period: input.period ?? dailyLog.period,
+            period: hasPeriodInput ? input.period : dailyLog.period,
             exercise: input.exercise ?? dailyLog.exercise,
             health_notes: input.health_notes ?? dailyLog.health_notes,
           })

@@ -33,6 +33,11 @@ import { CalfTrackerCard } from '../../components/home/calf-tracker-card';
 import { DateNavigator } from '../../components/shared/date-navigator';
 import { DailyCheckinCard } from '../../components/home/daily-checkin-card';
 import { WeeklyInsightsCard } from '../../components/home/weekly-insights-card';
+import {
+  dailyLogPeriodToPeriodStatus,
+  periodStatusToPeriodLogFlow,
+  periodStatusToDailyLogPeriod,
+} from '../../constants/check-in';
 import { useOura, getBestSteps } from '../../hooks/use-oura';
 import { useWeeklyInsights } from '../../hooks/use-weekly-insights';
 import { CalorieBalanceCard } from '../../components/home/calorie-balance-card';
@@ -250,9 +255,7 @@ export default function HomeScreen() {
           }
         }
       }
-      if (dailyLog.period) {
-        setPeriodStatus(dailyLog.period);
-      }
+      setPeriodStatus(dailyLogPeriodToPeriodStatus(dailyLog.period));
     }
   }, [dailyLog]);
 
@@ -290,8 +293,8 @@ export default function HomeScreen() {
       }
 
       // Save period to period_logs
-      if (periodStatus !== 'off') {
-        const flow = periodStatus === 'on' ? 'medium' : 'spotting';
+      const periodLogFlow = periodStatusToPeriodLogFlow(periodStatus);
+      if (periodLogFlow) {
         const existing = await supabase
           .from('period_logs')
           .select('id')
@@ -302,20 +305,26 @@ export default function HomeScreen() {
         if (existing.data) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
           await (supabase.from('period_logs') as any)
-            .update({ flow, cramps: 0, headache: false, back_pain: false })
+            .update({ flow: periodLogFlow, cramps: 0, headache: false, back_pain: false })
             .eq('id', (existing.data as { id: string }).id);
         } else {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
           await (supabase.from('period_logs') as any).insert({
             user_id: user.id,
             log_date: selectedDateKey,
-            flow,
+            flow: periodLogFlow,
             cramps: 0,
             headache: false,
             back_pain: false,
             notes: null,
           });
         }
+      } else {
+        await supabase
+          .from('period_logs')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('log_date', selectedDateKey);
       }
 
       // Save notes + love to daily_logs FIRST (most important — don't lose user's text)
@@ -358,7 +367,7 @@ export default function HomeScreen() {
 
       await saveDailyLog({
         health_notes: healthNotesToSave,
-        period: periodStatus !== 'off' ? periodStatus : undefined,
+        period: periodStatusToDailyLogPeriod(periodStatus),
       });
 
       // Sync symptoms: remove deselected, update existing, add new (non-blocking)
