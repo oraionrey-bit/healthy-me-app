@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anthony's Japan Guide 🇯🇵</title>
+  <meta name="description" content="Anthony's personal Japan travel guide — food, shopping, drugstore finds, and Tokyo neighborhoods." />
+  <meta name="theme-color" content="#1a1a4e" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── CSS Reset & Variables ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #1a1a4e;
+      --navy2:  #252568;
+      --gold:   #c8a96e;
+      --gold2:  #e2c898;
+      --pink:   #fce4ec;
+      --pink2:  #f8bbd9;
+      --white:  #ffffff;
+      --off:    #f8f7f5;
+      --gray:   #6b7280;
+      --lgray:  #e5e7eb;
+      --text:   #1c1c2e;
+      --radius: 14px;
+      --shadow: 0 4px 20px rgba(26,26,78,0.10);
+      --shadow-hover: 0 8px 30px rgba(26,26,78,0.18);
+      --font-en: 'Inter', sans-serif;
+      --font-jp: 'Noto Sans JP', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-en);
+      background: var(--off);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Navbar ────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(26, 26, 78, 0.97);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.25);
+    }
+
+    .nav-brand {
+      font-family: var(--font-jp);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-brand .flag { font-size: 1.2rem; }
+
+    .nav-links {
+      display: flex;
+      list-style: none;
+      gap: 0.25rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .nav-links::-webkit-scrollbar { display: none; }
+
+    .nav-links a {
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-radius: 20px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .nav-links a:hover {
+      background: rgba(200,169,110,0.2);
+      color: var(--gold);
+    }
+
+    /* ── Hero ──────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, #3a1a5e 100%);
+      color: white;
+      padding: 4rem 1.5rem 3.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 30% 60%, rgba(200,169,110,0.12) 0%, transparent 60%),
+                  radial-gradient(ellipse at 70% 30%, rgba(252,228,236,0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    /* Sakura petals */
+    .sakura {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .petal {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50% 0 50% 0;
+      background: rgba(252,228,236,0.35);
+      animation: fall linear infinite;
+    }
+    @keyframes fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 0.6; }
+      100% { transform: translateY(calc(100vh + 40px)) rotate(720deg); opacity: 0; }
+    }
+
+    .hero-content { position: relative; z-index: 2; }
+
+    .hero-emoji { font-size: 3rem; margin-bottom: 0.75rem; display: block; }
+
+    .hero-title {
+      font-family: var(--font-en);
+      font-size: clamp(1.8rem, 6vw, 3rem);
+      font-weight: 700;
+      color: white;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 0.5rem;
+    }
+
+    .hero-title-jp {
+      font-family: var(--font-jp);
+      font-size: clamp(0.9rem, 3vw, 1.2rem);
+      color: var(--gold);
+      font-weight: 400;
+      margin-bottom: 1rem;
+      letter-spacing: 0.1em;
+    }
+
+    .hero-sub {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.7);
+      max-width: 400px;
+      margin: 0 auto 2rem;
+    }
+
+    .hero-pills {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .pill {
+      background: rgba(200,169,110,0.15);
+      border: 1px solid rgba(200,169,110,0.3);
+      color: var(--gold2);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    /* ── Section Layout ────────────────────────────────────────── */
+    section {
+      padding: 3rem 1rem 2.5rem;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      margin-bottom: 1.75rem;
+    }
+
+    .section-label {
+      font-family: var(--font-jp);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--gold);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .section-title {
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 700;
+      color: var(--navy);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .section-sub {
+      font-size: 0.9rem;
+      color: var(--gray);
+      margin-top: 0.4rem;
+    }
+
+    .section-divider {
+      width: 100%;
+      height: 1px;
+      background: var(--lgray);
+      margin: 0;
+    }
+
+    /* ── Cards ─────────────────────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+      background: linear-gradient(135deg, var(--white) 80%, var(--pink) 100%);
+    }
+
+    .card-accent {
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(180deg, var(--gold), var(--gold2));
+      border-radius: 14px 0 0 14px;
+    }
+
+    .card-emoji { font-size: 1.8rem; margin-bottom: 0.5rem; display: block; }
+
+    .card-name {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--navy);
+      margin-bottom: 0.25rem;
+    }
+
+    .card-name-jp {
+      font-family: var(--font-jp);
+      font-size: 0.85rem;
+      color: var(--gold);
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-tag {
+      display: inline-block;
+      background: rgba(26,26,78,0.07);
+      color: var(--navy);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 12px;
+      margin-bottom: 0.6rem;
+      letter-spacing: 0.02em;
+    }
+
+    .card-note {
+      font-size: 0.85rem;
+      color: var(--gray);
+      line-height: 1.5;
+    }
+
+    .card-price {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--navy);
+      margin-top: 0.5rem;
+    }
+
+    .card-checkbox {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--lgray);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      transition: all 0.2s;
+      font-size: 0.8rem;
+      color: transparent;
+      user-select: none;
+    }
+    .card-checkbox.checked {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: white;
+    }
+
+    /* ── Placeholder cards ─────────────────────────────────────── */
+    .card-placeholder {
+      background: linear-gradient(135deg, #f0eefc 0%, #fce4ec 100%);
+      border: 2px dashed rgba(26,26,78,0.15);
+      box-shadow: none;
+    }
+    .card-placeholder:hover { background: linear-gradient(135deg, #e8e6f8 0%, #f8d8e8 100%); }
+    .card-placeholder .card-name { color: var(--gray); }
+    .placeholder-badge {
+      display: inline-block;
+      background: rgba(200,169,110,0.15);
+      color: var(--gold);
+      border: 1px solid rgba(200,169,110,0.3);
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 12px;
+      margin-top: 0.4rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Neighborhood Grid ──────────────────────────────────────── */
+    .neighborhood-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .neighborhood-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s;
+      border-top: 3px solid var(--navy);
+    }
+    .neighborhood-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+      border-top-color: var(--gold);
+    }
+
+    .neighborhood-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+    .neighborhood-name-jp {
+      font-family: var(--font-jp);
+      font-size: 0.85rem;
+      color: var(--gold);
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+    .neighborhood-desc {
+      font-size: 0.87rem;
+      color: var(--gray);
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+    }
+    .neighborhood-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .nbr-tag {
+      background: rgba(26,26,78,0.06);
+      color: var(--navy2);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 12px;
+    }
+
+    /* ── Tips Section ───────────────────────────────────────────── */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .tip-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .tip-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .tip-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tip-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .tip-list li {
+      font-size: 0.87rem;
+      color: var(--gray);
+      padding-left: 1.2rem;
+      position: relative;
+      line-height: 1.5;
+    }
+    .tip-list li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    .phrase-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--lgray);
+      gap: 0.5rem;
+    }
+    .phrase-row:last-child { border-bottom: none; }
+    .phrase-jp {
+      font-family: var(--font-jp);
+      font-size: 1rem;
+      color: var(--navy);
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .phrase-en {
+      font-size: 0.8rem;
+      color: var(--gray);
+      text-align: right;
+      line-height: 1.4;
+    }
+
+    /* ── Food Category Headers ──────────────────────────────────── */
+    .food-section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin: 1.5rem 0 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--lgray);
+    }
+    .food-section-title::before {
+      content: '';
+      width: 4px;
+      height: 18px;
+      background: var(--gold);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────── */
+    footer {
+      background: var(--navy);
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 0.85rem;
+      margin-top: 2rem;
+    }
+    footer strong { color: var(--gold); }
+    footer .footer-jp {
+      font-family: var(--font-jp);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* ── Scroll progress bar ────────────────────────────────────── */
+    #progress {
+      position: fixed;
+      top: 56px;
+      left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold), var(--gold2));
+      z-index: 101;
+      transition: width 0.1s;
+      pointer-events: none;
+    }
+
+    /* ── Back to top ────────────────────────────────────────────── */
+    #back-top {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      width: 42px;
+      height: 42px;
+      background: var(--navy);
+      color: var(--gold);
+      border: none;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: all 0.25s;
+      z-index: 99;
+    }
+    #back-top.visible { opacity: 1; transform: translateY(0); }
+    #back-top:hover { background: var(--gold); color: var(--navy); }
+
+    /* ── Checked overlay ─────────────────────────────────────────── */
+    .card.done { opacity: 0.55; }
+    .card.done .card-name { text-decoration: line-through; }
+
+    /* ── Stats bar ──────────────────────────────────────────────── */
+    .stats-bar {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .stat { text-align: center; flex: 1; min-width: 60px; }
+    .stat-num { font-size: 1.5rem; font-weight: 700; color: var(--navy); }
+    .stat-label { font-size: 0.72rem; color: var(--gray); margin-top: 2px; }
+
+    /* ── Mobile tweaks ──────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      section { padding: 2.5rem 1rem 2rem; }
+      .card-grid, .neighborhood-grid, .tips-grid { grid-template-columns: 1fr; }
+      .hero { padding: 3rem 1rem 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Scroll progress -->
+<div id="progress"></div>
+
+<!-- Navbar -->
+<nav>
+  <a class="nav-brand" href="#top">
+    <span class="flag">🇯🇵</span>
+    <span>Japan Guide</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#drugstore">💊 Drugstore</a></li>
+    <li><a href="#food">🍜 Food</a></li>
+    <li><a href="#tokyo">🗼 Tokyo</a></li>
+    <li><a href="#tips">💡 Tips</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<div class="hero" id="top">
+  <div class="sakura" id="sakura-container"></div>
+  <div class="hero-content">
+    <span class="hero-emoji">🌸</span>
+    <h1 class="hero-title">Anthony's Japan Guide</h1>
+    <p class="hero-title-jp">アンソニーの日本旅行ガイド</p>
+    <p class="hero-sub">Your personal pocket guide to food, shopping, and Tokyo neighborhoods</p>
+    <div class="hero-pills">
+      <span class="pill">🍜 Food Hitlist</span>
+      <span class="pill">💊 Drugstore Finds</span>
+      <span class="pill">🗼 Tokyo Areas</span>
+      <span class="pill">💴 Shopping Tips</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── SECTION 1: Drugstore ──────────────────────────────────────── -->
+<div class="section-divider"></div>
+<section id="drugstore">
+  <div class="section-header">
+    <span class="section-label">ドラッグストア</span>
+    <h2 class="section-title">Drugstore Finds</h2>
+    <p class="section-sub">Best eye creams for dark circles from Japanese pharmacies</p>
+  </div>
+
+  <div class="card-grid">
+    <!-- Eye product placeholders -->
+    <div class="card card-placeholder">
+      <div class="card-accent"></div>
+      <span class="card-emoji">👁️</span>
+      <div class="card-name">Loading eye cream recommendations…</div>
+      <div class="card-note">Researching top-rated eye creams for dark circles available at Matsumoto Kiyoshi, Welcia, and Sundrug.</div>
+      <div class="placeholder-badge">📍 Coming Soon</div>
+    </div>
+    <div class="card card-placeholder">
+      <div class="card-accent"></div>
+      <span class="card-emoji">✨</span>
+      <div class="card-name">Brightening serum picks…</div>
+      <div class="card-note">Japanese brands like Kose, Hada Labo, and Rohto — finding the best value for dark circles.</div>
+      <div class="placeholder-badge">📍 Coming Soon</div>
+    </div>
+    <div class="card card-placeholder">
+      <div class="card-accent"></div>
+      <span class="card-emoji">🏥</span>
+      <div class="card-name">Drugstore must-buys list…</div>
+      <div class="card-note">Sheet masks, sunscreens, rice water toners — cult Japanese drugstore items worth picking up.</div>
+      <div class="placeholder-badge">📍 Coming Soon</div>
+    </div>
+    <!-- Static tip card -->
+    <div class="card">
+      <div class="card-accent"></div>
+      <span class="card-emoji">🛒</span>
+      <div class="card-name">Best Drugstore Chains</div>
+      <div class="card-note">
+        <strong>Matsumoto Kiyoshi</strong> — widest range, usually tax-free<br>
+        <strong>Welcia</strong> — great prices, T-Point rewards<br>
+        <strong>Sundrug</strong> — slightly cheaper, less tourist crowds<br>
+        <strong>Don Quijote</strong> — open late, bulk discounts<br><br>
+        Look for the <strong>免税</strong> (tax-free) sign — you'll save 10% on qualifying purchases over ¥5,000.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 2: Food ───────────────────────────────────────────── -->
+<div class="section-divider"></div>
+<section id="food">
+  <div class="section-header">
+    <span class="section-label">食べ物・レストラン</span>
+    <h2 class="section-title">Food &amp; Restaurants</h2>
+    <p class="section-sub">Tap the ✓ to mark dishes you've tried</p>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-num" id="tried-count">0</div><div class="stat-label">Tried</div></div>
+    <div class="stat"><div class="stat-num" id="todo-count">0</div><div class="stat-label">To Try</div></div>
+    <div class="stat"><div class="stat-num" id="total-count">0</div><div class="stat-label">Total</div></div>
+  </div>
+
+  <!-- Asakusa Recs -->
+  <div class="food-section-title">🗼 Asakusa — Already Have Recs</div>
+  <div class="card-grid" id="asakusa-recs">
+    <div class="card" data-food="ramen-shoyu">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍜</span>
+      <div class="card-name">Ramen (Shoyu)</div>
+      <div class="card-name-jp">醤油ラーメン</div>
+      <span class="card-tag">Asakusa</span>
+      <div class="card-note">Men Mitsui, Tawaramachi. Tabelog 100. Cash only. 7 seats. Arrive early — queue fills fast.</div>
+      <div class="card-price">¥1,000–2,000</div>
+    </div>
+    <div class="card" data-food="tempura">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍤</span>
+      <div class="card-name">Tempura</div>
+      <div class="card-name-jp">天ぷら</div>
+      <span class="card-tag">Asakusa · Est. 1889</span>
+      <div class="card-note">Tempura Bar Akimitsu. Sets from ¥4,500. One of the oldest tempura spots in Tokyo.</div>
+      <div class="card-price">¥4,500+</div>
+    </div>
+    <div class="card" data-food="soba">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍝</span>
+      <div class="card-name">Soba</div>
+      <div class="card-name-jp">そば</div>
+      <span class="card-tag">Asakusa · Lunch</span>
+      <div class="card-note">Asakusa Sarashina Tenko. Modern style, homemade noodles. Great value lunch.</div>
+      <div class="card-price">¥1,000–2,000</div>
+    </div>
+    <div class="card" data-food="sichuan">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🌶️</span>
+      <div class="card-name">Sichuan Chinese</div>
+      <div class="card-name-jp">四川料理</div>
+      <span class="card-tag">Asakusa · Tabelog 100</span>
+      <div class="card-note">Sichuan Hashoku. Tabelog 100 winner 2026. Lunch is incredible value.</div>
+      <div class="card-price">¥5,000–6,000</div>
+    </div>
+    <div class="card" data-food="french">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍷</span>
+      <div class="card-name">French (High-End)</div>
+      <div class="card-name-jp">フレンチ</div>
+      <span class="card-tag">Asakusa · River View</span>
+      <div class="card-note">Nabeno-Ism. River terrace, Tabelog Bronze 8 years running. Book way in advance.</div>
+      <div class="card-price">¥20,000–29,000</div>
+    </div>
+    <div class="card" data-food="sushi">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍣</span>
+      <div class="card-name">Edomae Sushi</div>
+      <div class="card-name-jp">江戸前寿司</div>
+      <span class="card-tag">Asakusa · Halal OK</span>
+      <div class="card-note">Asakusa Sushi Ken. Halal-certified, Toyosu-fresh fish. Great dinner option.</div>
+      <div class="card-price">¥4,000 dinner</div>
+    </div>
+    <div class="card" data-food="yakitori">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍢</span>
+      <div class="card-name">Yakitori</div>
+      <div class="card-name-jp">焼き鳥</div>
+      <span class="card-tag">Asakusa · 10 sec away</span>
+      <div class="card-note">TORASUZU. 10 seconds from Asakusa Metro Exit 1. Charcoal-grilled skewers.</div>
+      <div class="card-price">¥2,000–3,000</div>
+    </div>
+    <div class="card" data-food="monjayaki">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🥘</span>
+      <div class="card-name">Monjayaki</div>
+      <div class="card-name-jp">もんじゃ焼き</div>
+      <span class="card-tag">Asakusa · Tokyo-Style</span>
+      <div class="card-note">Asakusa Monja Monro. Tokyo's answer to Osaka okonomiyaki — wetter and saltier.</div>
+      <div class="card-price">¥2,000</div>
+    </div>
+  </div>
+
+  <!-- Broadly Japan -->
+  <div class="food-section-title">🗾 Japan Broadly — Must-Try Foods</div>
+  <div class="card-grid" id="japan-recs">
+    <div class="card" data-food="omakase">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍱</span>
+      <div class="card-name">Omakase Sushi</div>
+      <div class="card-name-jp">おまかせ寿司</div>
+      <span class="card-tag">Chef's Choice</span>
+      <div class="card-note">Trust the chef. Counter experience. At least one omakase is non-negotiable in Japan.</div>
+    </div>
+    <div class="card" data-food="tonkotsu">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍜</span>
+      <div class="card-name">Tonkotsu Ramen</div>
+      <div class="card-name-jp">豚骨ラーメン</div>
+      <span class="card-tag">Fukuoka Style</span>
+      <div class="card-note">Creamy pork-bone broth — totally different from Tokyo shoyu ramen. Rich and addictive.</div>
+    </div>
+    <div class="card" data-food="okonomiyaki">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🥞</span>
+      <div class="card-name">Okonomiyaki</div>
+      <div class="card-name-jp">お好み焼き</div>
+      <span class="card-tag">Osaka Style</span>
+      <div class="card-note">Osaka-style savory pancake with mayo + bonito flakes waving in the steam. Iconic.</div>
+    </div>
+    <div class="card" data-food="takoyaki">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🐙</span>
+      <div class="card-name">Takoyaki</div>
+      <div class="card-name-jp">たこ焼き</div>
+      <span class="card-tag">Osaka</span>
+      <div class="card-note">Octopus balls. Crispy outside, gooey inside. Watch out — lava-hot in the center.</div>
+    </div>
+    <div class="card" data-food="wagyu-shabu">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🥩</span>
+      <div class="card-name">Shabu-Shabu (Wagyu)</div>
+      <div class="card-name-jp">しゃぶしゃぶ</div>
+      <span class="card-tag">Hot Pot</span>
+      <div class="card-note">Swish wagyu in simmering dashi broth. Melt-in-your-mouth experience.</div>
+    </div>
+    <div class="card" data-food="yakiniku">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🔥</span>
+      <div class="card-name">Yakiniku</div>
+      <div class="card-name-jp">焼肉</div>
+      <span class="card-tag">Japanese BBQ</span>
+      <div class="card-note">Grill your own meat tableside. Order the tongue (タン/tan) — it's incredible here.</div>
+    </div>
+    <div class="card" data-food="kaisendon">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🐟</span>
+      <div class="card-name">Kaisendon</div>
+      <div class="card-name-jp">海鮮丼</div>
+      <span class="card-tag">Tsukiji / Toyosu</span>
+      <div class="card-note">Seafood bowl piled with fresh sashimi over rice. Best near the fish markets.</div>
+    </div>
+    <div class="card" data-food="gyoza">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🥟</span>
+      <div class="card-name">Gyoza</div>
+      <div class="card-name-jp">餃子</div>
+      <span class="card-tag">Dumplings</span>
+      <div class="card-note">Pan-fried Japanese dumplings. Thinner skin than Chinese gyoza, more garlicky. Addictive.</div>
+    </div>
+    <div class="card" data-food="curry">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍛</span>
+      <div class="card-name">Japanese Curry</div>
+      <div class="card-name-jp">カレーライス</div>
+      <span class="card-tag">Comfort Food</span>
+      <div class="card-note">Milder and richer than Indian curry. Thick sauce over rice with a katsu cutlet on top. Soul food.</div>
+    </div>
+    <div class="card" data-food="udon">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍜</span>
+      <div class="card-name">Udon</div>
+      <div class="card-name-jp">うどん</div>
+      <span class="card-tag">Thick Noodles</span>
+      <div class="card-note">Thick wheat noodles in clear dashi broth. Kagawa is the mecca — try it fresh there.</div>
+    </div>
+    <div class="card" data-food="karaage">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍗</span>
+      <div class="card-name">Karaage</div>
+      <div class="card-name-jp">唐揚げ</div>
+      <span class="card-tag">Fried Chicken</span>
+      <div class="card-note">Japanese fried chicken marinated in soy + ginger. Lighter coating than Korean fried chicken.</div>
+    </div>
+    <div class="card" data-food="tonkatsu">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🥩</span>
+      <div class="card-name">Tonkatsu</div>
+      <div class="card-name-jp">とんかつ</div>
+      <span class="card-tag">Breaded Cutlet</span>
+      <div class="card-note">Crispy breaded pork cutlet. The sauce is everything. Try with cabbage and miso soup.</div>
+    </div>
+  </div>
+
+  <!-- Sweets -->
+  <div class="food-section-title">🍡 Sweets &amp; Snacks</div>
+  <div class="card-grid" id="sweets-recs">
+    <div class="card" data-food="dorayaki">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🥮</span>
+      <div class="card-name">Dorayaki</div>
+      <div class="card-name-jp">どら焼き</div>
+      <span class="card-tag">Asakusa · Tabelog 100</span>
+      <div class="card-note">Kameju in Asakusa. Tabelog 100. Red bean pancake sandwiches. Under ¥999 per item.</div>
+      <div class="card-price">¥–999</div>
+    </div>
+    <div class="card" data-food="yakiimo">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍠</span>
+      <div class="card-name">Roasted Sweet Potato</div>
+      <div class="card-name-jp">焼き芋</div>
+      <span class="card-tag">Asakusa · Street Food</span>
+      <div class="card-note">Chiba Ya in Asakusa. Tabelog 100. Look for the cart — whole sweet potato, caramelized.</div>
+    </div>
+    <div class="card" data-food="matcha">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍵</span>
+      <div class="card-name">Matcha Everything</div>
+      <div class="card-name-jp">抹茶</div>
+      <span class="card-tag">Everywhere</span>
+      <div class="card-note">KitKats (get at convenience stores or gift shops), matcha soft serve, wagashi sweets.</div>
+    </div>
+    <div class="card" data-food="taiyaki">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🐟</span>
+      <div class="card-name">Taiyaki</div>
+      <div class="card-name-jp">たい焼き</div>
+      <span class="card-tag">Street Food</span>
+      <div class="card-note">Fish-shaped waffle filled with sweet red bean paste. Crispy outside, warm filling.</div>
+    </div>
+    <div class="card" data-food="mochi">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍡</span>
+      <div class="card-name">Mochi / Daifuku</div>
+      <div class="card-name-jp">餅 / 大福</div>
+      <span class="card-tag">Traditional</span>
+      <div class="card-note">Rice cake with sweet filling — try strawberry daifuku. Available at wagashi shops everywhere.</div>
+    </div>
+    <div class="card" data-food="kakigori">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🧊</span>
+      <div class="card-name">Kakigori</div>
+      <div class="card-name-jp">かき氷</div>
+      <span class="card-tag">Shaved Ice</span>
+      <div class="card-note">Japanese shaved ice — much fluffier than Hawaiian. Matcha or strawberry with condensed milk.</div>
+    </div>
+  </div>
+
+  <!-- Drinks -->
+  <div class="food-section-title">🍶 Drinks</div>
+  <div class="card-grid" id="drinks-recs">
+    <div class="card" data-food="whisky">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🥃</span>
+      <div class="card-name">Japanese Whisky</div>
+      <div class="card-name-jp">ウイスキー</div>
+      <span class="card-tag">Nikka · Suntory</span>
+      <div class="card-note">Try at a whisky bar where they'll pour rare expressions. Nikka From The Barrel is a must.</div>
+    </div>
+    <div class="card" data-food="sake">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🍶</span>
+      <div class="card-name">Sake (Nihonshu)</div>
+      <div class="card-name-jp">日本酒</div>
+      <span class="card-tag">Local Brews</span>
+      <div class="card-note">Try at a sake bar with food pairings. Junmai Daiginjo is the top tier. Many by the glass.</div>
+    </div>
+    <div class="card" data-food="canned-coffee">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">☕</span>
+      <div class="card-name">Canned Coffee</div>
+      <div class="card-name-jp">缶コーヒー</div>
+      <span class="card-tag">Convenience Store Ritual</span>
+      <div class="card-note">From any vending machine or convenience store. Georgia Boss or Roots — part of the Japan experience.</div>
+    </div>
+    <div class="card" data-food="melon-fanta">
+      <div class="card-accent"></div>
+      <div class="card-checkbox" onclick="toggleDone(this)"></div>
+      <span class="card-emoji">🥤</span>
+      <div class="card-name">Japan-Exclusive Sodas</div>
+      <div class="card-name-jp">限定フレーバー</div>
+      <span class="card-tag">Convenience Store</span>
+      <div class="card-note">Melon Fanta, Grape Fanta, seasonal flavors. Also try Calpico (Calpis) — sweet yogurt soda.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 3: Tokyo Areas ────────────────────────────────────── -->
+<div class="section-divider"></div>
+<section id="tokyo">
+  <div class="section-header">
+    <span class="section-label">東京エリアガイド</span>
+    <h2 class="section-title">Tokyo Area Guide</h2>
+    <p class="section-sub">Six essential neighborhoods to explore</p>
+  </div>
+
+  <div class="neighborhood-grid">
+    <div class="neighborhood-card">
+      <div class="neighborhood-name">Asakusa <span style="font-size:1.2em">🛕</span></div>
+      <span class="neighborhood-name-jp">浅草</span>
+      <p class="neighborhood-desc">Old Tokyo. Senso-ji temple, Nakamise shopping street, traditional crafts and street food. The most "traditional Japan" feel in Tokyo. Great for morning visits — less crowded.</p>
+      <div class="neighborhood-tags">
+        <span class="nbr-tag">🍜 Food Scene</span>
+        <span class="nbr-tag">🛍️ Crafts</span>
+        <span class="nbr-tag">⛩️ Temples</span>
+        <span class="nbr-tag">📸 Photography</span>
+      </div>
+    </div>
+    <div class="neighborhood-card">
+      <div class="neighborhood-name">Shibuya <span style="font-size:1.2em">🚦</span></div>
+      <span class="neighborhood-name-jp">渋谷</span>
+      <p class="neighborhood-desc">The famous scramble crossing, Shibuya 109, Shibuya Stream. Youth fashion, nightlife, massive Tsutaya Bookstore (Starbucks inside). Shibuya Sky observation deck is stunning.</p>
+      <div class="neighborhood-tags">
+        <span class="nbr-tag">🛍️ Shopping</span>
+        <span class="nbr-tag">🌃 Nightlife</span>
+        <span class="nbr-tag">📸 Iconic Crossing</span>
+        <span class="nbr-tag">🏙️ Observation Deck</span>
+      </div>
+    </div>
+    <div class="neighborhood-card">
+      <div class="neighborhood-name">Shinjuku <span style="font-size:1.2em">🌆</span></div>
+      <span class="neighborhood-name-jp">新宿</span>
+      <p class="neighborhood-desc">Tokyo's busiest hub. Kabukicho entertainment district, Golden Gai (tiny bars), Omoide Yokocho (Memory Lane), Isetan department store. Also the main hub for day trips (Mt. Fuji buses).</p>
+      <div class="neighborhood-tags">
+        <span class="nbr-tag">🍺 Golden Gai</span>
+        <span class="nbr-tag">🛍️ Isetan</span>
+        <span class="nbr-tag">🌉 Night Views</span>
+        <span class="nbr-tag">🚌 Day Trips</span>
+      </div>
+    </div>
+    <div class="neighborhood-card">
+      <div class="neighborhood-name">Harajuku <span style="font-size:1.2em">🌸</span></div>
+      <span class="neighborhood-name-jp">原宿</span>
+      <p class="neighborhood-desc">Takeshita Street for weird street fashion. Omotesando is the upscale version — luxury boutiques in beautiful buildings. Meiji Shrine is a peaceful forested escape nearby.</p>
+      <div class="neighborhood-tags">
+        <span class="nbr-tag">👗 Street Fashion</span>
+        <span class="nbr-tag">☕ Cafes</span>
+        <span class="nbr-tag">🏛️ Luxury Brands</span>
+        <span class="nbr-tag">⛩️ Meiji Shrine</span>
+      </div>
+    </div>
+    <div class="neighborhood-card">
+      <div class="neighborhood-name">Akihabara <span style="font-size:1.2em">🎮</span></div>
+      <span class="neighborhood-name-jp">秋葉原</span>
+      <p class="neighborhood-desc">Electric Town. Anime, manga, retro video games, electronics, maid cafes. Best place to find vintage Famicom games, rare electronics, and figure collectibles.</p>
+      <div class="neighborhood-tags">
+        <span class="nbr-tag">🎮 Gaming</span>
+        <span class="nbr-tag">📺 Anime/Manga</span>
+        <span class="nbr-tag">💻 Electronics</span>
+        <span class="nbr-tag">🧁 Maid Cafes</span>
+      </div>
+    </div>
+    <div class="neighborhood-card">
+      <div class="neighborhood-name">Ginza <span style="font-size:1.2em">💎</span></div>
+      <span class="neighborhood-name-jp">銀座</span>
+      <p class="neighborhood-desc">Tokyo's most upscale district. Flagship luxury stores, galleries, Ginza Six mall. Tsukiji fish market is a short walk. On weekends, Chuo-dori closes to cars — great for a stroll.</p>
+      <div class="neighborhood-tags">
+        <span class="nbr-tag">💰 Luxury</span>
+        <span class="nbr-tag">🐟 Tsukiji Nearby</span>
+        <span class="nbr-tag">🎨 Art Galleries</span>
+        <span class="nbr-tag">🚶 Weekend Walk</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 4: Shopping Tips ──────────────────────────────────── -->
+<div class="section-divider"></div>
+<section id="tips">
+  <div class="section-header">
+    <span class="section-label">ショッピングのヒント</span>
+    <h2 class="section-title">Shopping Tips</h2>
+    <p class="section-sub">Practical knowledge for navigating Japan</p>
+  </div>
+
+  <div class="tips-grid">
+    <!-- IC Card -->
+    <div class="tip-card">
+      <h3>🚇 IC Card (Suica / Pasmo)</h3>
+      <ul class="tip-list">
+        <li>Buy at any JR station ticket machine or airport — just get a Suica</li>
+        <li>Tap in/out at every train, subway, and bus gate</li>
+        <li>Also works at convenience stores, vending machines, some taxis</li>
+        <li>¥500 deposit — refunded when you return the card</li>
+        <li>Top up at any green ticket machine (JR) or blue (Tokyo Metro)</li>
+        <li>Mobile Suica: add to Apple Wallet (iPhone) — works the same way</li>
+        <li>⚠️ Physical Suica cards have been in short supply — Mobile Suica is the better option</li>
+      </ul>
+    </div>
+
+    <!-- Tax-Free -->
+    <div class="tip-card">
+      <h3>🧾 Tax-Free Shopping (免税)</h3>
+      <ul class="tip-list">
+        <li>Save 10% VAT on purchases over ¥5,000 at one store on one day</li>
+        <li>Look for the <strong>免税</strong> sign or "Tax Free" sticker on storefronts</li>
+        <li>Show your passport — they'll attach a form to it (don't remove before you leave)</li>
+        <li>Consumables (food, cosmetics) need ¥5,001+ and must leave Japan sealed</li>
+        <li>Non-consumables (clothes, electronics) have lower minimums at some stores</li>
+        <li>Matsumoto Kiyoshi, Yodobashi, Don Quijote all participate</li>
+        <li>Must export within 30 days of purchase</li>
+      </ul>
+    </div>
+
+    <!-- Phrases -->
+    <div class="tip-card">
+      <h3>🗣️ Drugstore Phrases (Japanese)</h3>
+      <div class="phrase-row">
+        <span class="phrase-jp">これはどこですか？</span>
+        <span class="phrase-en">Where is this?<br>(show them the item)</span>
+      </div>
+      <div class="phrase-row">
+        <span class="phrase-jp">目の下のクマに効きますか？</span>
+        <span class="phrase-en">Is this good for<br>under-eye dark circles?</span>
+      </div>
+      <div class="phrase-row">
+        <span class="phrase-jp">おすすめはどれですか？</span>
+        <span class="phrase-en">Which one do<br>you recommend?</span>
+      </div>
+      <div class="phrase-row">
+        <span class="phrase-jp">免税できますか？</span>
+        <span class="phrase-en">Can I get<br>tax-free?</span>
+      </div>
+      <div class="phrase-row">
+        <span class="phrase-jp">カードで払えますか？</span>
+        <span class="phrase-en">Can I pay<br>by card?</span>
+      </div>
+      <div class="phrase-row">
+        <span class="phrase-jp">袋はいりません</span>
+        <span class="phrase-en">No bag needed,<br>thank you</span>
+      </div>
+    </div>
+
+    <!-- Payment -->
+    <div class="tip-card">
+      <h3>💴 Cash vs Card Culture</h3>
+      <ul class="tip-list">
+        <li><strong>Cash is still king</strong> — many restaurants and smaller shops are cash only</li>
+        <li>Always keep ¥5,000–10,000 in cash on you</li>
+        <li>7-Eleven ATMs accept foreign cards with 0 ATM fee from 7-Eleven</li>
+        <li>Japan Post bank ATMs also work reliably with Visa/MC</li>
+        <li>IC Cards (Suica) work at konbini (convenience stores) everywhere</li>
+        <li>PayPay is Japan's dominant QR app — you can use it with a foreign card</li>
+        <li>Hotels, department stores, and chains: cards usually accepted</li>
+        <li>Tabelog 100 restaurants: many are <strong>cash only</strong> — check before you go</li>
+      </ul>
+    </div>
+
+    <!-- General Tips -->
+    <div class="tip-card">
+      <h3>💡 General Japan Tips</h3>
+      <ul class="tip-list">
+        <li>Convenience stores (konbini) are incredible — hot food, ATMs, printing, coffee</li>
+        <li>Onigiri at 7-Eleven: ¥130-180 and genuinely great. Try tuna mayo.</li>
+        <li>Rubbish bins are rare on streets — carry a small bag for trash</li>
+        <li>Shoes come off in traditional restaurants, temples, ryokan — wear nice socks</li>
+        <li>Quiet on trains — no phone calls, keep voice low</li>
+        <li>Tipping is NOT a thing — it can actually be offensive</li>
+        <li>Google Maps works great for transit directions with real-time updates</li>
+      </ul>
+    </div>
+
+    <!-- Restaurant tips -->
+    <div class="tip-card">
+      <h3>🍜 Restaurant Tips</h3>
+      <ul class="tip-list">
+        <li>Tabelog is the Japanese Yelp — scores above 3.5 are very good, 4.0+ is exceptional</li>
+        <li>Tabelog 100 list: the 100 best restaurants in Japan — use the list</li>
+        <li>Many top spots are <strong>cash only</strong> — ask/check before ordering</li>
+        <li>Lunch sets (ランチセット) are often 50-60% cheaper than dinner</li>
+        <li>Vending machine at restaurant entrance = order before sitting (ramen shops)</li>
+        <li>Oshibori (hot towel) when seated — wipe hands only, not face</li>
+        <li>Kanpai! (乾杯) — clink glasses and say it before drinking</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div>Built by <strong>Oraion ⚡</strong> · Anthony's Japan Travel Companion</div>
+  <div class="footer-jp">日本旅行を楽しんでください 🌸</div>
+</footer>
+
+<!-- Back to top -->
+<button id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+  // ── Sakura petals ──────────────────────────────────────────────
+  (function() {
+    const container = document.getElementById('sakura-container');
+    const n = 18;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('div');
+      p.className = 'petal';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (8 + Math.random() * 12) + 's';
+      p.style.animationDelay = (Math.random() * 10) + 's';
+      p.style.width = p.style.height = (5 + Math.random() * 8) + 'px';
+      p.style.opacity = 0.2 + Math.random() * 0.4;
+      container.appendChild(p);
+    }
+  })();
+
+  // ── Scroll progress ────────────────────────────────────────────
+  const bar = document.getElementById('progress');
+  const btn = document.getElementById('back-top');
+  window.addEventListener('scroll', () => {
+    const pct = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight);
+    bar.style.width = (pct * 100) + '%';
+    btn.classList.toggle('visible', window.scrollY > 400);
+  });
+
+  // ── Food checked state (localStorage) ─────────────────────────
+  function getChecked() {
+    try { return JSON.parse(localStorage.getItem('japan-guide-checked') || '{}'); }
+    catch(e) { return {}; }
+  }
+  function saveChecked(obj) {
+    try { localStorage.setItem('japan-guide-checked', JSON.stringify(obj)); } catch(e) {}
+  }
+
+  function toggleDone(el) {
+    const card = el.closest('.card');
+    const key = card.dataset.food;
+    const checked = getChecked();
+    const isNowChecked = !el.classList.contains('checked');
+    el.classList.toggle('checked', isNowChecked);
+    el.textContent = isNowChecked ? '✓' : '';
+    card.classList.toggle('done', isNowChecked);
+    checked[key] = isNowChecked;
+    saveChecked(checked);
+    updateStats();
+  }
+
+  function updateStats() {
+    const cards = document.querySelectorAll('[data-food]');
+    const total = cards.length;
+    const tried = [...cards].filter(c => c.classList.contains('done')).length;
+    document.getElementById('tried-count').textContent = tried;
+    document.getElementById('todo-count').textContent = total - tried;
+    document.getElementById('total-count').textContent = total;
+  }
+
+  // Restore state on load
+  (function() {
+    const checked = getChecked();
+    document.querySelectorAll('[data-food]').forEach(card => {
+      const key = card.dataset.food;
+      if (checked[key]) {
+        const cb = card.querySelector('.card-checkbox');
+        if (cb) { cb.classList.add('checked'); cb.textContent = '✓'; }
+        card.classList.add('done');
+      }
+    });
+    updateStats();
+  })();
+
+  // ── Register Service Worker ────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
