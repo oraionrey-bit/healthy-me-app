@@ -427,25 +427,6 @@ export function useExportData(userId?: string) {
       ]);
 
       // ============================================
-      // SECTION 8: Symptoms
-      // ============================================
-      const symptomHeaders = ['Date', 'Bloating', 'Acne', 'Hair Loss', 'Hirsutism', 'Fatigue', 'Brain Fog', 'Cravings', 'Anxiety', 'Mood', 'Energy', 'Notes'];
-      const symptomRows = (symptoms.data ?? []).map((row: any) => [
-        row.log_date,
-        String(row.bloating ?? 0),
-        String(row.acne ?? 0),
-        String(row.hair_loss ?? 0),
-        String(row.hirsutism ?? 0),
-        String(row.fatigue ?? 0),
-        String(row.brain_fog ?? 0),
-        String(row.cravings ?? 0),
-        String(row.anxiety ?? 0),
-        String(row.mood ?? ''),
-        String(row.energy_level ?? ''),
-        row.notes ?? '',
-      ]);
-
-      // ============================================
       // SECTION 9: Period Logs
       // ============================================
       const periodHeaders = ['Date', 'Flow', 'Cramps', 'Headache', 'Back Pain', 'Notes'];
@@ -562,7 +543,6 @@ export function useExportData(userId?: string) {
           { title: 'WATER LOGS', headers: waterHeaders, rows: waterRows },
           { title: 'EXERCISE LOGS', headers: exerciseHeaders, rows: exerciseRows },
           { title: 'WEIGHT LOGS', headers: weightHeaders, rows: weightRows },
-          { title: 'SYMPTOMS', headers: symptomHeaders, rows: symptomRows },
           { title: 'PERIOD LOGS', headers: periodHeaders, rows: periodRows },
           { title: 'CALF MEASUREMENTS', headers: calfHeaders, rows: calfRows },
         ],
