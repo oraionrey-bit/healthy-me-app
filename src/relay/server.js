@@ -12,9 +12,13 @@ const https = require('https');
 const { createClient } = require('@supabase/supabase-js');
 const Busboy = require('busboy');
 const crypto = require('crypto');
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { spawn } = require('child_process');
 const {
   buildTelegramNotificationPayload,
+  configuredTelegramTarget,
   resolveMessageUserId,
   shouldNotifyOraion,
 } = require('./routing');
@@ -60,6 +64,16 @@ const rateLimits = new Map(); // key -> { count, resetTime }
 const RATE_LIMIT_PER_USER = 30;
 const RATE_LIMIT_GLOBAL = 100;
 const RATE_WINDOW_MS = 60 * 1000;
+const FOODIE_RATE_LIMIT_PER_CLIENT = 8;
+const FOODIE_JOB_DIR = process.env.FOODIE_JOB_DIR || path.join(os.homedir(), '.hermes', 'foodie-me');
+const FOODIE_JOB_STORE = process.env.FOODIE_JOB_STORE || path.join(FOODIE_JOB_DIR, 'quest-jobs.json');
+const DEFAULT_FOODIE_HERMES_BIN = path.join(os.homedir(), '.hermes', 'hermes-agent', 'venv', 'bin', 'hermes');
+const FOODIE_HERMES_BIN = process.env.FOODIE_HERMES_BIN || DEFAULT_FOODIE_HERMES_BIN;
+const FOODIE_HERMES_ARGS = (process.env.FOODIE_HERMES_ARGS || 'chat -q {prompt} -t web').split(' ');
+const FOODIE_MAX_ACTIVE_JOBS = Math.max(1, Number.parseInt(process.env.FOODIE_MAX_ACTIVE_JOBS || '3', 10) || 3);
+const FOODIE_WORKER_TIMEOUT_MS = Math.max(1000, Number.parseInt(process.env.FOODIE_WORKER_TIMEOUT_MS || String(10 * 60 * 1000), 10) || (10 * 60 * 1000));
+const FOODIE_WORKER_STDOUT_MAX_BYTES = Math.max(1024, Number.parseInt(process.env.FOODIE_WORKER_STDOUT_MAX_BYTES || String(512 * 1024), 10) || (512 * 1024));
+const FOODIE_WORKER_STDERR_MAX_BYTES = Math.max(1024, Number.parseInt(process.env.FOODIE_WORKER_STDERR_MAX_BYTES || String(64 * 1024), 10) || (64 * 1024));
 let globalRequests = { count: 0, resetTime: Date.now() + RATE_WINDOW_MS };
 
 // Supabase client — service role key bypasses RLS (server-side only, never exposed to client)
@@ -106,11 +120,398 @@ function checkRateLimit(userId) {
 function sendJson(res, statusCode, body) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-store',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   });
   res.end(JSON.stringify(body));
+}
+
+function isPlainRecord(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+async function readJsonBody(req, maxBytes = 32 * 1024) {
+  let body = '';
+  for await (const chunk of req) {
+    body += chunk;
+    if (Buffer.byteLength(body) > maxBytes) {
+      const err = new Error('Request body too large');
+      err.statusCode = 413;
+      throw err;
+    }
+  }
+
+  try {
+    return body ? JSON.parse(body) : {};
+  } catch {
+    const err = new Error('Invalid JSON');
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
+function safeClientIp(req) {
+  return String(req.headers['cf-connecting-ip'] || req.socket.remoteAddress || 'anonymous');
+}
+
+function checkFoodieRateLimit(req) {
+  const now = Date.now();
+  const key = `foodie:${safeClientIp(req)}`;
+  let entry = rateLimits.get(key);
+  if (!entry || now > entry.resetTime) {
+    entry = { count: 0, resetTime: now + RATE_WINDOW_MS };
+    rateLimits.set(key, entry);
+  }
+  entry.count++;
+  if (entry.count > FOODIE_RATE_LIMIT_PER_CLIENT) {
+    return { limited: true, retryAfter: Math.ceil((entry.resetTime - now) / 1000) };
+  }
+  return { limited: false };
+}
+
+function sanitizeFoodieText(value, maxLength) {
+  return sanitizeText(value || '').slice(0, maxLength);
+}
+
+function escapeTelegramHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function safeIsoNow() {
+  return new Date().toISOString();
+}
+
+function publicFoodieJob(job) {
+  return {
+    id: job.id,
+    status: job.status,
+    status_message: job.status_message,
+    updated_at: job.updated_at,
+    result: job.status === 'ready' ? job.result || null : null,
+    error: job.status === 'error' ? job.error || job.status_message : undefined,
+  };
+}
+
+function ensureFoodieStoreDir() {
+  fs.mkdirSync(FOODIE_JOB_DIR, { recursive: true, mode: 0o700 });
+}
+
+function readFoodieJobs() {
+  ensureFoodieStoreDir();
+  try {
+    const raw = fs.readFileSync(FOODIE_JOB_STORE, 'utf8');
+    const parsed = JSON.parse(raw);
+    return isPlainRecord(parsed) ? parsed : {};
+  } catch (err) {
+    if (err.code === 'ENOENT') return {};
+    console.error('[relay] Failed to read Foodie job store:', err.message);
+    return {};
+  }
+}
+
+function writeFoodieJobs(jobs) {
+  ensureFoodieStoreDir();
+  const tmpPath = `${FOODIE_JOB_STORE}.${process.pid}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(jobs, null, 2), { mode: 0o600 });
+  fs.renameSync(tmpPath, FOODIE_JOB_STORE);
+}
+
+function countActiveFoodieJobs(jobs = readFoodieJobs()) {
+  return Object.values(jobs).filter((job) => job && ['queued', 'researching'].includes(job.status)).length;
+}
+
+function updateFoodieJob(jobId, updater) {
+  const jobs = readFoodieJobs();
+  const existing = jobs[jobId];
+  if (!existing) return null;
+  const updated = updater(existing);
+  jobs[jobId] = updated;
+  writeFoodieJobs(jobs);
+  return updated;
+}
+
+function validateFoodieSources(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((source) => typeof source === 'string')
+    .map((source) => sanitizeFoodieText(source, 120))
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function validateFoodieQuestInput(parsed) {
+  const topic = sanitizeFoodieText(parsed.topic, 140);
+  const city = sanitizeFoodieText(parsed.city, 100);
+  const notes = sanitizeFoodieText(parsed.notes, 1000);
+  const sources = validateFoodieSources(parsed.sources);
+  const clientRequestId = sanitizeFoodieText(parsed.client_request_id, 120);
+
+  if (!topic || !city) {
+    return { error: 'topic and city are required' };
+  }
+
+  return { topic, city, notes, sources, clientRequestId };
+}
+
+function validateFoodieResult(value) {
+  if (!isPlainRecord(value)) throw new Error('Worker output must be a JSON object');
+  const suggestions = Array.isArray(value.suggestions) ? value.suggestions : [];
+  return {
+    summary: sanitizeFoodieText(value.summary, 2000),
+    suggestions: suggestions
+      .filter(isPlainRecord)
+      .map((suggestion) => ({
+        name: sanitizeFoodieText(suggestion.name, 180),
+        neighborhood: sanitizeFoodieText(suggestion.neighborhood, 160),
+        why: sanitizeFoodieText(suggestion.why, 1000),
+        what_to_order: sanitizeFoodieText(suggestion.what_to_order, 800),
+        confidence: ['high', 'medium', 'low'].includes(suggestion.confidence) ? suggestion.confidence : 'medium',
+        sources: (Array.isArray(suggestion.sources) ? suggestion.sources : [])
+          .filter(isPlainRecord)
+          .map((source) => ({
+            label: sanitizeFoodieText(source.label, 120),
+            url: sanitizeFoodieText(source.url, 500),
+          }))
+          .filter((source) => source.label && /^https?:\/\//i.test(source.url))
+          .slice(0, 8),
+      }))
+      .filter((suggestion) => suggestion.name && suggestion.why)
+      .slice(0, 10),
+  };
+}
+
+function extractJsonFromWorkerStdout(stdout) {
+  const trimmed = String(stdout || '').trim();
+  if (!trimmed) throw new Error('Worker produced no stdout JSON');
+  try {
+    return JSON.parse(trimmed);
+  } catch (directErr) {
+    const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fenced) return JSON.parse(fenced[1].trim());
+    const start = trimmed.indexOf('{');
+    const end = trimmed.lastIndexOf('}');
+    if (start !== -1 && end > start) return JSON.parse(trimmed.slice(start, end + 1));
+    throw directErr;
+  }
+}
+
+function buildFoodieHermesPrompt(job) {
+  return `You are Oraion's Foodie Me restaurant research worker. Research this restaurant quest using web sources only.\n\nQuest ID: ${job.id}\nTopic: ${job.topic}\nCity: ${job.city}\nNotes: ${job.notes || '(none)'}\nPreferred source checklist: ${(job.sources || []).join(', ') || 'Reddit, Eater/Infatuation, Google/Maps reviews, Yelp, local food sources'}\n\nResearch 5-10 places for the topic/city using source-backed web research. Do not fabricate sources. Only include URLs you actually found.\n\nReturn ONLY valid JSON, with no markdown or commentary, in this exact shape:\n{"summary":"brief overall summary","suggestions":[{"name":"restaurant name","neighborhood":"area or neighborhood","why":"source-backed reason this fits","what_to_order":"specific dishes/items if known","confidence":"high|medium|low","sources":[{"label":"source label","url":"https://example.com"}]}]}`;
+}
+
+function buildFoodieWorkerEnv() {
+  const env = {};
+  for (const key of ['HOME', 'PATH', 'LANG', 'LC_ALL', 'HERMES_HOME']) {
+    if (process.env[key]) env[key] = process.env[key];
+  }
+  return env;
+}
+
+function spawnFoodieHermesWorker(job) {
+  const prompt = buildFoodieHermesPrompt(job);
+  const args = FOODIE_HERMES_ARGS.flatMap((arg) => (arg === '{prompt}' ? [prompt] : [arg]));
+  const env = buildFoodieWorkerEnv();
+  let stdout = '';
+  let stderr = '';
+  let stdoutBytes = 0;
+  let stderrBytes = 0;
+  let finished = false;
+  let killedForTimeout = false;
+
+  updateFoodieJob(job.id, (current) => ({
+    ...current,
+    status: 'researching',
+    status_message: 'Oraion research worker started.',
+    updated_at: safeIsoNow(),
+  }));
+
+  const child = spawn(FOODIE_HERMES_BIN, args, {
+    detached: false,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env,
+  });
+
+  const failJob = (message, errorDetail) => {
+    updateFoodieJob(job.id, (current) => ({
+      ...current,
+      status: 'error',
+      status_message: sanitizeFoodieText(message, 500),
+      error: sanitizeFoodieText(errorDetail || message, 2000),
+      updated_at: safeIsoNow(),
+    }));
+  };
+
+  const timer = setTimeout(() => {
+    killedForTimeout = true;
+    child.kill('SIGTERM');
+    setTimeout(() => {
+      if (!finished) child.kill('SIGKILL');
+    }, 5000).unref();
+  }, FOODIE_WORKER_TIMEOUT_MS);
+
+  child.stdout.on('data', (chunk) => {
+    stdoutBytes += chunk.length;
+    if (stdoutBytes <= FOODIE_WORKER_STDOUT_MAX_BYTES) stdout += chunk.toString('utf8');
+    if (stdoutBytes > FOODIE_WORKER_STDOUT_MAX_BYTES && !child.killed) child.kill('SIGTERM');
+  });
+
+  child.stderr.on('data', (chunk) => {
+    stderrBytes += chunk.length;
+    if (stderrBytes <= FOODIE_WORKER_STDERR_MAX_BYTES) stderr += chunk.toString('utf8');
+  });
+
+  child.on('error', (err) => {
+    clearTimeout(timer);
+    finished = true;
+    console.error(`[relay] Failed to spawn Foodie Hermes worker for ${job.id}:`, err.message);
+    failJob('Could not start Oraion research worker.', err.message);
+  });
+
+  updateFoodieJob(job.id, (current) => ({
+    ...current,
+    worker_pid: child.pid,
+    updated_at: safeIsoNow(),
+  }));
+
+  child.on('close', (code, signal) => {
+    clearTimeout(timer);
+    finished = true;
+    if (killedForTimeout) {
+      return failJob('Oraion research worker timed out.', `timeout after ${FOODIE_WORKER_TIMEOUT_MS}ms; stderr=${stderr.slice(0, 1000)}`);
+    }
+    if (stdoutBytes > FOODIE_WORKER_STDOUT_MAX_BYTES) {
+      return failJob('Oraion research worker output was too large.', `stdout exceeded ${FOODIE_WORKER_STDOUT_MAX_BYTES} bytes`);
+    }
+    if (code !== 0) {
+      return failJob('Oraion research worker failed.', `exit=${code} signal=${signal || ''}; stderr=${stderr.slice(0, 1000)}`);
+    }
+    try {
+      const result = validateFoodieResult(extractJsonFromWorkerStdout(stdout));
+      updateFoodieJob(job.id, (current) => ({
+        ...current,
+        status: 'ready',
+        status_message: 'Ready',
+        result,
+        worker_stderr: stderr ? stderr.slice(0, 2000) : undefined,
+        updated_at: safeIsoNow(),
+      }));
+    } catch (err) {
+      failJob('Oraion research worker returned invalid JSON.', `${err.message}; stderr=${stderr.slice(0, 1000)}; stdout=${stdout.slice(0, 1000)}`);
+    }
+  });
+}
+
+async function handleFoodieCreateQuest(req, res) {
+  const rateCheck = checkFoodieRateLimit(req);
+  if (rateCheck.limited) {
+    res.writeHead(429, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      'Retry-After': String(rateCheck.retryAfter),
+      'Access-Control-Allow-Origin': '*',
+    });
+    return res.end(JSON.stringify({ error: 'Rate limited', retry_after: rateCheck.retryAfter }));
+  }
+
+  const jobs = readFoodieJobs();
+  const activeJobs = countActiveFoodieJobs(jobs);
+  if (activeJobs >= FOODIE_MAX_ACTIVE_JOBS) {
+    return sendJson(res, 429, {
+      error: 'Too many active Foodie research jobs. Please wait for an existing quest to finish and try again.',
+      active_jobs: activeJobs,
+      max_active_jobs: FOODIE_MAX_ACTIVE_JOBS,
+    });
+  }
+
+  let parsed;
+  try {
+    parsed = await readJsonBody(req);
+  } catch (err) {
+    return sendJson(res, err.statusCode || 400, { error: err.message });
+  }
+
+  const input = validateFoodieQuestInput(parsed);
+  if (input.error) return sendJson(res, 400, { error: input.error });
+
+  const now = safeIsoNow();
+  const job = {
+    id: `foodie_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`,
+    status_token: crypto.randomBytes(24).toString('base64url'),
+    status: 'queued',
+    status_message: 'Queued for Oraion research.',
+    topic: input.topic,
+    city: input.city,
+    notes: input.notes,
+    sources: input.sources,
+    client_request_id: input.clientRequestId,
+    created_at: now,
+    updated_at: now,
+  };
+
+  jobs[job.id] = job;
+  writeFoodieJobs(jobs);
+
+  setImmediate(() => spawnFoodieHermesWorker(job));
+  notifyOraion(job.id, 'foodie_quest', `${job.topic} in ${job.city}${job.notes ? ` — ${job.notes}` : ''}`).catch(() => {});
+
+  return sendJson(res, 202, {
+    id: job.id,
+    status_token: job.status_token,
+    status: job.status,
+    status_message: job.status_message,
+    updated_at: job.updated_at,
+  });
+}
+
+async function handleFoodieQuestStatus(req, res, jobId, url) {
+  const token = url.searchParams.get('token') || '';
+  const job = readFoodieJobs()[jobId];
+  if (!job || token !== job.status_token) return sendJson(res, 404, { error: 'Quest not found' });
+  return sendJson(res, 200, publicFoodieJob(job));
+}
+
+async function handleFoodieQuestResult(req, res, jobId) {
+  let parsed;
+  try {
+    parsed = await readJsonBody(req, 256 * 1024);
+  } catch (err) {
+    return sendJson(res, err.statusCode || 400, { error: err.message });
+  }
+
+  const status = typeof parsed.status === 'string' ? parsed.status : '';
+  if (!['researching', 'ready', 'error'].includes(status)) {
+    return sendJson(res, 400, { error: 'status must be researching, ready, or error' });
+  }
+
+  let callbackResult;
+  if (status === 'ready') {
+    try {
+      callbackResult = validateFoodieResult(parsed.result);
+    } catch (err) {
+      return sendJson(res, 400, { error: `invalid result: ${err.message}` });
+    }
+  }
+
+  const updated = updateFoodieJob(jobId, (job) => {
+    if (parsed.token !== job.status_token) return job;
+    const statusMessage = sanitizeFoodieText(parsed.status_message, 500) || (status === 'ready' ? 'Ready' : status);
+    return {
+      ...job,
+      status,
+      status_message: statusMessage,
+      result: status === 'ready' ? callbackResult : job.result,
+      error: status === 'error' ? statusMessage : undefined,
+      updated_at: safeIsoNow(),
+    };
+  });
+
+  if (!updated || parsed.token !== updated.status_token) return sendJson(res, 404, { error: 'Quest not found' });
+  return sendJson(res, 200, publicFoodieJob(updated));
 }
 
 function validateAuth(req) {
@@ -126,11 +527,26 @@ async function notifyOraion(messageId, messageType, description) {
   }
 
   try {
-    const payload = JSON.stringify(buildTelegramNotificationPayload({
-      messageId,
-      messageType,
-      description,
-    }));
+    const notificationPayload = messageType === 'foodie_quest'
+      ? {
+          chat_id: configuredTelegramTarget().chatId,
+          text: [
+            '🍽️ [Foodie Me Quest]',
+            escapeTelegramHtml(description || '(no description)'),
+            `Quest ID: ${escapeTelegramHtml(messageId)}`,
+            '',
+            'Status: queued → researching. Watch Foodie Me for updates.',
+          ].join('\n'),
+          parse_mode: 'HTML',
+        }
+      : buildTelegramNotificationPayload({
+          messageId,
+          messageType,
+          description,
+        });
+    const threadId = messageType === 'foodie_quest' ? configuredTelegramTarget().threadId : '';
+    if (threadId && messageType === 'foodie_quest') notificationPayload.message_thread_id = threadId;
+    const payload = JSON.stringify(notificationPayload);
     const options = {
       hostname: 'api.telegram.org',
       path: `/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
@@ -736,6 +1152,19 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { status: 'ok', timestamp: new Date().toISOString() });
   }
 
+  // Public Foodie Me quest relay endpoints — no Healthy Me bearer token required.
+  const foodieStatusMatch = url.pathname.match(/^\/foodie\/quests\/([^/]+)\/status$/);
+  const foodieResultMatch = url.pathname.match(/^\/foodie\/quests\/([^/]+)\/result$/);
+  if (url.pathname === '/foodie/quests' && method === 'POST') {
+    return await handleFoodieCreateQuest(req, res);
+  }
+  if (foodieStatusMatch && method === 'GET') {
+    return await handleFoodieQuestStatus(req, res, foodieStatusMatch[1], url);
+  }
+  if (foodieResultMatch && method === 'POST') {
+    return await handleFoodieQuestResult(req, res, foodieResultMatch[1]);
+  }
+
   // Auth check
   if (!validateAuth(req)) {
     console.log(`[relay] Auth failed from ${req.headers['cf-connecting-ip'] || req.socket.remoteAddress}`);
@@ -747,6 +1176,7 @@ const server = http.createServer(async (req, res) => {
   if (rateCheck.limited) {
     res.writeHead(429, {
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
       'Retry-After': String(rateCheck.retryAfter),
       'Access-Control-Allow-Origin': '*',
     });
