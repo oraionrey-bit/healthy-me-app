@@ -74,6 +74,8 @@ const FOODIE_MAX_ACTIVE_JOBS = Math.max(1, Number.parseInt(process.env.FOODIE_MA
 const FOODIE_WORKER_TIMEOUT_MS = Math.max(1000, Number.parseInt(process.env.FOODIE_WORKER_TIMEOUT_MS || String(10 * 60 * 1000), 10) || (10 * 60 * 1000));
 const FOODIE_WORKER_STDOUT_MAX_BYTES = Math.max(1024, Number.parseInt(process.env.FOODIE_WORKER_STDOUT_MAX_BYTES || String(512 * 1024), 10) || (512 * 1024));
 const FOODIE_WORKER_STDERR_MAX_BYTES = Math.max(1024, Number.parseInt(process.env.FOODIE_WORKER_STDERR_MAX_BYTES || String(64 * 1024), 10) || (64 * 1024));
+const FOODIE_RATING_OWNERS = ['tina', 'anthony'];
+const FOODIE_RATING_STATUSES = ['want_to_try', 'tried_liked', 'tried_ok', 'skip'];
 let globalRequests = { count: 0, resetTime: Date.now() + RATE_WINDOW_MS };
 
 // Supabase client — service role key bypasses RLS (server-side only, never exposed to client)
@@ -122,7 +124,7 @@ function sendJson(res, statusCode, body) {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-store',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   });
   res.end(JSON.stringify(body));
@@ -256,6 +258,51 @@ function validateFoodieQuestInput(parsed) {
   }
 
   return { topic, city, notes, sources, clientRequestId };
+}
+
+function normalizeFoodieSlug(value) {
+  return sanitizeFoodieText(value || 'unknown', 220)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'unknown';
+}
+
+function foodieSuggestionKey(jobId, suggestion, index = 0) {
+  return `${jobId}-${index}-${normalizeFoodieSlug(suggestion && suggestion.name)}-${normalizeFoodieSlug(suggestion && suggestion.neighborhood)}`;
+}
+
+function validateFoodieRating(value) {
+  if (!isPlainRecord(value)) return { error: 'rating must be an object' };
+  const rating = {};
+  if (value.status !== undefined) {
+    if (!FOODIE_RATING_STATUSES.includes(value.status)) return { error: 'invalid rating status' };
+    rating.status = value.status;
+  }
+  if (value.score !== undefined) {
+    if (!Number.isInteger(value.score) || value.score < 1 || value.score > 5) return { error: 'score must be an integer from 1 to 5' };
+    rating.score = value.score;
+  }
+  if (value.notes !== undefined) {
+    rating.notes = sanitizeFoodieText(value.notes, 1000);
+  }
+  rating.updatedAt = safeIsoNow();
+  return { rating };
+}
+
+function mergeFoodieResultRatings(jobId, previousResult, nextResult) {
+  if (!previousResult || !Array.isArray(previousResult.suggestions) || !nextResult || !Array.isArray(nextResult.suggestions)) return nextResult;
+  const ratingsByKey = new Map();
+  previousResult.suggestions.forEach((suggestion, index) => {
+    if (suggestion && suggestion.ratings) ratingsByKey.set(foodieSuggestionKey(jobId, suggestion, index), suggestion.ratings);
+  });
+  if (ratingsByKey.size === 0) return nextResult;
+  return {
+    ...nextResult,
+    suggestions: nextResult.suggestions.map((suggestion, index) => ({
+      ...suggestion,
+      ratings: suggestion.ratings || ratingsByKey.get(foodieSuggestionKey(jobId, suggestion, index)),
+    })),
+  };
 }
 
 function validateFoodieResult(value) {
@@ -566,6 +613,57 @@ async function handleFoodieQuestDelete(req, res, jobId, url) {
   return sendJson(res, 200, { deleted: true });
 }
 
+async function handleFoodieQuestRatingPatch(req, res, jobId, url) {
+  const token = url.searchParams.get('token') || '';
+  let parsed;
+  try {
+    parsed = await readJsonBody(req, 8 * 1024);
+  } catch (err) {
+    return sendJson(res, err.statusCode || 400, { error: err.message });
+  }
+
+  const suggestionKey = sanitizeFoodieText(parsed.suggestion_key, 260);
+  const owner = sanitizeFoodieText(parsed.owner, 24);
+  if (!suggestionKey) return sendJson(res, 400, { error: 'suggestion_key is required' });
+  if (!FOODIE_RATING_OWNERS.includes(owner)) return sendJson(res, 400, { error: 'owner must be tina or anthony' });
+
+  const ratingResult = validateFoodieRating(parsed.rating);
+  if (ratingResult.error) return sendJson(res, 400, { error: ratingResult.error });
+
+  let matched = false;
+  const updated = updateFoodieJob(jobId, (job) => {
+    if (token !== job.status_token || !job.result || !Array.isArray(job.result.suggestions)) return job;
+    const nextSuggestions = job.result.suggestions.map((suggestion, index) => {
+      const acceptedKeys = [foodieSuggestionKey(job.id, suggestion, index)];
+      if (job.client_request_id) acceptedKeys.push(foodieSuggestionKey(job.client_request_id, suggestion, index));
+      if (!acceptedKeys.includes(suggestionKey)) return suggestion;
+      matched = true;
+      return {
+        ...suggestion,
+        ratings: {
+          ...(suggestion.ratings || {}),
+          [owner]: {
+            ...((suggestion.ratings && suggestion.ratings[owner]) || {}),
+            ...ratingResult.rating,
+          },
+        },
+      };
+    });
+    return {
+      ...job,
+      result: {
+        ...job.result,
+        suggestions: nextSuggestions,
+      },
+      updated_at: safeIsoNow(),
+    };
+  });
+
+  if (!updated || token !== updated.status_token) return sendJson(res, 404, { error: 'Quest not found' });
+  if (!matched) return sendJson(res, 404, { error: 'Suggestion not found' });
+  return sendJson(res, 200, publicFoodieJob(updated));
+}
+
 async function handleFoodieQuestResult(req, res, jobId) {
   let parsed;
   try {
@@ -595,7 +693,7 @@ async function handleFoodieQuestResult(req, res, jobId) {
       ...job,
       status,
       status_message: statusMessage,
-      result: status === 'ready' ? callbackResult : job.result,
+      result: status === 'ready' ? mergeFoodieResultRatings(jobId, job.result, callbackResult) : job.result,
       error: status === 'error' ? statusMessage : undefined,
       updated_at: safeIsoNow(),
     };
@@ -1231,7 +1329,7 @@ const server = http.createServer(async (req, res) => {
   if (method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
     });
@@ -1254,6 +1352,10 @@ const server = http.createServer(async (req, res) => {
   }
   if (foodieStatusMatch && method === 'DELETE') {
     return await handleFoodieQuestDelete(req, res, foodieStatusMatch[1], url);
+  }
+  const foodieRatingMatch = url.pathname.match(/^\/foodie\/quests\/([^/]+)\/ratings$/);
+  if (foodieRatingMatch && method === 'PATCH') {
+    return await handleFoodieQuestRatingPatch(req, res, foodieRatingMatch[1], url);
   }
   if (foodieResultMatch && method === 'POST') {
     return await handleFoodieQuestResult(req, res, foodieResultMatch[1]);

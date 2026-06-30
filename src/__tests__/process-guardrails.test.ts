@@ -232,7 +232,16 @@ describe('process guardrails', () => {
     expect(relayServer).toContain('async function handleFoodieQuestDelete');
     expect(relayServer).toContain("method === 'DELETE'");
     expect(relayServer).toContain("delete jobs[jobId]");
-    expect(relayServer).toContain("'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS'");
+    expect(relayServer).toContain("'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS'");
+  });
+
+  it('allows Foodie quest ratings to be patched by status token', () => {
+    const relayServer = readFileSync(path.join(process.cwd(), 'src/relay/server.js'), 'utf8');
+
+    expect(relayServer).toContain('async function handleFoodieQuestRatingPatch');
+    expect(relayServer).toContain("method === 'PATCH'");
+    expect(relayServer).toContain('validateFoodieRating');
+    expect(relayServer).toContain('ratings:');
   });
 
 });
