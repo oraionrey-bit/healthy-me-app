@@ -122,7 +122,7 @@ function sendJson(res, statusCode, body) {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-store',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   });
   res.end(JSON.stringify(body));
@@ -553,6 +553,17 @@ async function handleFoodieQuestStatus(req, res, jobId, url) {
   const job = readFoodieJobs()[jobId];
   if (!job || token !== job.status_token) return sendJson(res, 404, { error: 'Quest not found' });
   return sendJson(res, 200, publicFoodieJob(job));
+}
+
+async function handleFoodieQuestDelete(req, res, jobId, url) {
+  const token = url.searchParams.get('token') || '';
+  const jobs = readFoodieJobs();
+  const job = jobs[jobId];
+  if (!job || token !== job.status_token) return sendJson(res, 404, { error: 'Quest not found' });
+
+  delete jobs[jobId];
+  writeFoodieJobs(jobs);
+  return sendJson(res, 200, { deleted: true });
 }
 
 async function handleFoodieQuestResult(req, res, jobId) {
@@ -1220,7 +1231,7 @@ const server = http.createServer(async (req, res) => {
   if (method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
     });
@@ -1240,6 +1251,9 @@ const server = http.createServer(async (req, res) => {
   }
   if (foodieStatusMatch && method === 'GET') {
     return await handleFoodieQuestStatus(req, res, foodieStatusMatch[1], url);
+  }
+  if (foodieStatusMatch && method === 'DELETE') {
+    return await handleFoodieQuestDelete(req, res, foodieStatusMatch[1], url);
   }
   if (foodieResultMatch && method === 'POST') {
     return await handleFoodieQuestResult(req, res, foodieResultMatch[1]);

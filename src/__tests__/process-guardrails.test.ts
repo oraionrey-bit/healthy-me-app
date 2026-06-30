@@ -226,4 +226,13 @@ describe('process guardrails', () => {
     expect(promptBuilder).not.toContain('${job.city}');
   });
 
+  it('allows Foodie quest jobs to be deleted by status token', () => {
+    const relayServer = readFileSync(path.join(process.cwd(), 'src/relay/server.js'), 'utf8');
+
+    expect(relayServer).toContain('async function handleFoodieQuestDelete');
+    expect(relayServer).toContain("method === 'DELETE'");
+    expect(relayServer).toContain("delete jobs[jobId]");
+    expect(relayServer).toContain("'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS'");
+  });
+
 });
