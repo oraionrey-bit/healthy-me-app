@@ -69,7 +69,7 @@ const FOODIE_JOB_DIR = process.env.FOODIE_JOB_DIR || path.join(os.homedir(), '.h
 const FOODIE_JOB_STORE = process.env.FOODIE_JOB_STORE || path.join(FOODIE_JOB_DIR, 'quest-jobs.json');
 const DEFAULT_FOODIE_HERMES_BIN = path.join(os.homedir(), '.hermes', 'hermes-agent', 'venv', 'bin', 'hermes');
 const FOODIE_HERMES_BIN = process.env.FOODIE_HERMES_BIN || DEFAULT_FOODIE_HERMES_BIN;
-const FOODIE_HERMES_ARGS = (process.env.FOODIE_HERMES_ARGS || 'chat -q {prompt} -t web').split(' ');
+const FOODIE_HERMES_ARGS = (process.env.FOODIE_HERMES_ARGS || 'chat -Q -q {prompt} -t web --max-turns 12 --source foodie-me').split(' ');
 const FOODIE_MAX_ACTIVE_JOBS = Math.max(1, Number.parseInt(process.env.FOODIE_MAX_ACTIVE_JOBS || '3', 10) || 3);
 const FOODIE_WORKER_TIMEOUT_MS = Math.max(1000, Number.parseInt(process.env.FOODIE_WORKER_TIMEOUT_MS || String(10 * 60 * 1000), 10) || (10 * 60 * 1000));
 const FOODIE_WORKER_STDOUT_MAX_BYTES = Math.max(1024, Number.parseInt(process.env.FOODIE_WORKER_STDOUT_MAX_BYTES || String(512 * 1024), 10) || (512 * 1024));
@@ -285,19 +285,70 @@ function validateFoodieResult(value) {
   };
 }
 
+function findBalancedJsonObjects(text) {
+  const candidates = [];
+  let start = -1;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === '{') {
+      if (depth === 0) start = index;
+      depth += 1;
+      continue;
+    }
+
+    if (char === '}' && depth > 0) {
+      depth -= 1;
+      if (depth === 0 && start !== -1) {
+        candidates.push(text.slice(start, index + 1));
+        start = -1;
+      }
+    }
+  }
+
+  return candidates;
+}
+
 function extractJsonFromWorkerStdout(stdout) {
   const trimmed = String(stdout || '').trim();
   if (!trimmed) throw new Error('Worker produced no stdout JSON');
-  try {
-    return JSON.parse(trimmed);
-  } catch (directErr) {
-    const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
-    if (fenced) return JSON.parse(fenced[1].trim());
-    const start = trimmed.indexOf('{');
-    const end = trimmed.lastIndexOf('}');
-    if (start !== -1 && end > start) return JSON.parse(trimmed.slice(start, end + 1));
-    throw directErr;
+
+  const attempts = [trimmed];
+  const fencedMatches = [...trimmed.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi)];
+  attempts.push(...fencedMatches.map((match) => match[1].trim()));
+  attempts.push(...findBalancedJsonObjects(trimmed).reverse());
+
+  let lastError = null;
+  for (const candidate of attempts) {
+    if (!candidate) continue;
+    try {
+      return JSON.parse(candidate);
+    } catch (err) {
+      lastError = err;
+    }
   }
+
+  throw lastError || new Error('Worker stdout did not contain parseable JSON');
 }
 
 function buildFoodieHermesPrompt(job) {
