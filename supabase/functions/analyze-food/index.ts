@@ -292,10 +292,13 @@ async function downloadImageAsBase64(
   supabase: ReturnType<typeof createClient>,
   photoUrl: string,
 ): Promise<ImageData | null> {
-  const bucketMatch = photoUrl.match(/food-photos\/(.+)$/);
-  if (!bucketMatch) return null;
+  const bucketMarker = "/food-photos/";
+  const bucketIndex = photoUrl.indexOf(bucketMarker);
+  if (bucketIndex === -1) return null;
 
-  const filePath = bucketMatch[1];
+  const encodedPath = photoUrl.slice(bucketIndex + bucketMarker.length).split("?")[0];
+  const filePath = decodeURIComponent(encodedPath);
+  if (!filePath) return null;
   const { data, error } = await supabase.storage.from("food-photos").download(filePath);
   if (error || !data) {
     console.error("Failed to download photo:", error?.message, filePath);
@@ -322,16 +325,22 @@ async function downloadImageAsBase64(
 }
 
 async function tryResize(
-  _supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createClient>,
   filePath: string,
   original: Blob,
 ): Promise<Blob | null> {
-  // Try Supabase render endpoint
-  const renderUrl = `${SUPABASE_URL}/storage/v1/render/image/public/food-photos/${filePath}?width=1200&quality=75`;
-  try {
-    const res = await fetch(renderUrl, {
-      headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+  const { data, error } = await supabase.storage
+    .from("food-photos")
+    .createSignedUrl(filePath, 60, {
+      transform: { width: 1200, quality: 75 },
     });
+  if (error || !data?.signedUrl) {
+    console.warn("Could not create private resize URL:", error?.message);
+    return null;
+  }
+
+  try {
+    const res = await fetch(data.signedUrl);
     if (res.ok) {
       const resized = await res.blob();
       console.log(`Resized: ${(original.size / 1024 / 1024).toFixed(1)}MB → ${(resized.size / 1024 / 1024).toFixed(1)}MB`);
@@ -341,14 +350,7 @@ async function tryResize(
     console.warn("Resize failed:", String(err));
   }
 
-  // Try transform endpoint
-  const transformUrl = `${SUPABASE_URL}/storage/v1/object/public/food-photos/${filePath}?width=800&quality=60`;
-  try {
-    const res = await fetch(transformUrl);
-    if (res.ok) return await res.blob();
-  } catch { /* fall through */ }
-
-  console.warn("All resize attempts failed, using original");
+  console.warn("Private resize failed, using original");
   return null;
 }
 

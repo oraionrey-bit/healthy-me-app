@@ -27,4 +27,4 @@ Use a dedicated Zepbound area in Health for the longitudinal weekly record. Surf
 
 ## Release step
 
-The UI requires `supabase/migrations/009_zepbound_tracking.sql` to be applied to the target Supabase project before release. Creating this migration does not apply or deploy it.
+The UI requires `supabase/migrations/009_reconcile_legacy_schema.sql` followed by `supabase/migrations/010_zepbound_tracking.sql` to be applied to the target Supabase project before release. The reconciliation migration is a prerequisite because the audited production project has an empty migration ledger despite already containing the 001–008 schema. Creating these migrations does not apply or deploy them; follow the reviewed one-time procedure in `docs/supabase-migration-reconciliation.md`.

@@ -155,6 +155,10 @@ jest.mock('../lib/supabase', () => ({
       from: jest.fn(() => ({
         upload: jest.fn(() => Promise.resolve({ error: null })),
         getPublicUrl: jest.fn(() => ({ data: { publicUrl: 'https://test.com/photo.jpg' } })),
+        createSignedUrl: jest.fn(() => Promise.resolve({
+          data: { signedUrl: 'https://test.com/storage/v1/object/sign/food-photos/test-user-id/photo.jpg?token=test' },
+          error: null,
+        })),
       })),
     },
   },
