@@ -16,6 +16,7 @@ import { useOura } from '../../hooks/use-oura';
 import { SupplementStreakCard } from './supplement-streak-card';
 import { SupplementTracker } from './supplement-tracker';
 import { LabDashboard } from './lab-dashboard';
+import { ZepboundTrackerCard } from './zepbound-tracker-card';
 
 export function HealthDashboard() {
   const { moodEnergy, nutrition, symptomFrequency, weight, loading, range, setRange } =
@@ -63,6 +64,9 @@ export function HealthDashboard() {
         onSave={savePeriodLog}
         onDelete={deletePeriodLog}
       />
+      <View style={styles.sectionSpacing}>
+        <ZepboundTrackerCard />
+      </View>
       <View style={styles.sectionSpacing}>
         <SupplementTracker />
       </View>

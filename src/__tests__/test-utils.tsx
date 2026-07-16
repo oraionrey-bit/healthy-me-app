@@ -63,6 +63,8 @@ function mockCreateTable(table: string) {
     oura_workouts: [],
     chat_messages: [],
     symptoms: [],
+    zepbound_injections: [],
+    zepbound_symptom_logs: [],
   };
 
   const data = mockTableData[table] ?? [];
