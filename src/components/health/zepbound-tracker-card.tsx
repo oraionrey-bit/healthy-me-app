@@ -13,6 +13,10 @@ import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants
 import { useZepbound } from '../../hooks/use-zepbound';
 import type { ZepboundInjectionSite } from '../../types/database';
 import { toDateKey } from '../../utils/storage';
+import {
+  validateZepboundInjection,
+  validateZepboundSymptom,
+} from '../../utils/zepbound-validation';
 
 const DOSES = [2.5, 5, 7.5, 10, 12.5, 15];
 const SITES: Array<{ value: ZepboundInjectionSite; label: string }> = [
@@ -78,16 +82,23 @@ export function ZepboundTrackerCard() {
   );
 
   const handleShotSave = async () => {
+    const input = {
+      injectionDate: shotDate,
+      injectionTime: shotTime,
+      doseMg: dose,
+      injectionSite: site,
+      notes: shotNotes,
+    };
+    const validationError = validateZepboundInjection(input);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
-      await saveInjection({
-        injectionDate: shotDate,
-        injectionTime: shotTime,
-        doseMg: dose,
-        injectionSite: site,
-        notes: shotNotes,
-      });
+      await saveInjection(input);
       setShotNotes('');
       setShotOpen(false);
     } catch {
@@ -98,16 +109,23 @@ export function ZepboundTrackerCard() {
   };
 
   const handleSymptomSave = async () => {
+    const input = {
+      logDate: symptomDate,
+      symptomTime,
+      symptomType,
+      severity,
+      notes: symptomNotes,
+    };
+    const validationError = validateZepboundSymptom(input);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
-      await saveSymptom({
-        logDate: symptomDate,
-        symptomTime,
-        symptomType,
-        severity,
-        notes: symptomNotes,
-      });
+      await saveSymptom(input);
       setSymptomNotes('');
       setSymptomOpen(false);
     } catch {
@@ -171,7 +189,7 @@ export function ZepboundTrackerCard() {
             ))}
           </View>
           <TextInput accessibilityLabel="Shot notes" style={[styles.input, styles.fullInput]} value={shotNotes} onChangeText={setShotNotes} placeholder="Optional notes" placeholderTextColor={Colors.textMuted} />
-          <PixelButton title={saving ? 'Saving...' : 'Save shot'} onPress={handleShotSave} disabled={saving || !shotDate || !shotTime} />
+          <PixelButton title={saving ? 'Saving...' : 'Save shot'} onPress={handleShotSave} disabled={saving} />
         </View>
       )}
 
@@ -199,7 +217,7 @@ export function ZepboundTrackerCard() {
             <TextInput accessibilityLabel="Symptom time" style={styles.input} value={symptomTime} onChangeText={setSymptomTime} placeholder="HH:MM" />
           </View>
           <TextInput accessibilityLabel="Symptom notes" style={[styles.input, styles.fullInput]} value={symptomNotes} onChangeText={setSymptomNotes} placeholder="Optional notes" placeholderTextColor={Colors.textMuted} />
-          <PixelButton title={saving ? 'Saving...' : 'Save symptom'} onPress={handleSymptomSave} disabled={saving || !symptomDate || !symptomTime} />
+          <PixelButton title={saving ? 'Saving...' : 'Save symptom'} onPress={handleSymptomSave} disabled={saving} />
         </View>
       )}
 

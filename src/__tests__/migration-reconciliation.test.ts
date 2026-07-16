@@ -7,6 +7,7 @@ const read = (relativePath: string) => fs.readFileSync(path.join(root, relativeP
 describe('Supabase migration reconciliation guardrails', () => {
   const migrationDir = path.join(root, 'supabase/migrations');
   const reconciliation = read('supabase/migrations/009_reconcile_legacy_schema.sql');
+  const zepboundMigration = read('supabase/migrations/010_zepbound_tracking.sql');
 
   it('orders reconciliation before Zepbound schema creation', () => {
     const files = fs.readdirSync(migrationDir);
@@ -51,5 +52,14 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(runbook).toContain('009_reconcile_legacy_schema.sql');
     expect(runbook).toContain('010_zepbound_tracking.sql');
     expect(runbook).toContain('Do not run this casually');
+  });
+
+  it('keeps Zepbound values constrained and user-owned', () => {
+    expect(zepboundMigration).toContain("CHECK (injection_site IN ('abdomen', 'thigh', 'upper_arm', 'other'))");
+    expect(zepboundMigration).toContain("CHECK (btrim(symptom_type) <> '')");
+    expect(zepboundMigration).toContain('CHECK (severity BETWEEN 1 AND 5)');
+    expect(zepboundMigration).toContain('ALTER TABLE zepbound_injections ENABLE ROW LEVEL SECURITY');
+    expect(zepboundMigration).toContain('ALTER TABLE zepbound_symptom_logs ENABLE ROW LEVEL SECURITY');
+    expect(zepboundMigration.match(/auth\.uid\(\) = user_id/g)?.length).toBeGreaterThanOrEqual(8);
   });
 });

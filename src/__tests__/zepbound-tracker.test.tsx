@@ -97,6 +97,17 @@ describe('ZepboundTrackerCard', () => {
     });
   });
 
+  it('shows an inline validation error and does not write an invalid shot date', async () => {
+    render(<ZepboundTrackerCard />);
+    await waitFor(() => expect(screen.getByText('No shots logged yet.')).toBeTruthy());
+    fireEvent.click(screen.getByText('+ Log shot'));
+    fireEvent.change(screen.getByLabelText('Shot date'), { target: { value: '2026-02-29' } });
+    fireEvent.click(screen.getByText('Save shot'));
+
+    expect(await screen.findByText('Enter the shot date as YYYY-MM-DD.')).toBeTruthy();
+    expect(lastInsert('zepbound_injections')).toBeUndefined();
+  });
+
   it('associates a same-day symptom only to an injection at or before its time', async () => {
     mockSetTableData('zepbound_injections', [
       injection('later-shot', '2026-07-15', '20:00:00'),
@@ -142,6 +153,17 @@ describe('ZepboundTrackerCard', () => {
       symptom_time: '18:00',
     })));
     expect(screen.queryByLabelText('Symptom date')).toBeNull();
+  });
+
+  it('shows an inline validation error and does not write an invalid symptom time', async () => {
+    render(<ZepboundTrackerCard />);
+    await waitFor(() => expect(screen.getByText('No shots logged yet.')).toBeTruthy());
+    fireEvent.click(screen.getByText('+ Log symptom'));
+    fireEvent.change(screen.getByLabelText('Symptom time'), { target: { value: '25:00' } });
+    fireEvent.click(screen.getByText('Save symptom'));
+
+    expect(await screen.findByText('Enter the symptom time as HH:MM (24-hour time).')).toBeTruthy();
+    expect(lastInsert('zepbound_symptom_logs')).toBeUndefined();
   });
 
   it('shows unassociated symptoms and symptoms attached to shots older than six weeks', async () => {

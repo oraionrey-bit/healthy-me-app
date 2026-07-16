@@ -6,6 +6,10 @@ import type {
   ZepboundInjectionSite,
   ZepboundSymptomLog,
 } from '../types/database';
+import {
+  validateZepboundInjection,
+  validateZepboundSymptom,
+} from '../utils/zepbound-validation';
 
 export interface NewZepboundInjection {
   injectionDate: string;
@@ -21,6 +25,10 @@ export interface NewZepboundSymptom {
   symptomType: string;
   severity: number;
   notes?: string;
+}
+
+interface InsertOperation<T> {
+  insert: (values: T) => PromiseLike<{ error: unknown | null }>;
 }
 
 /** One data source for both the dedicated Health tracker and Home's daily status. */
@@ -70,28 +78,36 @@ export function useZepbound() {
 
   const saveInjection = useCallback(async (input: NewZepboundInjection) => {
     if (!user) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hand-maintained Supabase types do not infer inserts
-    const { error } = await (supabase.from('zepbound_injections') as any).insert({
+    const validationError = validateZepboundInjection(input);
+    if (validationError) throw new Error(validationError);
+
+    const payload = {
       user_id: user.id,
       injection_date: input.injectionDate,
       injection_time: input.injectionTime,
       dose_mg: input.doseMg,
       injection_site: input.injectionSite,
       notes: input.notes?.trim() || null,
-    });
+    } satisfies Omit<ZepboundInjection, 'id' | 'created_at'>;
+    // This project maintains its Database type by hand; narrow the latest
+    // Supabase insert builder without weakening the feature payload to `any`.
+    const injectionTable = supabase.from('zepbound_injections') as unknown as InsertOperation<typeof payload>;
+    const { error } = await injectionTable.insert(payload);
     if (error) throw error;
     await refetch();
   }, [user, refetch]);
 
   const saveSymptom = useCallback(async (input: NewZepboundSymptom) => {
     if (!user) return;
+    const validationError = validateZepboundSymptom(input);
+    if (validationError) throw new Error(validationError);
+
     const symptomTimestamp = `${input.logDate}T${input.symptomTime.slice(0, 5)}`;
     const relatedInjection = injections.find(
       (injection) =>
         `${injection.injection_date}T${injection.injection_time.slice(0, 5)}` <= symptomTimestamp,
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hand-maintained Supabase types do not infer inserts
-    const { error } = await (supabase.from('zepbound_symptom_logs') as any).insert({
+    const payload = {
       user_id: user.id,
       injection_id: relatedInjection?.id ?? null,
       log_date: input.logDate,
@@ -99,7 +115,9 @@ export function useZepbound() {
       symptom_type: input.symptomType.trim(),
       severity: input.severity,
       notes: input.notes?.trim() || null,
-    });
+    } satisfies Omit<ZepboundSymptomLog, 'id' | 'created_at'>;
+    const symptomTable = supabase.from('zepbound_symptom_logs') as unknown as InsertOperation<typeof payload>;
+    const { error } = await symptomTable.insert(payload);
     if (error) throw error;
     await refetch();
   }, [user, injections, refetch]);

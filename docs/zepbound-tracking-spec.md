@@ -14,12 +14,14 @@ Use a dedicated Zepbound area in Health for the longitudinal weekly record. Surf
 | ZEP-4 | Surface shot/symptom status for the selected Home date without duplicate entry UI. | `DailyZepboundStatusCard` | Home/component tests |
 | ZEP-5 | Keep each user's medication data private. | RLS policies on both new tables | Migration review |
 | ZEP-6 | Match existing minimal card, typography, spacing, and control patterns. | Shared `HealthCard`, theme constants, compact collapsed forms | Snapshot/build verification |
+| ZEP-7 | Reject malformed or impossible dates/times and invalid symptom details before writing, while retaining database constraints as a second line of defense. | `zepbound-validation`, `useZepbound`, inline form errors, SQL checks | Validation/component/migration tests |
 
 ## Data model
 
 - `zepbound_injections`: one row per injection event.
 - `zepbound_symptom_logs`: one row per symptom observation; `injection_id` is optional and defaults in the UI to the most recent injection on or before the symptom date.
 - Dates and times are stored separately to preserve the user's local calendar day/time without timezone conversion surprises.
+- Entry dates use strict `YYYY-MM-DD` calendar validation and times use strict 24-hour `HH:MM` validation. Backdated entries remain valid so historical shots and symptoms can be added.
 
 ## Out of scope
 

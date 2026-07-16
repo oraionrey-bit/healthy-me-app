@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS zepbound_symptom_logs (
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
   log_date DATE NOT NULL,
   symptom_time TIME NOT NULL,
-  symptom_type TEXT NOT NULL,
+  symptom_type TEXT NOT NULL CHECK (btrim(symptom_type) <> ''),
   severity SMALLINT NOT NULL CHECK (severity BETWEEN 1 AND 5),
   notes TEXT
 );
