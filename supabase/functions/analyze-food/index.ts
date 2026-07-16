@@ -1,6 +1,6 @@
-// Supabase Edge Function: analyze-food — v4.0 (2026-04-01)
+// Supabase Edge Function: analyze-food — v4.1 (2026-07-16)
 // Analyzes food photos via AI for nutrition estimation
-// Tina (PCOS) = Claude Sonnet (via ClawRouter) primary; everyone else = Gemini only
+// Gemini 2.5 Flash analyzes all users; Tina retains a dedicated PCOS prompt
 // POST { food_log_id: string, mode?: "leftovers", leftovers_photo_url?: string }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.100.1";
@@ -8,17 +8,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.100.1";
 // ─── Config ────────────────────────────────────────────────────────────────
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY")!;
-const CLAWROUTER_API_KEY = Deno.env.get("CLAWROUTER_API_KEY") ?? "";
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
 
 const TINA_USER_ID = "e454325f-b8e6-4251-9a49-9d706eef99c3";
-const TINA_CHAT_ID = "5052308275";
-const ANTHONY_CHAT_ID = "717932407";
 
-const IMAGE_MAX_BYTES = 5 * 1024 * 1024; // 5MB — Claude's limit
+const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -70,104 +65,7 @@ interface Provider {
   analyze(prompt: string, images: ImageData[]): Promise<AnalysisResult>;
 }
 
-/** ClawRouter — OpenAI-compatible proxy routing to Claude Sonnet */
-const clawRouterProvider: Provider = {
-  name: "clawrouter",
-  async analyze(prompt: string, images: ImageData[]): Promise<AnalysisResult> {
-    const content: Record<string, unknown>[] = [];
-    for (const img of images) {
-      if (estimateBytes(img.base64) <= IMAGE_MAX_BYTES) {
-        content.push({
-          type: "image_url",
-          image_url: { url: `data:${img.mimeType};base64,${img.base64}` },
-        });
-      }
-    }
-    content.push({ type: "text", text: prompt });
-
-    const response = await fetch("https://api.clawrouter.app/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${CLAWROUTER_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "standard", // Maps to Claude Sonnet
-        max_tokens: 1024,
-        messages: [{ role: "user", content }],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new ProviderError(
-        "clawrouter",
-        classifyHttpError(response.status),
-        response.status,
-        `HTTP ${response.status}: ${errorText.slice(0, 200)}`,
-      );
-    }
-
-    const result = await response.json();
-    const text = result.choices?.[0]?.message?.content;
-    if (!text) {
-      throw new ProviderError("clawrouter", "invalid_response", 200, "Empty response");
-    }
-
-    return parseAnalysisJson(text);
-  },
-};
-
-/** Anthropic Direct API — fallback if ClawRouter is unavailable */
-const anthropicProvider: Provider = {
-  name: "anthropic",
-  async analyze(prompt: string, images: ImageData[]): Promise<AnalysisResult> {
-    const content: Record<string, unknown>[] = [];
-    for (const img of images) {
-      if (estimateBytes(img.base64) <= IMAGE_MAX_BYTES) {
-        content.push({
-          type: "image",
-          source: { type: "base64", media_type: img.mimeType, data: img.base64 },
-        });
-      }
-    }
-    content.push({ type: "text", text: prompt });
-
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1024,
-        messages: [{ role: "user", content }],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new ProviderError(
-        "anthropic",
-        classifyHttpError(response.status),
-        response.status,
-        `HTTP ${response.status}: ${errorText.slice(0, 200)}`,
-      );
-    }
-
-    const result = await response.json();
-    const text = result.content?.[0]?.text;
-    if (!text) {
-      throw new ProviderError("anthropic", "invalid_response", 200, "Empty response");
-    }
-
-    return parseAnalysisJson(text);
-  },
-};
-
-/** Gemini 2.5 Flash — used for non-Tina users and as last-resort fallback */
+/** Gemini 2.5 Flash — direct analyzer for all users. */
 const geminiProvider: Provider = {
   name: "gemini",
   async analyze(prompt: string, images: ImageData[]): Promise<AnalysisResult> {
@@ -308,7 +206,7 @@ async function downloadImageAsBase64(
   let blob: Blob = data;
   const mimeType = data.type || "image/jpeg";
 
-  // Resize if over Claude's 5MB limit
+  // Keep uploads bounded before sending them to the analysis provider.
   if (blob.size > IMAGE_MAX_BYTES) {
     console.log(`Image too large (${(blob.size / 1024 / 1024).toFixed(1)}MB), resizing...`);
     blob = await tryResize(supabase, filePath, blob) ?? blob;
@@ -508,52 +406,6 @@ Respond in STRICT JSON format only:
 }`;
 }
 
-// ─── Notifications ─────────────────────────────────────────────────────────
-
-async function notifyTelegram(chatId: string, text: string): Promise<void> {
-  if (!TELEGRAM_BOT_TOKEN) return;
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text }),
-    });
-
-    if (!res.ok) {
-      const errBody = await res.text();
-      console.warn("Telegram notification failed:", errBody);
-    }
-  } catch (err) {
-    console.warn("Telegram notification failed:", String(err));
-  }
-}
-
-async function notifyFoodLogged(
-  mealType: string,
-  description: string,
-  analysis: AnalysisResult,
-  analyzedBy: string,
-): Promise<void> {
-  const desc = description ? `"${description.substring(0, 100)}"` : "";
-  const text = [
-    `🍽️ Food logged (${mealType})`,
-    desc,
-    "",
-    `📊 ${Math.round(analysis.calories)} cal | ${Math.round(analysis.protein)}g protein | ${Math.round(analysis.carbs)}g carbs | ${Math.round(analysis.fat)}g fat`,
-    "",
-    analysis.pcos_notes ? `💬 ${analysis.pcos_notes}` : "",
-  ].filter(Boolean).join("\n");
-
-  await notifyTelegram(TINA_CHAT_ID, text);
-}
-
-async function notifyProviderFailure(errors: string): Promise<void> {
-  await notifyTelegram(
-    ANTHONY_CHAT_ID,
-    `⚠️ Claude failed for Tina's food analysis, fell back to Gemini.\n${errors.slice(0, 300)}`,
-  );
-}
-
 // ─── Main Handler ──────────────────────────────────────────────────────────
 
 const CORS_HEADERS = {
@@ -647,11 +499,7 @@ Deno.serve(async (req) => {
 
     if (isTina) {
       prompt = isLeftovers ? LEFTOVERS_PROMPT : PCOS_PROMPT;
-      // Claude (via ClawRouter) primary → Anthropic direct fallback → Gemini last resort
-      providers = [];
-      if (CLAWROUTER_API_KEY) providers.push(clawRouterProvider);
-      if (ANTHROPIC_API_KEY) providers.push(anthropicProvider);
-      providers.push(geminiProvider); // Always available as fallback
+      providers = [geminiProvider];
     } else {
       const profile = userProfile ?? DEFAULT_PROFILE;
       prompt = isLeftovers
@@ -668,11 +516,6 @@ Deno.serve(async (req) => {
       fullPrompt,
       images,
     );
-
-    // If Claude failed and we fell back to Gemini for Tina, notify Anthony
-    if (isTina && analyzedBy === "gemini") {
-      await notifyProviderFailure("Claude providers failed, used Gemini fallback");
-    }
 
     // Update the food log
     const updatePayload: Record<string, unknown> = {
@@ -696,16 +539,6 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       return jsonResponse({ error: "Failed to update food log", detail: updateError.message }, 500);
-    }
-
-    // Notify Tina via Telegram
-    if (isTina) {
-      await notifyFoodLogged(
-        entry.meal_type ?? "meal",
-        entry.description ?? "",
-        analysis,
-        analyzedBy,
-      );
     }
 
     return jsonResponse({ data: updated });

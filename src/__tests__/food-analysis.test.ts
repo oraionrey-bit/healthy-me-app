@@ -7,6 +7,9 @@
  * and can be run manually with INTEGRATION=1.
  */
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 // ─── Unit-testable utilities extracted from the edge function ──────────────
 
 type ApiErrorKind = "rate_limit" | "auth" | "server" | "invalid_response" | "unknown";
@@ -79,17 +82,51 @@ describe("classifyHttpError", () => {
   });
 });
 
+describe("food analysis result routing", () => {
+  const functionSource = readFileSync(
+    path.join(process.cwd(), "supabase/functions/analyze-food/index.ts"),
+    "utf8",
+  );
+
+  it("keeps successful food analysis results in-app instead of sending them to Tina's Telegram", () => {
+    expect(functionSource).not.toContain("TINA_CHAT_ID");
+    expect(functionSource).not.toContain("notifyFoodLogged");
+    expect(functionSource).not.toContain("api.telegram.org");
+    expect(functionSource).not.toContain("TELEGRAM_BOT_TOKEN");
+  });
+
+  it("routes Tina directly to Gemini while retaining her dedicated PCOS prompt", () => {
+    const tinaRouting = functionSource.slice(
+      functionSource.indexOf("if (isTina)"),
+      functionSource.indexOf("} else {", functionSource.indexOf("if (isTina)")),
+    );
+
+    expect(tinaRouting).toContain("isLeftovers ? LEFTOVERS_PROMPT : PCOS_PROMPT");
+    expect(tinaRouting).toContain("providers = [geminiProvider]");
+    expect(tinaRouting).not.toContain("clawRouterProvider");
+    expect(tinaRouting).not.toContain("anthropicProvider");
+  });
+
+  it("has no Claude provider credentials or endpoints in the live function", () => {
+    expect(functionSource).not.toContain("CLAWROUTER_API_KEY");
+    expect(functionSource).not.toContain("ANTHROPIC_API_KEY");
+    expect(functionSource).not.toContain("api.clawrouter.app");
+    expect(functionSource).not.toContain("api.anthropic.com");
+    expect(functionSource).toContain("gemini-2.5-flash:generateContent");
+  });
+});
+
 describe("ProviderError", () => {
   it("includes provider name in message", () => {
-    const err = new ProviderError("clawrouter", "rate_limit", 429, "too many requests");
-    expect(err.message).toContain("clawrouter");
-    expect(err.provider).toBe("clawrouter");
+    const err = new ProviderError("gemini", "rate_limit", 429, "too many requests");
+    expect(err.message).toContain("gemini");
+    expect(err.provider).toBe("gemini");
     expect(err.kind).toBe("rate_limit");
     expect(err.statusCode).toBe(429);
   });
 
   it("is instanceof Error", () => {
-    const err = new ProviderError("anthropic", "auth", 401, "invalid key");
+    const err = new ProviderError("gemini", "auth", 401, "invalid key");
     expect(err).toBeInstanceOf(Error);
   });
 });
@@ -292,11 +329,11 @@ describe("Tina vs non-Tina routing", () => {
     expect(TINA_USER_ID).toBe("e454325f-b8e6-4251-9a49-9d706eef99c3");
   });
 
-  it("would route Tina through Claude providers", () => {
+  it("routes Tina through Gemini with her dedicated prompt", () => {
     const userId = TINA_USER_ID;
     const isTina = userId === TINA_USER_ID;
     expect(isTina).toBe(true);
-    // In actual code: ClawRouter → Anthropic → Gemini
+    // In actual code: Tina's PCOS prompt → Gemini only
   });
 
   it("would route non-Tina through Gemini only", () => {
@@ -304,48 +341,5 @@ describe("Tina vs non-Tina routing", () => {
     const isTina = userId === (TINA_USER_ID as string);
     expect(isTina).toBe(false);
     // In actual code: Gemini only
-  });
-});
-
-describe("429 diagnosis — the Anthropic key issue", () => {
-  /**
-   * Research findings about the persistent 429 error:
-   *
-   * The error response was: {"type":"error","error":{"type":"rate_limit_error","message":"Error"}}
-   *
-   * Normal Anthropic 429s say: "This request would exceed your account's rate limit"
-   * and include retry-after headers. The vague "message":"Error" is NOT a normal rate limit.
-   *
-   * Possible causes:
-   * 1. FREE TIER EXHAUSTED — Free tier has very low limits (Tier 0: ~$0 spend limit).
-   *    Once exhausted, ALL requests return 429 until credits are added.
-   * 2. BILLING ISSUE — Expired payment method, insufficient credits.
-   *    Anthropic returns 429 (not 403) for billing-related rate limits.
-   * 3. SPEND LIMIT HIT — Monthly spend limit reached for the tier.
-   *    At Tier 1 ($5 deposit), max monthly spend is $100.
-   *
-   * The 10+ hour continuous 429 with only 6-7 calls/day strongly suggests
-   * either: (a) free tier with $0 credit, or (b) monthly spend limit reached.
-   * Normal rate limits reset within minutes, not hours.
-   */
-
-  it("documents that persistent 429 is NOT normal rate limiting", () => {
-    // Normal rate limits: minutes, with retry-after header
-    // This case: 10+ hours, 6-7 calls/day, vague error message
-    // Conclusion: billing/tier issue, not transient rate limit
-    const hoursOf429 = 10;
-    const callsPerDay = 7;
-    const isNormalRateLimit = hoursOf429 < 1 && callsPerDay > 100;
-    expect(isNormalRateLimit).toBe(false);
-  });
-
-  it("documents vague error message as indicator of account-level issue", () => {
-    const errorResponse = {
-      type: "error",
-      error: { type: "rate_limit_error", message: "Error" },
-    };
-    // Normal rate limit message: "This request would exceed your account's rate limit"
-    const isVague = errorResponse.error.message === "Error";
-    expect(isVague).toBe(true);
   });
 });
