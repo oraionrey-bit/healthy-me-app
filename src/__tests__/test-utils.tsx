@@ -46,33 +46,68 @@ const mockSupplementsData = [
   { id: 'sup-3', user_id: 'test-user-id', supplement_name: 'Ovasitol (PM)', dosage: '1 scoop', frequency: 'daily', time_of_day: 'evening', notes: null, is_active: true, sort_order: 4, created_at: '2026-01-01' },
 ];
 
+export interface MockDatabaseWrite {
+  table: string;
+  operation: 'insert' | 'update' | 'delete' | 'upsert';
+  values?: unknown;
+}
+
+export const mockDatabaseWrites: MockDatabaseWrite[] = [];
+
+const mockTableData: Record<string, any[]> = {
+  user_profiles: [mockProfileData],
+  user_supplements: mockSupplementsData,
+  supplement_logs: [],
+  food_logs: [],
+  exercise_logs: [],
+  daily_scores: [],
+  daily_logs: [],
+  symptom_logs: [],
+  weight_logs: [],
+  period_logs: [],
+  oura_daily: [],
+  oura_workouts: [],
+  chat_messages: [],
+  symptoms: [],
+  zepbound_injections: [],
+  zepbound_symptom_logs: [],
+};
+
+export function mockSetTableData(table: string, rows: any[]) {
+  mockTableData[table] = rows;
+}
+
+export function mockResetZepboundData() {
+  mockTableData.zepbound_injections = [];
+  mockTableData.zepbound_symptom_logs = [];
+  mockDatabaseWrites.length = 0;
+}
+
+const mockAuthUser = { id: 'test-user-id', email: 'tina@test.com' };
+const mockAuthSession = { user: mockAuthUser, access_token: 'test-token' };
+
 // Must prefix with 'mock' to be accessible inside jest.mock factory
 function mockCreateTable(table: string) {
-  const mockTableData: Record<string, any[]> = {
-    user_profiles: [mockProfileData],
-    user_supplements: mockSupplementsData,
-    supplement_logs: [],
-    food_logs: [],
-    exercise_logs: [],
-    daily_scores: [],
-    daily_logs: [],
-    symptom_logs: [],
-    weight_logs: [],
-    period_logs: [],
-    oura_daily: [],
-    oura_workouts: [],
-    chat_messages: [],
-    symptoms: [],
-  };
-
   const data = mockTableData[table] ?? [];
 
   const builder: any = {};
   builder.select = jest.fn(() => builder);
-  builder.insert = jest.fn(() => builder);
-  builder.update = jest.fn(() => builder);
-  builder.delete = jest.fn(() => builder);
-  builder.upsert = jest.fn(() => builder);
+  builder.insert = jest.fn((values: unknown) => {
+    mockDatabaseWrites.push({ table, operation: 'insert', values });
+    return builder;
+  });
+  builder.update = jest.fn((values: unknown) => {
+    mockDatabaseWrites.push({ table, operation: 'update', values });
+    return builder;
+  });
+  builder.delete = jest.fn(() => {
+    mockDatabaseWrites.push({ table, operation: 'delete' });
+    return builder;
+  });
+  builder.upsert = jest.fn((values: unknown) => {
+    mockDatabaseWrites.push({ table, operation: 'upsert', values });
+    return builder;
+  });
   builder.eq = jest.fn(() => builder);
   builder.neq = jest.fn(() => builder);
   builder.not = jest.fn(() => builder);
@@ -120,6 +155,10 @@ jest.mock('../lib/supabase', () => ({
       from: jest.fn(() => ({
         upload: jest.fn(() => Promise.resolve({ error: null })),
         getPublicUrl: jest.fn(() => ({ data: { publicUrl: 'https://test.com/photo.jpg' } })),
+        createSignedUrl: jest.fn(() => Promise.resolve({
+          data: { signedUrl: 'https://test.com/storage/v1/object/sign/food-photos/test-user-id/photo.jpg?token=test' },
+          error: null,
+        })),
       })),
     },
   },
@@ -128,8 +167,8 @@ jest.mock('../lib/supabase', () => ({
 // Mock auth context to provide user directly
 jest.mock('../lib/auth', () => ({
   useAuth: () => ({
-    user: { id: 'test-user-id', email: 'tina@test.com' },
-    session: { user: { id: 'test-user-id', email: 'tina@test.com' }, access_token: 'test-token' },
+    user: mockAuthUser,
+    session: mockAuthSession,
     loading: false,
     signIn: jest.fn(() => Promise.resolve({ error: null })),
     signOut: jest.fn(() => Promise.resolve()),

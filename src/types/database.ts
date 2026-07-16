@@ -97,6 +97,18 @@ export interface Database {
         Insert: Omit<SavedMeal, 'id' | 'created_at'>;
         Update: Partial<SavedMeal>;
       };
+      zepbound_injections: {
+        Row: ZepboundInjection;
+        Insert: Omit<ZepboundInjection, 'id' | 'created_at'>;
+        Update: Partial<Omit<ZepboundInjection, 'id' | 'user_id' | 'created_at'>>;
+        Relationships: [];
+      };
+      zepbound_symptom_logs: {
+        Row: ZepboundSymptomLog;
+        Insert: Omit<ZepboundSymptomLog, 'id' | 'created_at'>;
+        Update: Partial<Omit<ZepboundSymptomLog, 'id' | 'user_id' | 'created_at'>>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -361,6 +373,31 @@ export type SymptomType =
   | 'other';
 
 export type FlowLevel = 'spotting' | 'light' | 'medium' | 'heavy';
+
+export type ZepboundInjectionSite = 'abdomen' | 'thigh' | 'upper_arm' | 'other';
+
+export interface ZepboundInjection {
+  id: string;
+  user_id: string;
+  created_at: string;
+  injection_date: string;
+  injection_time: string;
+  dose_mg: number;
+  injection_site: ZepboundInjectionSite;
+  notes: string | null;
+}
+
+export interface ZepboundSymptomLog {
+  id: string;
+  user_id: string;
+  injection_id: string | null;
+  created_at: string;
+  log_date: string;
+  symptom_time: string;
+  symptom_type: string;
+  severity: number;
+  notes: string | null;
+}
 
 export interface OuraDaily {
   id: string;

@@ -30,6 +30,7 @@ import { useAuth } from '../../lib/auth';
 import { useUserProfile } from '../../hooks/use-user-profile';
 import { WaterTracker } from '../../components/home/water-tracker';
 import { CalfTrackerCard } from '../../components/home/calf-tracker-card';
+import { DailyZepboundStatusCard } from '../../components/home/daily-zepbound-status-card';
 import { DateNavigator } from '../../components/shared/date-navigator';
 import { DailyCheckinCard } from '../../components/home/daily-checkin-card';
 import { WeeklyInsightsCard } from '../../components/home/weekly-insights-card';
@@ -798,6 +799,9 @@ export default function HomeScreen() {
 
             {/* Calf Recovery Tracker */}
             <CalfTrackerCard />
+
+            {/* Zepbound daily status; entries live in the dedicated Health tracker. */}
+            <DailyZepboundStatusCard date={selectedDate} />
 
             {/* Food Summary */}
             <View style={[styles.accentCard, styles.accentOrange]}>

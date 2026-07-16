@@ -6,6 +6,7 @@ import { compressImage } from '../utils/compress-image';
 import type { FoodLog } from '../types/database';
 
 const POLL_INTERVAL_MS = 30_000;
+const FOOD_PHOTO_URL_TTL_SECONDS = 60 * 60 * 24 * 365;
 
 interface AddFoodInput {
   meal_type: FoodLog['meal_type'];
@@ -141,10 +142,12 @@ export function useFoodLog(date: string) {
         });
 
       if (!error) {
-        const { data: urlData } = supabase.storage
+        const { data: urlData, error: urlError } = await supabase.storage
           .from('food-photos')
-          .getPublicUrl(filePath);
-        urls.push(urlData.publicUrl);
+          .createSignedUrl(filePath, FOOD_PHOTO_URL_TTL_SECONDS);
+        if (!urlError && urlData?.signedUrl) {
+          urls.push(urlData.signedUrl);
+        }
       }
     }
     return urls;
@@ -229,9 +232,13 @@ export function useFoodLog(date: string) {
       console.error('Failed to upload leftovers photo:', uploadError);
       return;
     }
-    const { data: urlData } = supabase.storage
+    const { data: urlData, error: urlError } = await supabase.storage
       .from('food-photos')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, FOOD_PHOTO_URL_TTL_SECONDS);
+    if (urlError || !urlData?.signedUrl) {
+      console.error('Failed to create private leftovers photo URL:', urlError);
+      return;
+    }
 
     // Mark entry as re-analyzing
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
@@ -242,7 +249,7 @@ export function useFoodLog(date: string) {
 
     await fetchEntries();
     // Trigger leftovers analysis
-    triggerAnalysis(entryId, 'leftovers', urlData.publicUrl);
+    triggerAnalysis(entryId, 'leftovers', urlData.signedUrl);
   };
 
   const totals = entries.reduce(

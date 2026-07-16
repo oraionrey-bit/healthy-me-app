@@ -1234,6 +1234,92 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
           </div>
           <div
             class="css-view-g5y9jx r-marginTop-11c0sde"
+          >
+            <div
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1azax52 r-marginBottom-1ifxtd0 r-padding-nsbfu8"
+              style="border-left-color: rgba(129,212,250,1.00);"
+            >
+              <div
+                class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst r-marginBottom-5oul0u"
+                dir="auto"
+              >
+                💉 Zepbound
+              </div>
+              <div
+                class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-lineHeight-14yzgew"
+                dir="auto"
+              >
+                Weekly shots and how you feel afterward, together in one timeline.
+              </div>
+              <div
+                class="css-view-g5y9jx r-flexDirection-18u37iz r-gap-1cmwbt1 r-marginTop-1wzrnnt"
+              >
+                <button
+                  aria-expanded="false"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-borderColor-4uhiq9 r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flex-13awgt0 r-padding-edyy15"
+                  role="button"
+                  style="transition-duration: 0s;"
+                  type="button"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                    dir="auto"
+                  >
+                    + Log shot
+                  </div>
+                </button>
+                <button
+                  aria-expanded="false"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-borderColor-4uhiq9 r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flex-13awgt0 r-padding-edyy15"
+                  role="button"
+                  style="transition-duration: 0s;"
+                  type="button"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                    dir="auto"
+                  >
+                    + Log symptom
+                  </div>
+                </button>
+              </div>
+              <div
+                aria-valuemax="1"
+                aria-valuemin="0"
+                class="css-view-g5y9jx r-alignItems-1awozwy r-justifyContent-1777fci r-marginTop-1wzrnnt"
+                role="progressbar"
+              >
+                <div
+                  class="css-view-g5y9jx r-height-z80fyv r-width-19wmn03 r-animationDuration-17bb2tj r-animationIterationCount-1muvv40 r-animationKeyframes-1yef0xd r-animationTimingFunction-1ldzwu0"
+                >
+                  <svg
+                    height="100%"
+                    viewBox="0 0 32 32"
+                    width="100%"
+                  >
+                    <circle
+                      cx="16"
+                      cy="16"
+                      fill="none"
+                      r="14"
+                      stroke-width="4"
+                      style="stroke: #7c4dff; opacity: 0.2;"
+                    />
+                    <circle
+                      cx="16"
+                      cy="16"
+                      fill="none"
+                      r="14"
+                      stroke-width="4"
+                      style="stroke: #7c4dff; stroke-dasharray: 80; stroke-dashoffset: 60;"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div
+            class="css-view-g5y9jx r-marginTop-11c0sde"
           />
           <div
             class="css-view-g5y9jx r-marginTop-11c0sde"
@@ -1850,6 +1936,45 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
                 >
                   Measurements & Notes ▼
                 </div>
+              </div>
+            </div>
+            <div
+              class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftColor-112ynna r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1azax52 r-padding-nsbfu8"
+            >
+              <div
+                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst"
+                  dir="auto"
+                >
+                  💉 Zepbound
+                </div>
+                <div
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
+                  role="link"
+                  style="transition-duration: 0s;"
+                  tabindex="0"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    dir="auto"
+                  >
+                    Open tracker ›
+                  </div>
+                </div>
+              </div>
+              <div
+                class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-marginTop-knv0ih"
+                dir="auto"
+              >
+                No Zepbound activity for this day.
+              </div>
+              <div
+                class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs r-marginTop-knv0ih"
+                dir="auto"
+              >
+                Shots and related symptoms are entered once in Health.
               </div>
             </div>
             <div
