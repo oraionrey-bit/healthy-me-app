@@ -1243,45 +1243,13 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
                 class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst r-marginBottom-5oul0u"
                 dir="auto"
               >
-                💉 Zepbound
+                💉 Zepbound history
               </div>
               <div
                 class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-lineHeight-14yzgew"
                 dir="auto"
               >
-                Weekly shots and how you feel afterward, together in one timeline.
-              </div>
-              <div
-                class="css-view-g5y9jx r-flexDirection-18u37iz r-gap-1cmwbt1 r-marginTop-1wzrnnt"
-              >
-                <button
-                  aria-expanded="false"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-borderColor-4uhiq9 r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flex-13awgt0 r-padding-edyy15"
-                  role="button"
-                  style="transition-duration: 0s;"
-                  type="button"
-                >
-                  <div
-                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
-                    dir="auto"
-                  >
-                    + Log shot
-                  </div>
-                </button>
-                <button
-                  aria-expanded="false"
-                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-borderColor-4uhiq9 r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flex-13awgt0 r-padding-edyy15"
-                  role="button"
-                  style="transition-duration: 0s;"
-                  type="button"
-                >
-                  <div
-                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
-                    dir="auto"
-                  >
-                    + Log symptom
-                  </div>
-                </button>
+                Review weekly shots and symptoms here. Add new entries from Home.
               </div>
               <div
                 aria-valuemax="1"
@@ -1942,13 +1910,23 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
               class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftColor-112ynna r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1azax52 r-padding-nsbfu8"
             >
               <div
-                class="css-view-g5y9jx r-alignItems-1awozwy r-flexDirection-18u37iz r-justifyContent-1wtj0ep"
+                class="css-view-g5y9jx r-alignItems-1habvwh r-flexDirection-18u37iz r-justifyContent-1wtj0ep"
               >
                 <div
-                  class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst"
-                  dir="auto"
+                  class="css-view-g5y9jx"
                 >
-                  💉 Zepbound
+                  <div
+                    class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst"
+                    dir="auto"
+                  >
+                    💉 Zepbound
+                  </div>
+                  <div
+                    class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs r-marginTop-1bymd8e"
+                    dir="auto"
+                  >
+                    Logging for May 21
+                  </div>
                 </div>
                 <div
                   class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73"
@@ -1957,10 +1935,10 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
                   tabindex="0"
                 >
                   <div
-                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-10x49cs r-paddingTop-vmopo1"
                     dir="auto"
                   >
-                    Open tracker ›
+                    View history ›
                   </div>
                 </div>
               </div>
@@ -1968,13 +1946,39 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
                 class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-marginTop-knv0ih"
                 dir="auto"
               >
-                No Zepbound activity for this day.
+                No Zepbound entries for May 21.
               </div>
               <div
-                class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-10x49cs r-marginTop-knv0ih"
-                dir="auto"
+                class="css-view-g5y9jx r-flexDirection-18u37iz r-gap-1cmwbt1 r-marginTop-1wzrnnt"
               >
-                Shots and related symptoms are entered once in Health.
+                <button
+                  aria-expanded="false"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-borderColor-4uhiq9 r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flex-13awgt0 r-padding-edyy15"
+                  role="button"
+                  style="transition-duration: 0s;"
+                  type="button"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                    dir="auto"
+                  >
+                    + Log shot
+                  </div>
+                </button>
+                <button
+                  aria-expanded="false"
+                  class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-borderColor-4uhiq9 r-borderRadius-1q9bdsx r-borderWidth-rs99b7 r-flex-13awgt0 r-padding-edyy15"
+                  role="button"
+                  style="transition-duration: 0s;"
+                  type="button"
+                >
+                  <div
+                    class="css-text-146c3p1 r-color-13lab5b r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                    dir="auto"
+                  >
+                    + Log symptom
+                  </div>
+                </button>
               </div>
             </div>
             <div

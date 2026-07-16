@@ -21,6 +21,10 @@ import { FoodCalendar } from '../../components/food/food-calendar';
 import { DaySummaryCard } from '../../components/food/day-summary-card';
 import { FoodTrends } from '../../components/food/food-trends';
 import { formatDate, toDateKey } from '../../utils/storage';
+import {
+  getFoodAnalysisProviderLabel,
+  isLeftoversAdjusted,
+} from '../../utils/food-analysis-provider';
 import type { FoodLog } from '../../types/database';
 
 type MealType = FoodLog['meal_type'];
@@ -76,7 +80,8 @@ function FoodEntry({
   const leftoversInputRef = useRef<HTMLInputElement | null>(null);
   const mealInfo = MEAL_LABELS.find((m) => m.key === entry.meal_type) ?? MEAL_LABELS[0];
   const hasAnalysis = entry.ai_analyzed && entry.calories !== null;
-  const isAdjusted = entry.notes === 'adjusted_for_leftovers';
+  const isAdjusted = isLeftoversAdjusted(entry.notes);
+  const providerLabel = getFoodAnalysisProviderLabel(entry);
   const mealIcon = MEAL_ICON_MAP[entry.meal_type];
 
   const handleLeftoversFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,9 +114,9 @@ function FoodEntry({
               {isAdjusted && (
                 <Text style={styles.entryLeftoversNote}>🍽️ Adjusted for leftovers</Text>
               )}
-              {entry.notes && !isAdjusted && (
-                <Text style={[styles.entryLeftoversNote, { opacity: 0.5 }]}>
-                  {entry.notes.includes('claude') ? '🤖 Claude' : entry.notes.includes('gemini') ? '🤖 Gemini' : ''}
+              {providerLabel && (
+                <Text style={styles.entryProviderLabel} accessibilityLabel={providerLabel}>
+                  {providerLabel}
                 </Text>
               )}
               {entry.ai_pcos_notes ? (
@@ -1176,6 +1181,12 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     fontSize: FontSizes.bodyXs,
     color: Colors.warning,
+    marginTop: 2,
+  },
+  entryProviderLabel: {
+    fontFamily: Fonts.body,
+    fontSize: FontSizes.bodyXs,
+    color: Colors.textMuted,
     marginTop: 2,
   },
   // Favorites section

@@ -33,4 +33,11 @@ describe('Health Screen', () => {
     await renderHealth();
     expect(screen.getByText(/Mood/)).toBeTruthy();
   });
+
+  it('shows Zepbound history without duplicate logging controls', async () => {
+    await renderHealth();
+    expect(screen.getByText('💉 Zepbound history')).toBeTruthy();
+    expect(screen.queryByText('+ Log shot')).toBeNull();
+    expect(screen.queryByText('+ Log symptom')).toBeNull();
+  });
 });

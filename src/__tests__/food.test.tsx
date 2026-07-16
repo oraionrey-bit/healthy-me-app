@@ -5,7 +5,13 @@
  * food description input, calendar toggle.
  */
 import React from 'react';
-import { render, fireEvent, screen, waitFor } from './test-utils';
+import {
+  render,
+  fireEvent,
+  screen,
+  waitFor,
+  mockSetTableData,
+} from './test-utils';
 
 async function renderFood() {
   const FoodScreen = require('../app/(tabs)/food').default;
@@ -16,7 +22,10 @@ async function renderFood() {
 }
 
 describe('Food Screen', () => {
-  beforeEach(() => { jest.clearAllMocks(); });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSetTableData('food_logs', []);
+  });
 
   it('renders date navigation arrows', async () => {
     await renderFood();
@@ -135,5 +144,113 @@ describe('Food Screen', () => {
     await renderFood();
     fireEvent.click(screen.getByText('+ Add Meal'));
     expect(screen.getByText('📷 Add Photos')).toBeTruthy();
+  });
+
+  it('shows the stored analyzer beside completed food logs', async () => {
+    mockSetTableData('food_logs', [
+      {
+        id: 'claude-log',
+        user_id: 'test-user-id',
+        created_at: '2026-07-16T18:00:00Z',
+        log_date: '2026-07-16',
+        meal_type: 'breakfast',
+        meal_time: '8:30 AM',
+        description: 'Claude-analyzed meal',
+        calories: 420,
+        protein: 31,
+        carbs: 40,
+        fat: 14,
+        fiber: 6,
+        sugar: null,
+        ai_analyzed: true,
+        ai_confidence: 0.9,
+        ai_pcos_notes: null,
+        photo_url: null,
+        photo_urls: null,
+        user_edited: false,
+        notes: 'clawrouter',
+      },
+      {
+        id: 'gemini-log',
+        user_id: 'test-user-id',
+        created_at: '2026-07-16T19:00:00Z',
+        log_date: '2026-07-16',
+        meal_type: 'lunch',
+        meal_time: null,
+        description: 'Leftovers meal',
+        calories: 300,
+        protein: 22,
+        carbs: 35,
+        fat: 10,
+        fiber: 5,
+        sugar: null,
+        ai_analyzed: true,
+        ai_confidence: 0.8,
+        ai_pcos_notes: null,
+        photo_url: null,
+        photo_urls: null,
+        user_edited: false,
+        notes: 'adjusted_for_leftovers|gemini',
+      },
+    ]);
+
+    await renderFood();
+
+    expect(screen.getByText('Analyzed by Claude')).toBeTruthy();
+    expect(screen.getByText('Analyzed by Gemini')).toBeTruthy();
+    expect(screen.getByText('🍽️ Adjusted for leftovers')).toBeTruthy();
+  });
+
+  it('does not claim an analyzer for pending or unknown-provider logs', async () => {
+    mockSetTableData('food_logs', [
+      {
+        id: 'pending-log',
+        user_id: 'test-user-id',
+        created_at: '2026-07-16T18:00:00Z',
+        log_date: '2026-07-16',
+        meal_type: 'breakfast',
+        meal_time: null,
+        description: 'Pending meal',
+        calories: null,
+        protein: null,
+        carbs: null,
+        fat: null,
+        fiber: null,
+        sugar: null,
+        ai_analyzed: false,
+        ai_confidence: null,
+        ai_pcos_notes: null,
+        photo_url: null,
+        photo_urls: null,
+        user_edited: false,
+        notes: 'clawrouter',
+      },
+      {
+        id: 'unknown-log',
+        user_id: 'test-user-id',
+        created_at: '2026-07-16T19:00:00Z',
+        log_date: '2026-07-16',
+        meal_type: 'lunch',
+        meal_time: null,
+        description: 'Manual meal',
+        calories: 250,
+        protein: 15,
+        carbs: 30,
+        fat: 8,
+        fiber: 3,
+        sugar: null,
+        ai_analyzed: true,
+        ai_confidence: null,
+        ai_pcos_notes: null,
+        photo_url: null,
+        photo_urls: null,
+        user_edited: true,
+        notes: 'manual',
+      },
+    ]);
+
+    await renderFood();
+
+    expect(screen.queryByText(/Analyzed by/)).toBeNull();
   });
 });
