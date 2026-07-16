@@ -28,7 +28,7 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(reconciliation).toContain('DROP POLICY IF EXISTS "Authenticated upload food-photos"');
     expect(reconciliation).toContain('DROP POLICY IF EXISTS "Public read food-photos"');
     expect(reconciliation).not.toContain('DROP POLICY IF EXISTS "Service delete food-photos"');
-    expect(reconciliation).toContain('ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY');
+    expect(reconciliation).not.toContain('ALTER TABLE storage.objects');
     expect(reconciliation.match(/TO authenticated/g)).toHaveLength(3);
     expect(reconciliation.match(/storage\.foldername\(name\)\)\[1\] = auth\.uid\(\)::TEXT/g)).toHaveLength(3);
   });

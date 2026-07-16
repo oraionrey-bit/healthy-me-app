@@ -90,7 +90,9 @@ ALTER TABLE public.supplement_logs
 -- food-photos is private. Authenticated users retain upload/read/delete access
 -- only under their own top-level UUID folder. Service-role operations continue
 -- to bypass RLS and the existing service delete policy is intentionally kept.
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- storage.objects is platform-managed, already has RLS enabled, and is owned by
+-- supabase_storage_admin. The migration role may manage its policies but must
+-- not attempt to alter the managed table itself.
 
 DROP POLICY IF EXISTS "Authenticated upload food-photos" ON storage.objects;
 DROP POLICY IF EXISTS "Public read food-photos" ON storage.objects;

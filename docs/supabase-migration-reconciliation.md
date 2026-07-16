@@ -13,7 +13,7 @@ The following production differences are accepted as the canonical application s
 - `supplement_logs.user_supplement_id` is nullable and references `user_supplements(id) ON DELETE SET NULL`, preserving historical intake rows when a supplement definition is removed.
 - Compatible additions already present in production, including soft-delete fields and later additive migrations, are not removed.
 
-The audit also found two overbroad `food-photos` storage policies. Migration 009 drops exactly `Authenticated upload food-photos` and `Public read food-photos`, then retains/recreates authenticated upload, read, and delete policies restricted to the user's own top-level UUID folder. The existing `Service delete food-photos` policy is intentionally preserved. The application creates signed URLs, and the analysis Edge Function continues to use its service-role storage client.
+The audit also found two overbroad `food-photos` storage policies. Migration 009 drops exactly `Authenticated upload food-photos` and `Public read food-photos`, then retains/recreates authenticated upload, read, and delete policies restricted to the user's own top-level UUID folder. The existing `Service delete food-photos` policy is intentionally preserved. `storage.objects` is platform-managed and already has RLS enabled, so the migration changes policies without attempting to alter that table. The application creates signed URLs, and the analysis Edge Function continues to use its service-role storage client.
 
 ## One-time repair and apply procedure
 
