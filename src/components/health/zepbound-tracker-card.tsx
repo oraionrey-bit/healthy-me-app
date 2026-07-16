@@ -63,7 +63,7 @@ export function ZepboundTrackerCard() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const recentInjections = injections.slice(0, 6);
+  const injectionIds = useMemo(() => new Set(injections.map((injection) => injection.id)), [injections]);
   const symptomsByInjection = useMemo(() => {
     const map = new Map<string, typeof symptoms>();
     for (const symptom of symptoms) {
@@ -72,6 +72,10 @@ export function ZepboundTrackerCard() {
     }
     return map;
   }, [symptoms]);
+  const unassociatedSymptoms = useMemo(
+    () => symptoms.filter((symptom) => !symptom.injection_id || !injectionIds.has(symptom.injection_id)),
+    [symptoms, injectionIds],
+  );
 
   const handleShotSave = async () => {
     setSaving(true);
@@ -123,10 +127,22 @@ export function ZepboundTrackerCard() {
       )}
 
       <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => setShotOpen((value) => !value)}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityState={{ expanded: shotOpen }}
+          aria-expanded={shotOpen}
+          style={styles.actionButton}
+          onPress={() => setShotOpen((value) => !value)}
+        >
           <Text style={styles.actionText}>+ Log shot</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => setSymptomOpen((value) => !value)}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityState={{ expanded: symptomOpen }}
+          aria-expanded={symptomOpen}
+          style={styles.actionButton}
+          onPress={() => setSymptomOpen((value) => !value)}
+        >
           <Text style={styles.actionText}>+ Log symptom</Text>
         </TouchableOpacity>
       </View>
@@ -136,7 +152,7 @@ export function ZepboundTrackerCard() {
           <Text style={styles.label}>Dose (mg)</Text>
           <View style={styles.pillWrap}>
             {DOSES.map((value) => (
-              <TouchableOpacity key={value} onPress={() => setDose(value)} style={[styles.pill, dose === value && styles.pillActive]}>
+              <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: dose === value }} aria-selected={dose === value} key={value} onPress={() => setDose(value)} style={[styles.pill, dose === value && styles.pillActive]}>
                 <Text style={[styles.pillText, dose === value && styles.pillTextActive]}>{value}</Text>
               </TouchableOpacity>
             ))}
@@ -149,13 +165,13 @@ export function ZepboundTrackerCard() {
           <Text style={styles.label}>Injection site</Text>
           <View style={styles.pillWrap}>
             {SITES.map((option) => (
-              <TouchableOpacity key={option.value} onPress={() => setSite(option.value)} style={[styles.pill, site === option.value && styles.pillActive]}>
+              <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: site === option.value }} aria-selected={site === option.value} key={option.value} onPress={() => setSite(option.value)} style={[styles.pill, site === option.value && styles.pillActive]}>
                 <Text style={[styles.pillText, site === option.value && styles.pillTextActive]}>{option.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
           <TextInput accessibilityLabel="Shot notes" style={[styles.input, styles.fullInput]} value={shotNotes} onChangeText={setShotNotes} placeholder="Optional notes" placeholderTextColor={Colors.textMuted} />
-          <PixelButton title="Save shot" onPress={handleShotSave} loading={saving} disabled={saving || !shotDate || !shotTime} />
+          <PixelButton title={saving ? 'Saving...' : 'Save shot'} onPress={handleShotSave} disabled={saving || !shotDate || !shotTime} />
         </View>
       )}
 
@@ -164,7 +180,7 @@ export function ZepboundTrackerCard() {
           <Text style={styles.label}>Symptom</Text>
           <View style={styles.pillWrap}>
             {SYMPTOMS.map((value) => (
-              <TouchableOpacity key={value} onPress={() => setSymptomType(value)} style={[styles.pill, symptomType === value && styles.pillActive]}>
+              <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: symptomType === value }} aria-selected={symptomType === value} key={value} onPress={() => setSymptomType(value)} style={[styles.pill, symptomType === value && styles.pillActive]}>
                 <Text style={[styles.pillText, symptomType === value && styles.pillTextActive]}>{value}</Text>
               </TouchableOpacity>
             ))}
@@ -172,7 +188,7 @@ export function ZepboundTrackerCard() {
           <Text style={styles.label}>Severity</Text>
           <View style={styles.pillWrap}>
             {[1, 2, 3, 4, 5].map((value) => (
-              <TouchableOpacity key={value} onPress={() => setSeverity(value)} style={[styles.severityDot, severity === value && styles.severityDotActive]}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Severity ${value}`} accessibilityState={{ selected: severity === value }} aria-selected={severity === value} key={value} onPress={() => setSeverity(value)} style={[styles.severityDot, severity === value && styles.severityDotActive]}>
                 <Text style={styles.severityText}>{value}</Text>
               </TouchableOpacity>
             ))}
@@ -183,26 +199,26 @@ export function ZepboundTrackerCard() {
             <TextInput accessibilityLabel="Symptom time" style={styles.input} value={symptomTime} onChangeText={setSymptomTime} placeholder="HH:MM" />
           </View>
           <TextInput accessibilityLabel="Symptom notes" style={[styles.input, styles.fullInput]} value={symptomNotes} onChangeText={setSymptomNotes} placeholder="Optional notes" placeholderTextColor={Colors.textMuted} />
-          <PixelButton title="Save symptom" onPress={handleSymptomSave} loading={saving} disabled={saving || !symptomDate || !symptomTime} />
+          <PixelButton title={saving ? 'Saving...' : 'Save symptom'} onPress={handleSymptomSave} disabled={saving || !symptomDate || !symptomTime} />
         </View>
       )}
 
       {error && <Text style={styles.error}>{error}</Text>}
       {loading ? (
         <ActivityIndicator color={Colors.purple} style={styles.loading} />
-      ) : recentInjections.length === 0 ? (
+      ) : injections.length === 0 && symptoms.length === 0 ? (
         <Text style={styles.empty}>No shots logged yet.</Text>
       ) : (
         <View style={styles.timeline}>
-          <Text style={styles.timelineTitle}>Recent shots</Text>
-          {recentInjections.map((injection) => (
+          <Text style={styles.timelineTitle}>Shot and symptom history</Text>
+          {injections.map((injection) => (
             <View key={injection.id} style={styles.historyItem}>
               <View style={styles.historyHeader}>
                 <View>
                   <Text style={styles.historyPrimary}>{injection.injection_date} · {displayTime(injection.injection_time)}</Text>
                   <Text style={styles.historySecondary}>{injection.dose_mg} mg · {injection.injection_site.replace('_', ' ')}</Text>
                 </View>
-                <TouchableOpacity accessibilityLabel="Delete shot" onPress={() => void deleteInjection(injection.id)}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete shot from ${injection.injection_date}`} onPress={() => void deleteInjection(injection.id)}>
                   <Text style={styles.deleteText}>Delete</Text>
                 </TouchableOpacity>
               </View>
@@ -210,13 +226,30 @@ export function ZepboundTrackerCard() {
               {(symptomsByInjection.get(injection.id) ?? []).map((symptom) => (
                 <View key={symptom.id} style={styles.symptomRow}>
                   <Text style={styles.symptomText}>{symptom.symptom_type} · {symptom.severity}/5 · {symptom.log_date}</Text>
-                  <TouchableOpacity accessibilityLabel="Delete symptom" onPress={() => void deleteSymptom(symptom.id)}>
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete ${symptom.symptom_type} symptom`} onPress={() => void deleteSymptom(symptom.id)}>
                     <Text style={styles.deleteText}>×</Text>
                   </TouchableOpacity>
                 </View>
               ))}
             </View>
           ))}
+          {unassociatedSymptoms.length > 0 && (
+            <View style={styles.unassociatedSection}>
+              <Text style={styles.timelineTitle}>Other symptom entries</Text>
+              {unassociatedSymptoms.map((symptom) => (
+                <View key={symptom.id} style={styles.symptomRow}>
+                  <View>
+                    <Text style={styles.symptomText}>{symptom.symptom_type} · {symptom.severity}/5 · {symptom.log_date}</Text>
+                    <Text style={styles.historySecondary}>{displayTime(symptom.symptom_time)}</Text>
+                    {symptom.notes && <Text style={styles.notes}>{symptom.notes}</Text>}
+                  </View>
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete ${symptom.symptom_type} symptom`} onPress={() => void deleteSymptom(symptom.id)}>
+                    <Text style={styles.deleteText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       )}
     </HealthCard>
@@ -247,6 +280,7 @@ const styles = StyleSheet.create({
   empty: { fontFamily: Fonts.body, fontSize: FontSizes.bodySm, color: Colors.textMuted, textAlign: 'center', marginTop: Spacing.md },
   timeline: { marginTop: Spacing.lg },
   timelineTitle: { fontFamily: Fonts.body, fontSize: FontSizes.bodySm, color: Colors.textSecondary, marginBottom: Spacing.sm },
+  unassociatedSection: { marginTop: Spacing.md },
   historyItem: { borderTopWidth: 1, borderTopColor: Colors.tabBarBorder, paddingVertical: Spacing.sm },
   historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   historyPrimary: { fontFamily: Fonts.body, fontSize: FontSizes.bodySm, color: Colors.textPrimary },

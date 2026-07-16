@@ -16,7 +16,7 @@ export function DailyZepboundStatusCard({ date }: { date: Date }) {
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.title}>💉 Zepbound</Text>
-        <TouchableOpacity onPress={() => router.push('/health')} activeOpacity={0.7}>
+        <TouchableOpacity accessibilityRole="link" onPress={() => router.push('/health')} activeOpacity={0.7}>
           <Text style={styles.openText}>Open tracker ›</Text>
         </TouchableOpacity>
       </View>

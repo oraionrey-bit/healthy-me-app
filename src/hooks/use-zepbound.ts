@@ -30,7 +30,7 @@ export function useZepbound() {
   const [symptoms, setSymptoms] = useState<ZepboundSymptomLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refetch = useCallback(async () => {
+  const refetch = useCallback(async (showLoading = false) => {
     if (!user) {
       setInjections([]);
       setSymptoms([]);
@@ -38,7 +38,7 @@ export function useZepbound() {
       return;
     }
 
-    setLoading(true);
+    if (showLoading) setLoading(true);
     try {
       const [injectionResult, symptomResult] = await Promise.all([
         supabase
@@ -60,12 +60,12 @@ export function useZepbound() {
       setInjections(injectionResult.data ?? []);
       setSymptoms(symptomResult.data ?? []);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    void refetch();
+    void refetch(true);
   }, [refetch]);
 
   const saveInjection = useCallback(async (input: NewZepboundInjection) => {
@@ -85,8 +85,10 @@ export function useZepbound() {
 
   const saveSymptom = useCallback(async (input: NewZepboundSymptom) => {
     if (!user) return;
+    const symptomTimestamp = `${input.logDate}T${input.symptomTime.slice(0, 5)}`;
     const relatedInjection = injections.find(
-      (injection) => injection.injection_date <= input.logDate,
+      (injection) =>
+        `${injection.injection_date}T${injection.injection_time.slice(0, 5)}` <= symptomTimestamp,
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- hand-maintained Supabase types do not infer inserts
     const { error } = await (supabase.from('zepbound_symptom_logs') as any).insert({
@@ -142,6 +144,6 @@ export function useZepbound() {
     saveSymptom,
     deleteInjection,
     deleteSymptom,
-    refetch,
+    refetch: () => refetch(true),
   };
 }

@@ -24,3 +24,7 @@ Use a dedicated Zepbound area in Health for the longitudinal weekly record. Surf
 ## Out of scope
 
 - Dose recommendations, medical guidance, reminders/notifications, pharmacy inventory, and automatic schedule changes.
+
+## Release step
+
+The UI requires `supabase/migrations/009_zepbound_tracking.sql` to be applied to the target Supabase project before release. Creating this migration does not apply or deploy it.
