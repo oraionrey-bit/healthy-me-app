@@ -27,7 +27,7 @@ This keeps all daily actions in the user's established Home workflow while prese
 | ZEP-1 | Home is the primary and only routine entry surface for Zepbound. | `DailyZepboundLogCard` on Home; Health has no log controls | Home/component tests + live/local smoke |
 | ZEP-2 | Record a weekly shot with selected Home date, time, and dose. | Home shot form + `useZepbound.saveInjection` | Component payload/validation tests |
 | ZEP-3 | Keep the common shot flow short; site and notes are optional details. | Collapsed optional-details control; `other` site fallback preserves the existing schema | Component tests + data compatibility review |
-| ZEP-4 | Record multiple symptoms, or an explicit None, with selected Home date, shared severity, and optional notes; symptom time is not requested. Save the selected batch atomically and reconcile contradictory entries already present for that date. | Home symptom form + `useZepbound.saveSymptoms` + transactional database RPC | Component payload/failure tests + migration review |
+| ZEP-4 | Record multiple symptoms, or an explicit None, with selected Home date, shared severity, and optional notes; symptom time is not requested. Save the selected batch atomically as the complete replacement set for that date. | Home symptom form + `useZepbound.saveSymptoms` + transactional database RPC | Component payload/failure tests + migration review |
 | ZEP-5 | Associate symptoms with the latest shot on or before the symptom date. | Deterministic date/time ordering in the transactional database RPC | Component + migration tests, independent of fetched fixture order |
 | ZEP-6 | Show status for the selected Home date and useful next-shot context without navigating away. | `DailyZepboundLogCard` summary | Selected-date component tests |
 | ZEP-7 | Keep complete longitudinal history and next-shot context in Health without duplicate entry UI. | Read-only `ZepboundTrackerCard` | Health/component tests |
@@ -73,7 +73,7 @@ This keeps all daily actions in the user's established Home workflow while prese
 
 ## Data model and compatibility
 
-- Keep the existing `zepbound_injections` and `zepbound_symptom_logs` columns and historical real-symptom rows. Migration 011 adds an atomic save RPC and an exclusivity trigger, and removes only legacy None rows that already contradict real symptoms on the same user/date.
+- Keep the existing `zepbound_injections` and `zepbound_symptom_logs` columns and historical real-symptom rows. Migration 011 adds the RPC and exclusivity trigger. Forward migration 012 repairs its append behavior, deduplicates only exact owner/date/type collisions by retaining the newest row, adds an owner/date/type unique index, and makes each RPC save replace that owner's complete set for the selected date.
 - Dates and shot times remain separate Pacific local-calendar values, avoiding timezone day shifts. `TIME` has no timezone, so a shot stored as `09:30:00` is displayed as `9:30 AM` rather than converted as an instant. Symptom placeholder times are not displayed.
 - The database boundary converts 12-hour entry to canonical `HH:MM`; reading accepts canonical PostgreSQL `HH:MM:SS[.fraction]` without changing its local meaning.
 - Existing injection-site values and notes remain visible in history.
@@ -86,7 +86,7 @@ This keeps all daily actions in the user's established Home workflow while prese
 - Both tables have RLS enabled and owner-scoped select/insert/update/delete policies.
 - Symptom-to-shot links reject cross-owner references for normal authenticated writes; deleting a shot preserves symptom history by setting only the optional relationship to null.
 - User deletion cascades to both Zepbound tables.
-- Multiple symptoms in one selected-date save remain valid and commit together or not at all. Exact duplicate shots are not silently discarded because corrections and historical imports must stay lossless; the UI does not retry writes automatically.
+- Multiple distinct symptoms in one selected-date save remain valid and commit together or not at all. A symptom type is unique per owner/date, while distinct types remain intact. Exact duplicate shots are not silently discarded because corrections and historical imports must stay lossless; the UI does not retry writes automatically.
 - Schema changes, if ever required, must be forward-only and validated against the production migration ledger before application.
 
 ## Out of scope

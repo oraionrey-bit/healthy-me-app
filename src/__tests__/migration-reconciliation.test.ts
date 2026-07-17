@@ -9,6 +9,7 @@ describe('Supabase migration reconciliation guardrails', () => {
   const reconciliation = read('supabase/migrations/009_reconcile_legacy_schema.sql');
   const zepboundMigration = read('supabase/migrations/010_zepbound_tracking.sql');
   const zepboundAtomicSymptoms = read('supabase/migrations/011_zepbound_atomic_daily_symptoms.sql');
+  const zepboundSymptomReplacement = read('supabase/migrations/012_zepbound_replace_daily_symptoms.sql');
 
   it('orders reconciliation before Zepbound schema creation', () => {
     const files = fs.readdirSync(migrationDir);
@@ -44,13 +45,13 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(analyzer).not.toContain('/public/food-photos/');
   });
 
-  it('documents the verified ledger state and migration 011 deployment order', () => {
+  it('documents the verified ledger state and migration 012 deployment order', () => {
     const runbook = read('docs/supabase-migration-reconciliation.md');
-    expect(runbook).toContain('local and remote versions 001–010 to be aligned');
-    expect(runbook).toContain('only `011_zepbound_atomic_daily_symptoms.sql` to be pending');
+    expect(runbook).toContain('local and remote versions 001–011 to be aligned');
+    expect(runbook).toContain('only `012_zepbound_replace_daily_symptoms.sql` to be pending');
     expect(runbook).toContain('supabase db push --linked --dry-run');
-    expect(runbook).toContain('Apply migration 011 once with `supabase db push --linked`');
-    expect(runbook).toContain('Do not use `migration repair` for migration 011');
+    expect(runbook).toContain('Apply migration 012 once with `supabase db push --linked`');
+    expect(runbook).toContain('Do not use `migration repair` for migration 012');
     expect(runbook).toContain('Do not run this casually');
   });
 
@@ -90,5 +91,42 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(zepboundAtomicSymptoms).toContain('enforce_zepbound_symptom_none_exclusivity');
     expect(zepboundAtomicSymptoms).toContain('BEFORE INSERT OR UPDATE');
     expect(zepboundAtomicSymptoms).toMatch(/DELETE FROM zepbound_symptom_logs none_log[\s\S]+real_log\.symptom_type <> 'None'/);
+  });
+
+  it('captures the migration 011 append regression and replaces the complete owner/date set in 012', () => {
+    // Migration 011 only removed all rows for None; real-symptom edits removed
+    // the None sentinel and then appended, which persisted duplicate types.
+    expect(zepboundAtomicSymptoms).toMatch(/ELSE[\s\S]+DELETE FROM zepbound_symptom_logs[\s\S]+symptom_type = 'None'[\s\S]+END IF/);
+    expect(zepboundAtomicSymptoms).not.toMatch(/DELETE FROM zepbound_symptom_logs\s+WHERE user_id = v_user_id\s+AND log_date = p_log_date;\s+\n\s+INSERT/);
+
+    expect(zepboundSymptomReplacement).toContain('CREATE OR REPLACE FUNCTION save_zepbound_symptoms_for_date');
+    expect(zepboundSymptomReplacement).toMatch(/pg_advisory_xact_lock/);
+    expect(zepboundSymptomReplacement).toMatch(/DELETE FROM zepbound_symptom_logs\s+WHERE user_id = v_user_id\s+AND log_date = p_log_date;/);
+    expect(zepboundSymptomReplacement).not.toMatch(/DELETE FROM zepbound_symptom_logs[\s\S]+symptom_type\s*(?:=|<>)\s*'None'/);
+    expect(zepboundSymptomReplacement.indexOf('DELETE FROM zepbound_symptom_logs')).toBeLessThan(
+      zepboundSymptomReplacement.lastIndexOf('INSERT INTO zepbound_symptom_logs'),
+    );
+  });
+
+  it('deduplicates only exact owner/date/type collisions, retaining the newest row, then prevents recurrence', () => {
+    expect(zepboundSymptomReplacement).toMatch(/ROW_NUMBER\(\) OVER \(\s*PARTITION BY user_id, log_date, symptom_type\s*ORDER BY created_at DESC, id DESC/);
+    expect(zepboundSymptomReplacement).toMatch(/DELETE FROM zepbound_symptom_logs[\s\S]+duplicate_rank > 1/);
+    expect(zepboundSymptomReplacement).toContain('CREATE UNIQUE INDEX zepbound_symptom_logs_user_date_type_key');
+    expect(zepboundSymptomReplacement).toContain('ON zepbound_symptom_logs (user_id, log_date, symptom_type)');
+    expect(zepboundSymptomReplacement).not.toMatch(/PARTITION BY user_id, log_date\s*(?:\)|ORDER)/);
+  });
+
+  it('preserves RPC authentication, owner isolation, association, None validation, and execute grants', () => {
+    expect(zepboundSymptomReplacement).toContain('SECURITY INVOKER');
+    expect(zepboundSymptomReplacement).toContain('v_user_id UUID := auth.uid()');
+    expect(zepboundSymptomReplacement).not.toMatch(/p_user_id/i);
+    expect(zepboundSymptomReplacement).toMatch(/WHERE user_id = v_user_id\s+AND injection_date <= p_log_date/);
+    expect(zepboundSymptomReplacement).toMatch(/ORDER BY injection_date DESC, injection_time DESC, created_at DESC, id DESC/);
+    expect(zepboundSymptomReplacement).toContain('None cannot be saved with other symptoms');
+    expect(zepboundSymptomReplacement).toContain("TIME '12:00'");
+    expect(zepboundSymptomReplacement).not.toMatch(/p_symptom_time|item->>'symptom_time'/);
+    expect(zepboundSymptomReplacement).toContain('REVOKE ALL ON FUNCTION save_zepbound_symptoms_for_date(DATE, JSONB) FROM PUBLIC');
+    expect(zepboundSymptomReplacement).toContain('REVOKE ALL ON FUNCTION save_zepbound_symptoms_for_date(DATE, JSONB) FROM anon');
+    expect(zepboundSymptomReplacement).toContain('GRANT EXECUTE ON FUNCTION save_zepbound_symptoms_for_date(DATE, JSONB) TO authenticated');
   });
 });
