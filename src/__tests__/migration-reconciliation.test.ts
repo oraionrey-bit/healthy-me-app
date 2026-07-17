@@ -44,14 +44,13 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(analyzer).not.toContain('/public/food-photos/');
   });
 
-  it('documents the exact one-time ledger repair and migration order', () => {
+  it('documents the verified ledger state and migration 011 deployment order', () => {
     const runbook = read('docs/supabase-migration-reconciliation.md');
-    expect(runbook).toContain('for version in 001 002 003 004 005 006 007 008; do');
-    expect(runbook).toContain('migration repair "$version" --status applied --linked');
+    expect(runbook).toContain('local and remote versions 001–010 to be aligned');
+    expect(runbook).toContain('only `011_zepbound_atomic_daily_symptoms.sql` to be pending');
     expect(runbook).toContain('supabase db push --linked --dry-run');
-    expect(runbook).toContain('supabase db push --linked`');
-    expect(runbook).toContain('009_reconcile_legacy_schema.sql');
-    expect(runbook).toContain('010_zepbound_tracking.sql');
+    expect(runbook).toContain('Apply migration 011 once with `supabase db push --linked`');
+    expect(runbook).toContain('Do not use `migration repair` for migration 011');
     expect(runbook).toContain('Do not run this casually');
   });
 
