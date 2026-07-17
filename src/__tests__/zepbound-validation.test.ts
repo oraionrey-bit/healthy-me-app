@@ -32,9 +32,14 @@ describe('Zepbound entry validation', () => {
 
     expect(validateZepboundSymptom({
       logDate: '2026-07-15',
-      symptomTime: '25:00',
       symptomType: 'Nausea',
       severity: 3,
-    })).toMatch(/symptom time/);
+    })).toBeNull();
+
+    expect(validateZepboundSymptom({
+      logDate: '2026-07-15',
+      symptomType: 'None',
+      severity: 1,
+    })).toBeNull();
   });
 });

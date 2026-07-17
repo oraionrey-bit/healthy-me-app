@@ -21,7 +21,6 @@ export interface NewZepboundInjection {
 
 export interface NewZepboundSymptom {
   logDate: string;
-  symptomTime: string;
   symptomType: string;
   severity: number;
   notes?: string;
@@ -29,6 +28,13 @@ export interface NewZepboundSymptom {
 
 interface InsertOperation<T> {
   insert: (values: T) => PromiseLike<{ error: unknown | null }>;
+}
+
+interface RpcOperation {
+  rpc: (
+    functionName: 'save_zepbound_symptoms_for_date',
+    args: { p_log_date: string; p_symptoms: Array<{ symptom_type: string; severity: number; notes: string | null }> },
+  ) => PromiseLike<{ error: unknown | null }>;
 }
 
 /** One data source for both the dedicated Health tracker and Home's daily status. */
@@ -97,30 +103,32 @@ export function useZepbound() {
     await refetch();
   }, [user, refetch]);
 
-  const saveSymptom = useCallback(async (input: NewZepboundSymptom) => {
+  const saveSymptoms = useCallback(async (inputs: NewZepboundSymptom[]) => {
     if (!user) return;
-    const validationError = validateZepboundSymptom(input);
+    if (inputs.length === 0) throw new Error('Choose one or more symptoms, or None.');
+    const validationError = inputs.map(validateZepboundSymptom).find(Boolean);
     if (validationError) throw new Error(validationError);
+    const logDate = inputs[0].logDate;
+    if (inputs.some((input) => input.logDate !== logDate)) {
+      throw new Error('Symptoms in one save must use the same date.');
+    }
+    const hasNone = inputs.some((input) => input.symptomType.trim() === 'None');
+    if (hasNone && inputs.length !== 1) {
+      throw new Error('None cannot be saved with other symptoms.');
+    }
 
-    const symptomTimestamp = `${input.logDate}T${input.symptomTime.slice(0, 5)}`;
-    const relatedInjection = injections.find(
-      (injection) =>
-        `${injection.injection_date}T${injection.injection_time.slice(0, 5)}` <= symptomTimestamp,
-    );
-    const payload = {
-      user_id: user.id,
-      injection_id: relatedInjection?.id ?? null,
-      log_date: input.logDate,
-      symptom_time: input.symptomTime,
-      symptom_type: input.symptomType.trim(),
-      severity: input.severity,
-      notes: input.notes?.trim() || null,
-    } satisfies Omit<ZepboundSymptomLog, 'id' | 'created_at'>;
-    const symptomTable = supabase.from('zepbound_symptom_logs') as unknown as InsertOperation<typeof payload>;
-    const { error } = await symptomTable.insert(payload);
+    const rpc = supabase as unknown as RpcOperation;
+    const { error } = await rpc.rpc('save_zepbound_symptoms_for_date', {
+      p_log_date: logDate,
+      p_symptoms: inputs.map((input) => ({
+        symptom_type: input.symptomType.trim(),
+        severity: input.severity,
+        notes: input.notes?.trim() || null,
+      })),
+    });
     if (error) throw error;
     await refetch();
-  }, [user, injections, refetch]);
+  }, [user, refetch]);
 
   const deleteInjection = useCallback(async (id: string) => {
     if (!user) return;
@@ -159,7 +167,7 @@ export function useZepbound() {
     lastInjection,
     nextInjectionDate,
     saveInjection,
-    saveSymptom,
+    saveSymptoms,
     deleteInjection,
     deleteSymptom,
     refetch: () => refetch(true),

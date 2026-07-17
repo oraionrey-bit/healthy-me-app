@@ -31,6 +31,7 @@ const SITES: Array<{ value: ZepboundInjectionSite; label: string }> = [
   { value: 'upper_arm', label: 'Upper arm' },
 ];
 const SYMPTOMS = [
+  'None',
   'Nausea',
   'Reflux',
   'Bloating',
@@ -57,7 +58,7 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
     lastInjection,
     nextInjectionDate,
     saveInjection,
-    saveSymptom,
+    saveSymptoms,
   } = useZepbound();
   const dateKey = useMemo(() => toDateKey(date), [date]);
   const shotsForDay = injections.filter((item) => item.injection_date === dateKey);
@@ -69,9 +70,8 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
   const [showOptionalShotDetails, setShowOptionalShotDetails] = useState(false);
   const [site, setSite] = useState<ZepboundInjectionSite | null>(null);
   const [shotNotes, setShotNotes] = useState('');
-  const [symptomType, setSymptomType] = useState('Nausea');
+  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [severity, setSeverity] = useState(3);
-  const [symptomTime, setSymptomTime] = useState(currentPacificTime);
   const [symptomNotes, setSymptomNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,11 +79,24 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
   useEffect(() => {
     setOpenForm(null);
     setError(null);
+    setSelectedSymptoms([]);
+    setSeverity(3);
+    setSymptomNotes('');
   }, [dateKey]);
 
   const toggleForm = (form: 'shot' | 'symptom') => {
     setError(null);
     setOpenForm((current) => current === form ? null : form);
+  };
+
+  const toggleSymptom = (symptom: string) => {
+    setSelectedSymptoms((current) => {
+      if (symptom === 'None') return current.includes('None') ? [] : ['None'];
+      const withoutNone = current.filter((value) => value !== 'None');
+      return withoutNone.includes(symptom)
+        ? withoutNone.filter((value) => value !== symptom)
+        : [...withoutNone, symptom];
+    });
   };
 
   const handleShotSave = async () => {
@@ -121,19 +134,17 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
   };
 
   const handleSymptomSave = async () => {
-    const databaseTime = toDatabaseTime(symptomTime);
-    if (!databaseTime) {
-      setError('Choose a valid symptom time: hour 1–12, minute 00–59, and AM or PM.');
+    if (selectedSymptoms.length === 0) {
+      setError('Choose one or more symptoms, or None.');
       return;
     }
-    const input = {
+    const inputs = selectedSymptoms.map((symptomType) => ({
       logDate: dateKey,
-      symptomTime: databaseTime,
       symptomType,
-      severity,
+      severity: symptomType === 'None' ? 1 : severity,
       notes: symptomNotes,
-    };
-    const validationError = validateZepboundSymptom(input);
+    }));
+    const validationError = inputs.map(validateZepboundSymptom).find(Boolean);
     if (validationError) {
       setError(validationError);
       return;
@@ -142,11 +153,12 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
     setSaving(true);
     setError(null);
     try {
-      await saveSymptom(input);
+      await saveSymptoms(inputs);
+      setSelectedSymptoms([]);
       setSymptomNotes('');
       setOpenForm(null);
     } catch {
-      setError('Could not save the symptom. Please try again.');
+      setError('Could not save the symptoms. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -177,7 +189,7 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
               ))}
               {symptomsForDay.map((symptom) => (
                 <Text key={symptom.id} style={styles.statusText}>
-                  {symptom.symptom_type} · {symptom.severity}/5 at {formatDatabaseTime(symptom.symptom_time)}
+                  {symptom.symptom_type === 'None' ? 'No symptoms' : `${symptom.symptom_type} · ${symptom.severity}/5`}
                 </Text>
               ))}
             </View>
@@ -214,12 +226,12 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
             <View style={styles.form}>
               <Text style={styles.formTitle}>{`Shot on ${displayDate(date)}`}</Text>
               <Text style={styles.label}>Dose (mg)</Text>
-              <View style={styles.pillWrap}>
+              <View accessibilityRole="radiogroup" aria-label="Dose" style={styles.pillWrap}>
                 {DOSES.map((value) => (
                   <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: dose === value }}
-                    aria-selected={dose === value}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: dose === value }}
+                    aria-checked={dose === value}
                     key={value}
                     onPress={() => setDose(value)}
                     style={[styles.pill, dose === value && styles.pillActive]}
@@ -240,12 +252,12 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
               {showOptionalShotDetails && (
                 <View>
                   <Text style={styles.label}>Injection site</Text>
-                  <View style={styles.pillWrap}>
+                  <View accessibilityRole="radiogroup" aria-label="Injection site" style={styles.pillWrap}>
                     {SITES.map((option) => (
                       <TouchableOpacity
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: site === option.value }}
-                        aria-selected={site === option.value}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: site === option.value }}
+                        aria-checked={site === option.value}
                         key={option.value}
                         onPress={() => setSite(option.value)}
                         style={[styles.pill, site === option.value && styles.pillActive]}
@@ -272,37 +284,40 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
             <View style={styles.form}>
               <Text style={styles.formTitle}>{`Symptom on ${displayDate(date)}`}</Text>
               <Text style={styles.label}>Symptom</Text>
-              <View style={styles.pillWrap}>
+              <View aria-label="Symptoms" style={styles.pillWrap}>
                 {SYMPTOMS.map((value) => (
                   <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: symptomType === value }}
-                    aria-selected={symptomType === value}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selectedSymptoms.includes(value) }}
+                    aria-checked={selectedSymptoms.includes(value)}
                     key={value}
-                    onPress={() => setSymptomType(value)}
-                    style={[styles.pill, symptomType === value && styles.pillActive]}
+                    onPress={() => toggleSymptom(value)}
+                    style={[styles.pill, selectedSymptoms.includes(value) && styles.pillActive]}
                   >
-                    <Text style={[styles.pillText, symptomType === value && styles.pillTextActive]}>{value}</Text>
+                    <Text style={[styles.pillText, selectedSymptoms.includes(value) && styles.pillTextActive]}>{value}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
-              <Text style={styles.label}>Severity</Text>
-              <View style={styles.pillWrap}>
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityLabel={`Severity ${value}`}
-                    accessibilityState={{ selected: severity === value }}
-                    aria-selected={severity === value}
-                    key={value}
-                    onPress={() => setSeverity(value)}
-                    style={[styles.severityDot, severity === value && styles.severityDotActive]}
-                  >
-                    <Text style={styles.severityText}>{value}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <ZepboundTimeInput label="Symptom" value={symptomTime} onChange={setSymptomTime} />
+              {!selectedSymptoms.includes('None') && (
+                <>
+                  <Text style={styles.label}>Severity</Text>
+                  <View accessibilityRole="radiogroup" aria-label="Severity" style={styles.pillWrap}>
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <TouchableOpacity
+                        accessibilityRole="radio"
+                        accessibilityLabel={`Severity ${value}`}
+                        accessibilityState={{ checked: severity === value }}
+                        aria-checked={severity === value}
+                        key={value}
+                        onPress={() => setSeverity(value)}
+                        style={[styles.severityDot, severity === value && styles.severityDotActive]}
+                      >
+                        <Text style={styles.severityText}>{value}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
               <TextInput
                 accessibilityLabel="Symptom notes"
                 style={[styles.input, styles.notesInput]}
@@ -311,7 +326,7 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
                 placeholder="Optional notes"
                 placeholderTextColor={Colors.textMuted}
               />
-              <PixelButton title={saving ? 'Saving...' : 'Save symptom'} onPress={handleSymptomSave} disabled={saving} />
+              <PixelButton title={saving ? 'Saving...' : 'Save symptoms'} onPress={handleSymptomSave} disabled={saving} />
             </View>
           )}
 

@@ -2,11 +2,11 @@
 
 Audit date: 2026-07-16
 
-Scope: migration `010_zepbound_tracking.sql`, generated TypeScript database types, `useZepbound` reads/writes/deletes, symptom association, and the linked production migration ledger. No health-row contents were inspected.
+Scope: migrations `010_zepbound_tracking.sql` and `011_zepbound_atomic_daily_symptoms.sql`, TypeScript database access, symptom association, and the linked production migration ledger. No health-row contents were inspected.
 
 ## Result
 
-The current schema is appropriate for the requested shot and symptom history. No forward migration is needed for the 12-hour UI: PostgreSQL `DATE` plus `TIME` already stores Pacific local civil values without a timezone shift, and all existing `TIME` rows remain compatible.
+The current schema remains appropriate for shot history. Migration 011 adds the transactional daily symptom API and None-exclusivity enforcement required for multi-select, date-only symptom entry. The legacy non-null `symptom_time` column remains compatible and receives an internal noon placeholder that is neither requested nor displayed.
 
 The linked migration ledger was verified aligned through local/remote version `010` before this release.
 
@@ -22,11 +22,12 @@ The linked migration ledger was verified aligned through local/remote version `0
 | Cross-owner links | Symptom insert/update `WITH CHECK` permits a relationship only when the referenced shot belongs to `auth.uid()` | Pass for authenticated application access; service-role access intentionally bypasses RLS and remains trusted server infrastructure |
 | Runtime reads | Queries explicitly filter `user_id` and sort by local date then local time | Pass (defense in depth alongside RLS) |
 | Runtime writes/deletes | Inserts derive `user_id` from the authenticated session; deletes match both record id and user id | Pass |
-| Association | A symptom links to the newest fetched shot whose local date/time is at or before the symptom local date/time | Pass; covered across same-day earlier/later shots and pre-first-shot symptoms |
+| Association | The atomic RPC links a symptom batch to the authenticated user's latest shot on or before the selected symptom date, ordered deterministically by shot date/time | Pass; association no longer depends on client fetch order |
 | Null semantics | Notes and relationship are nullable; required medical event fields are not | Pass |
-| Duplicates | No uniqueness constraint discards repeated symptoms or historical corrections. The UI performs one insert per explicit save and does not automatically retry writes | Accepted, lossless behavior |
+| Daily symptom save | One authenticated RPC validates and saves the selected symptoms in a single database transaction; concurrent writes for one owner/date are serialized | Pass; partial multi-symptom saves are rolled back |
 | Existing data | Reader accepts PostgreSQL `HH:MM:SS` and fractional-second values and renders them without timezone conversion | Pass |
-| Migration safety | Migration 010 is already applied and was not edited; this change is application-only | Pass |
+| None exclusivity | The RPC reconciles prior daily entries and a trigger blocks contradictory direct writes | Pass; `None` cannot coexist with real symptoms for one owner/date |
+| Migration safety | Migration 010 is applied. Migration 011 is a forward migration and must be applied before deploying the UI that calls its RPC | Pass; deploy database before frontend |
 
 ## Deliberate choices
 
