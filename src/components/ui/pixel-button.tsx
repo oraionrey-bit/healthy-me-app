@@ -26,6 +26,8 @@ export function PixelButton({
 
   return (
     <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={title}
       style={[
         styles.base,
         styles[variant],

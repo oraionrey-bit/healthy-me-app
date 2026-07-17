@@ -1928,6 +1928,118 @@ exports[`Snapshot: Home Screen matches snapshot 1`] = `
                 No Zepbound entries for May 21.
               </div>
               <div
+                class="css-view-g5y9jx r-borderTopColor-o09mp6 r-borderTopWidth-5kkj8d r-marginTop-1wzrnnt r-paddingTop-95jzfe"
+              >
+                <div
+                  class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1enofrn"
+                  dir="auto"
+                >
+                  Daily check-in
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-marginBottom-15zivkp r-marginTop-knv0ih"
+                  dir="auto"
+                >
+                  Worked out today?
+                </div>
+                <div
+                  aria-label="Workout"
+                  class="css-view-g5y9jx r-flexDirection-18u37iz r-gap-9aw3ui"
+                  role="radiogroup"
+                >
+                  <div
+                    aria-checked="false"
+                    aria-label="Workout Yes"
+                    class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-paddingBlock-cnw61z r-paddingInline-is05cd"
+                    role="radio"
+                    style="transition-duration: 0s;"
+                    tabindex="0"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      Yes
+                    </div>
+                  </div>
+                  <div
+                    aria-checked="false"
+                    aria-label="Workout No"
+                    class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-paddingBlock-cnw61z r-paddingInline-is05cd"
+                    role="radio"
+                    style="transition-duration: 0s;"
+                    tabindex="0"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      No
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-1enofrn r-marginBottom-15zivkp r-marginTop-knv0ih"
+                  dir="auto"
+                >
+                  Pooped today?
+                </div>
+                <div
+                  aria-label="Pooped"
+                  class="css-view-g5y9jx r-flexDirection-18u37iz r-gap-9aw3ui"
+                  role="radiogroup"
+                >
+                  <div
+                    aria-checked="false"
+                    aria-label="Pooped Yes"
+                    class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-paddingBlock-cnw61z r-paddingInline-is05cd"
+                    role="radio"
+                    style="transition-duration: 0s;"
+                    tabindex="0"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      Yes
+                    </div>
+                  </div>
+                  <div
+                    aria-checked="false"
+                    aria-label="Pooped No"
+                    class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-borderColor-qd0bky r-borderRadius-cpet4d r-borderWidth-rs99b7 r-paddingBlock-cnw61z r-paddingInline-is05cd"
+                    role="radio"
+                    style="transition-duration: 0s;"
+                    tabindex="0"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-1rol9k9 r-fontFamily-1aoiedr r-fontSize-10x49cs"
+                      dir="auto"
+                    >
+                      No
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="css-view-g5y9jx r-marginTop-1wzrnnt"
+                >
+                  <button
+                    aria-label="Save check-in"
+                    class="css-view-g5y9jx r-transitionProperty-1i6wzkk r-userSelect-lrvibr r-cursor-1loqt21 r-touchAction-1otgn73 r-alignItems-1awozwy r-borderRadius-1q9bdsx r-justifyContent-1777fci r-minHeight-peo1c r-paddingBlock-1mmae3n r-paddingInline-cxgwc0 r-backgroundColor-k0pd6i"
+                    role="button"
+                    style="transition-duration: 0s;"
+                    type="button"
+                  >
+                    <div
+                      class="css-text-146c3p1 r-color-jwli3a r-fontFamily-1aoiedr r-fontSize-1b43r93"
+                      dir="auto"
+                    >
+                      Save check-in
+                    </div>
+                  </button>
+                </div>
+              </div>
+              <div
                 class="css-view-g5y9jx r-flexDirection-18u37iz r-gap-1cmwbt1 r-marginTop-1wzrnnt"
               >
                 <button

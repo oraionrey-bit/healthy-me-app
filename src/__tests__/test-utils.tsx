@@ -50,14 +50,20 @@ export interface MockDatabaseWrite {
   table: string;
   operation: 'insert' | 'update' | 'delete' | 'upsert';
   values?: unknown;
+  options?: unknown;
 }
 
 export const mockDatabaseWrites: MockDatabaseWrite[] = [];
 export const mockRpcCalls: Array<{ functionName: string; args: unknown }> = [];
 let mockRpcError: unknown | null = null;
+const mockTableErrors: Record<string, unknown | null> = {};
 
 export function mockSetRpcError(error: unknown | null) {
   mockRpcError = error;
+}
+
+export function mockSetTableError(table: string, error: unknown | null) {
+  mockTableErrors[table] = error;
 }
 
 const mockTableData: Record<string, any[]> = {
@@ -77,6 +83,7 @@ const mockTableData: Record<string, any[]> = {
   symptoms: [],
   zepbound_injections: [],
   zepbound_symptom_logs: [],
+  zepbound_daily_checkins: [],
 };
 
 export function mockSetTableData(table: string, rows: any[]) {
@@ -86,9 +93,11 @@ export function mockSetTableData(table: string, rows: any[]) {
 export function mockResetZepboundData() {
   mockTableData.zepbound_injections = [];
   mockTableData.zepbound_symptom_logs = [];
+  mockTableData.zepbound_daily_checkins = [];
   mockDatabaseWrites.length = 0;
   mockRpcCalls.length = 0;
   mockRpcError = null;
+  mockTableErrors.zepbound_daily_checkins = null;
 }
 
 const mockAuthUser = { id: 'test-user-id', email: 'tina@test.com' };
@@ -97,6 +106,7 @@ const mockAuthSession = { user: mockAuthUser, access_token: 'test-token' };
 // Must prefix with 'mock' to be accessible inside jest.mock factory
 function mockCreateTable(table: string) {
   const data = mockTableData[table] ?? [];
+  let operationError: unknown | null = null;
 
   const builder: any = {};
   builder.select = jest.fn(() => builder);
@@ -112,8 +122,9 @@ function mockCreateTable(table: string) {
     mockDatabaseWrites.push({ table, operation: 'delete' });
     return builder;
   });
-  builder.upsert = jest.fn((values: unknown) => {
-    mockDatabaseWrites.push({ table, operation: 'upsert', values });
+  builder.upsert = jest.fn((values: unknown, options?: unknown) => {
+    mockDatabaseWrites.push({ table, operation: 'upsert', values, options });
+    operationError = mockTableErrors[table] ?? null;
     return builder;
   });
   builder.eq = jest.fn(() => builder);
@@ -123,11 +134,11 @@ function mockCreateTable(table: string) {
   builder.lte = jest.fn(() => builder);
   builder.order = jest.fn(() => builder);
   builder.limit = jest.fn(() => builder);
-  builder.single = jest.fn(() => Promise.resolve({ data: data[0] ?? null, error: null }));
-  builder.maybeSingle = jest.fn(() => Promise.resolve({ data: data[0] ?? null, error: null }));
-  // Thenable for queries without .single()
+  builder.single = jest.fn(() => Promise.resolve({ data: data[0] ?? null, error: operationError }));
+  builder.maybeSingle = jest.fn(() => Promise.resolve({ data: data[0] ?? null, error: operationError }));
+  // Thenable for queries and writes.
   builder.then = (resolve: any, reject?: any) =>
-    Promise.resolve({ data, error: null }).then(resolve, reject);
+    Promise.resolve({ data, error: operationError }).then(resolve, reject);
 
   return builder;
 }

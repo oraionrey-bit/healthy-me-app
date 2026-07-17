@@ -14,6 +14,7 @@ export function ZepboundTrackerCard() {
   const {
     injections,
     symptoms,
+    dailyCheckins,
     loading,
     nextInjectionDate,
     deleteInjection,
@@ -45,8 +46,8 @@ export function ZepboundTrackerCard() {
 
       {loading ? (
         <ActivityIndicator color={Colors.purple} style={styles.loading} />
-      ) : injections.length === 0 && symptoms.length === 0 ? (
-        <Text style={styles.empty}>No shots or symptoms logged yet. Start on Home.</Text>
+      ) : injections.length === 0 && symptoms.length === 0 && dailyCheckins.length === 0 ? (
+        <Text style={styles.empty}>No Zepbound history logged yet. Start on Home.</Text>
       ) : (
         <View style={styles.timeline}>
           <Text style={styles.timelineTitle}>Shot and symptom history</Text>
@@ -98,6 +99,28 @@ export function ZepboundTrackerCard() {
                   </TouchableOpacity>
                 </View>
               ))}
+            </View>
+          )}
+          {dailyCheckins.length > 0 && (
+            <View style={styles.unassociatedSection}>
+              <Text style={styles.timelineTitle}>Daily check-ins</Text>
+              {dailyCheckins.map((checkin) => {
+                const workout = checkin.worked_out === null
+                  ? 'Workout unanswered'
+                  : checkin.worked_out
+                    ? `Workout ${checkin.workout_duration_minutes} min`
+                    : 'Workout No';
+                const bowel = checkin.pooped === null
+                  ? 'Pooped unanswered'
+                  : `Pooped ${checkin.pooped ? 'Yes' : 'No'}`;
+                return (
+                  <View key={checkin.id} style={styles.historyItem}>
+                    <Text style={[styles.historyPrimary, webWrappingText]}>
+                      {checkin.log_date} · {workout} · {bowel}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
