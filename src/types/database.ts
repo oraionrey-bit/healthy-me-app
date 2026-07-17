@@ -109,6 +109,12 @@ export interface Database {
         Update: Partial<Omit<ZepboundSymptomLog, 'id' | 'user_id' | 'created_at'>>;
         Relationships: [];
       };
+      zepbound_daily_checkins: {
+        Row: ZepboundDailyCheckin;
+        Insert: Omit<ZepboundDailyCheckin, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<ZepboundDailyCheckin, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -397,6 +403,17 @@ export interface ZepboundSymptomLog {
   symptom_type: string;
   severity: number;
   notes: string | null;
+}
+
+export interface ZepboundDailyCheckin {
+  id: string;
+  user_id: string;
+  log_date: string;
+  worked_out: boolean | null;
+  workout_duration_minutes: number | null;
+  pooped: boolean | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface OuraDaily {

@@ -10,6 +10,7 @@ describe('Supabase migration reconciliation guardrails', () => {
   const zepboundMigration = read('supabase/migrations/010_zepbound_tracking.sql');
   const zepboundAtomicSymptoms = read('supabase/migrations/011_zepbound_atomic_daily_symptoms.sql');
   const zepboundSymptomReplacement = read('supabase/migrations/012_zepbound_replace_daily_symptoms.sql');
+  const zepboundDailyCheckin = read('supabase/migrations/013_zepbound_daily_checkins.sql');
 
   it('orders reconciliation before Zepbound schema creation', () => {
     const files = fs.readdirSync(migrationDir);
@@ -150,5 +151,35 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(zepboundSymptomReplacement).toContain('REVOKE ALL ON FUNCTION save_zepbound_symptoms_for_date(DATE, JSONB) FROM PUBLIC');
     expect(zepboundSymptomReplacement).toContain('REVOKE ALL ON FUNCTION save_zepbound_symptoms_for_date(DATE, JSONB) FROM anon');
     expect(zepboundSymptomReplacement).toContain('GRANT EXECUTE ON FUNCTION save_zepbound_symptoms_for_date(DATE, JSONB) TO authenticated');
+  });
+
+  it('creates one owner/date Zepbound manual check-in with nullable answers', () => {
+    expect(zepboundDailyCheckin).toContain('CREATE TABLE zepbound_daily_checkins');
+    expect(zepboundDailyCheckin).toMatch(/user_id UUID REFERENCES user_profiles\(id\) ON DELETE CASCADE NOT NULL/);
+    expect(zepboundDailyCheckin).toContain('log_date DATE NOT NULL');
+    expect(zepboundDailyCheckin).toContain('worked_out BOOLEAN');
+    expect(zepboundDailyCheckin).toContain('workout_duration_minutes SMALLINT');
+    expect(zepboundDailyCheckin).toContain('pooped BOOLEAN');
+    expect(zepboundDailyCheckin).toContain('UNIQUE (user_id, log_date)');
+  });
+
+  it('enforces answered and duration consistency constraints', () => {
+    expect(zepboundDailyCheckin).toMatch(/worked_out IS NOT NULL OR pooped IS NOT NULL/);
+    // PostgreSQL CHECK accepts UNKNOWN, so BETWEEN alone permits a NULL
+    // duration. Keep this explicit guard adjacent to the true branch.
+    expect(zepboundDailyCheckin).toMatch(
+      /worked_out IS TRUE\s+AND workout_duration_minutes IS NOT NULL\s+AND workout_duration_minutes BETWEEN 1 AND 1440/,
+    );
+    expect(zepboundDailyCheckin).toMatch(/worked_out IS FALSE[\s\S]+workout_duration_minutes IS NULL/);
+    expect(zepboundDailyCheckin).toMatch(/worked_out IS NULL[\s\S]+workout_duration_minutes IS NULL/);
+  });
+
+  it('enables owner-only RLS for select, insert, update, and delete', () => {
+    expect(zepboundDailyCheckin).toContain('ALTER TABLE zepbound_daily_checkins ENABLE ROW LEVEL SECURITY');
+    expect(zepboundDailyCheckin.match(/CREATE POLICY/g)).toHaveLength(4);
+    expect(zepboundDailyCheckin.match(/TO authenticated/g)).toHaveLength(4);
+    expect(zepboundDailyCheckin.match(/auth\.uid\(\) = user_id/g)).toHaveLength(5);
+    expect(zepboundDailyCheckin).toMatch(/FOR INSERT[\s\S]+WITH CHECK \(auth\.uid\(\) = user_id\)/);
+    expect(zepboundDailyCheckin).toMatch(/FOR UPDATE[\s\S]+USING \(auth\.uid\(\) = user_id\)[\s\S]+WITH CHECK \(auth\.uid\(\) = user_id\)/);
   });
 });

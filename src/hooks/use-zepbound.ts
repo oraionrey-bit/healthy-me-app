@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import type {
+  ZepboundDailyCheckin,
   ZepboundInjection,
   ZepboundInjectionSite,
   ZepboundSymptomLog,
@@ -26,8 +27,22 @@ export interface NewZepboundSymptom {
   notes?: string;
 }
 
+export interface NewZepboundDailyCheckin {
+  logDate: string;
+  workedOut: boolean | null;
+  workoutDurationMinutes: number | null;
+  pooped: boolean | null;
+}
+
 interface InsertOperation<T> {
   insert: (values: T) => PromiseLike<{ error: unknown | null }>;
+}
+
+interface UpsertOperation<T> {
+  upsert: (
+    values: T,
+    options: { onConflict: 'user_id,log_date' },
+  ) => PromiseLike<{ error: unknown | null }>;
 }
 
 interface RpcOperation {
@@ -37,24 +52,26 @@ interface RpcOperation {
   ) => PromiseLike<{ error: unknown | null }>;
 }
 
-/** One data source for both the dedicated Health tracker and Home's daily status. */
+/** One data source for Home's selected-day editor and Health history. */
 export function useZepbound() {
   const { user } = useAuth();
   const [injections, setInjections] = useState<ZepboundInjection[]>([]);
   const [symptoms, setSymptoms] = useState<ZepboundSymptomLog[]>([]);
+  const [dailyCheckins, setDailyCheckins] = useState<ZepboundDailyCheckin[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refetch = useCallback(async (showLoading = false) => {
     if (!user) {
       setInjections([]);
       setSymptoms([]);
+      setDailyCheckins([]);
       setLoading(false);
       return;
     }
 
     if (showLoading) setLoading(true);
     try {
-      const [injectionResult, symptomResult] = await Promise.all([
+      const [injectionResult, symptomResult, checkinResult] = await Promise.all([
         supabase
           .from('zepbound_injections')
           .select('*')
@@ -67,12 +84,19 @@ export function useZepbound() {
           .eq('user_id', user.id)
           .order('log_date', { ascending: false })
           .order('symptom_time', { ascending: false }),
+        supabase
+          .from('zepbound_daily_checkins')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('log_date', { ascending: false }),
       ]);
 
       if (injectionResult.error) throw injectionResult.error;
       if (symptomResult.error) throw symptomResult.error;
+      if (checkinResult.error) throw checkinResult.error;
       setInjections(injectionResult.data ?? []);
       setSymptoms(symptomResult.data ?? []);
+      setDailyCheckins(checkinResult.data ?? []);
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -130,6 +154,36 @@ export function useZepbound() {
     await refetch();
   }, [user, refetch]);
 
+  const saveDailyCheckin = useCallback(async (input: NewZepboundDailyCheckin) => {
+    if (!user) return;
+    if (input.workedOut === null && input.pooped === null) {
+      throw new Error('Answer at least one daily check-in question.');
+    }
+    if (input.workedOut === true && (
+      input.workoutDurationMinutes === null
+      || !Number.isInteger(input.workoutDurationMinutes)
+      || input.workoutDurationMinutes < 1
+      || input.workoutDurationMinutes > 1440
+    )) {
+      throw new Error('Workout duration must be a whole number from 1 to 1440.');
+    }
+    if (input.workedOut !== true && input.workoutDurationMinutes !== null) {
+      throw new Error('Workout duration is only allowed when worked out is Yes.');
+    }
+
+    const payload = {
+      user_id: user.id,
+      log_date: input.logDate,
+      worked_out: input.workedOut,
+      workout_duration_minutes: input.workedOut ? input.workoutDurationMinutes : null,
+      pooped: input.pooped,
+    } satisfies Omit<ZepboundDailyCheckin, 'id' | 'created_at' | 'updated_at'>;
+    const checkinTable = supabase.from('zepbound_daily_checkins') as unknown as UpsertOperation<typeof payload>;
+    const { error } = await checkinTable.upsert(payload, { onConflict: 'user_id,log_date' });
+    if (error) throw error;
+    await refetch();
+  }, [user, refetch]);
+
   const deleteInjection = useCallback(async (id: string) => {
     if (!user) return;
     const { error } = await supabase
@@ -163,11 +217,13 @@ export function useZepbound() {
   return {
     injections,
     symptoms,
+    dailyCheckins,
     loading,
     lastInjection,
     nextInjectionDate,
     saveInjection,
     saveSymptoms,
+    saveDailyCheckin,
     deleteInjection,
     deleteSymptom,
     refetch: () => refetch(true),

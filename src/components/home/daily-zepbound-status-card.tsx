@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useZepbound } from '../../hooks/use-zepbound';
+import type { NewZepboundDailyCheckin } from '../../hooks/use-zepbound';
 import { toDateKey } from '../../utils/storage';
-import type { ZepboundInjectionSite, ZepboundSymptomLog } from '../../types/database';
+import type { ZepboundDailyCheckin, ZepboundInjectionSite, ZepboundSymptomLog } from '../../types/database';
 import {
   validateZepboundInjection,
   validateZepboundSymptom,
@@ -87,21 +88,206 @@ function displayDate(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function workoutCheckinStatus(checkin: ZepboundDailyCheckin): string | null {
+  if (checkin.worked_out === null) return null;
+  if (!checkin.worked_out) return 'Workout: No';
+
+  const minutes = checkin.workout_duration_minutes;
+  if (minutes === null || !Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+    return 'Workout: logged, duration unavailable';
+  }
+  return minutes >= 20
+    ? `Workout: ${minutes} min · goal met`
+    : `Workout: ${minutes} min · ${20 - minutes} min to goal`;
+}
+
+interface DailyCheckinProps {
+  dateKey: string;
+  checkin: ZepboundDailyCheckin | null;
+  save: (input: NewZepboundDailyCheckin) => Promise<void>;
+}
+
+function YesNoChoice({
+  label,
+  value,
+  onChange,
+}: {
+  label: 'Workout' | 'Pooped';
+  value: boolean | null;
+  onChange: (value: boolean | null) => void;
+}) {
+  return (
+    <View style={styles.yesNoRow}>
+      <View accessibilityRole="radiogroup" aria-label={label} style={styles.yesNoChoices}>
+        {[true, false].map((choice) => (
+          <TouchableOpacity
+            accessibilityRole="radio"
+            accessibilityLabel={`${label} ${choice ? 'Yes' : 'No'}`}
+            accessibilityState={{ checked: value === choice }}
+            aria-checked={value === choice}
+            key={String(choice)}
+            onPress={() => onChange(choice)}
+            style={[styles.pill, value === choice && styles.pillActive]}
+          >
+            <Text style={[styles.pillText, value === choice && styles.pillTextActive]}>
+              {choice ? 'Yes' : 'No'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {value !== null && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`Clear ${label} answer`}
+          onPress={() => onChange(null)}
+          style={styles.clearAnswer}
+        >
+          <Text style={styles.clearAnswerText}>Clear answer</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+function DailyCheckin({ dateKey, checkin, save }: DailyCheckinProps) {
+  const [workedOut, setWorkedOut] = useState<boolean | null>(null);
+  const [duration, setDuration] = useState('');
+  const [pooped, setPooped] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [checkinError, setCheckinError] = useState<string | null>(null);
+  const dirtyRef = useRef(false);
+  const hydratedDateRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const dateChanged = hydratedDateRef.current !== dateKey;
+    if (!dateChanged && dirtyRef.current) return;
+    setWorkedOut(checkin?.worked_out ?? null);
+    setDuration(checkin?.workout_duration_minutes?.toString() ?? '');
+    setPooped(checkin?.pooped ?? null);
+    setCheckinError(null);
+    dirtyRef.current = false;
+    hydratedDateRef.current = dateKey;
+  }, [dateKey, checkin]);
+
+  const durationNumber = /^\d+$/.test(duration) ? Number(duration) : null;
+  const validDuration = durationNumber !== null
+    && Number.isInteger(durationNumber)
+    && durationNumber >= 1
+    && durationNumber <= 1440;
+
+  const chooseWorkedOut = (choice: boolean | null) => {
+    dirtyRef.current = true;
+    setWorkedOut(choice);
+    if (choice !== true) setDuration('');
+    setCheckinError(null);
+  };
+
+  const handleSave = async () => {
+    if (workedOut === null && pooped === null) {
+      setCheckinError('Answer at least one daily check-in question.');
+      return;
+    }
+    if (workedOut === true && !validDuration) {
+      setCheckinError('Enter workout duration in whole minutes.');
+      return;
+    }
+    setSaving(true);
+    setCheckinError(null);
+    try {
+      await save({
+        logDate: dateKey,
+        workedOut,
+        workoutDurationMinutes: workedOut ? durationNumber : null,
+        pooped,
+      });
+      dirtyRef.current = false;
+    } catch {
+      setCheckinError('Could not save the daily check-in. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <View style={styles.checkin}>
+      <Text style={styles.formTitle}>Daily check-in</Text>
+      <Text style={styles.label}>Worked out today?</Text>
+      <YesNoChoice label="Workout" value={workedOut} onChange={chooseWorkedOut} />
+      {workedOut === true && (
+        <View>
+          <Text style={styles.label}>Duration (whole minutes)</Text>
+          <View style={styles.durationRow}>
+            {[20, 30, 45, 60].map((minutes) => (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`${minutes} minutes`}
+                key={minutes}
+                onPress={() => {
+                  dirtyRef.current = true;
+                  setDuration(String(minutes));
+                  setCheckinError(null);
+                }}
+                style={[styles.quickPill, duration === String(minutes) && styles.pillActive]}
+              >
+                <Text style={styles.pillText}>{minutes}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TextInput
+            accessibilityLabel="Workout duration minutes"
+            style={[styles.input, styles.durationInput]}
+            value={duration}
+            onChangeText={(value) => {
+              dirtyRef.current = true;
+              setDuration(value);
+              setCheckinError(null);
+            }}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            placeholder="Minutes"
+            placeholderTextColor={Colors.textMuted}
+          />
+          {validDuration && durationNumber >= 20 && (
+            <Text style={styles.goalText}>20-minute daily goal met.</Text>
+          )}
+          {validDuration && durationNumber < 20 && (
+            <Text style={styles.goalText}>{20 - durationNumber} minutes remaining for today’s 20-minute goal.</Text>
+          )}
+        </View>
+      )}
+
+      <Text style={styles.label}>Pooped today?</Text>
+      <YesNoChoice label="Pooped" value={pooped} onChange={(value) => {
+        dirtyRef.current = true;
+        setPooped(value);
+        setCheckinError(null);
+      }} />
+      <View style={styles.checkinSave}>
+        <PixelButton title={saving ? 'Saving...' : 'Save check-in'} onPress={handleSave} disabled={saving} />
+      </View>
+      {checkinError && <Text style={styles.error}>{checkinError}</Text>}
+    </View>
+  );
+}
+
 /** The selected-day Zepbound entry surface. Home owns logging; Health owns history. */
 export function DailyZepboundLogCard({ date }: { date: Date }) {
   const router = useRouter();
   const {
     injections,
     symptoms,
+    dailyCheckins,
     loading,
     lastInjection,
     nextInjectionDate,
     saveInjection,
     saveSymptoms,
+    saveDailyCheckin,
   } = useZepbound();
   const dateKey = useMemo(() => toDateKey(date), [date]);
   const shotsForDay = injections.filter((item) => item.injection_date === dateKey);
   const symptomsForDay = symptoms.filter((item) => item.log_date === dateKey);
+  const checkinForDay = dailyCheckins.find((item) => item.log_date === dateKey) ?? null;
   const symptomOptions = [
     ...SYMPTOMS,
     ...symptomsForDay
@@ -235,7 +421,7 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
         <ActivityIndicator color={Colors.purple} style={styles.loading} />
       ) : (
         <>
-          {shotsForDay.length > 0 || symptomsForDay.length > 0 ? (
+          {shotsForDay.length > 0 || symptomsForDay.length > 0 || checkinForDay ? (
             <View style={styles.statusWrap}>
               {shotsForDay.map((shot) => (
                 <Text key={shot.id} style={styles.statusText}>
@@ -251,6 +437,12 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
                   {symptom.symptom_type === 'None' ? 'No symptoms' : `${symptom.symptom_type} · ${symptom.severity}/5`}
                 </Text>
               ))}
+              {checkinForDay && workoutCheckinStatus(checkinForDay) && (
+                <Text style={styles.statusText}>{workoutCheckinStatus(checkinForDay)}</Text>
+              )}
+              {checkinForDay?.pooped !== null && checkinForDay?.pooped !== undefined && (
+                <Text style={styles.statusText}>Pooped: {checkinForDay.pooped ? 'Yes' : 'No'}</Text>
+              )}
             </View>
           ) : (
             <Text style={styles.emptyText}>
@@ -259,6 +451,8 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
                 : `No Zepbound entries for ${displayDate(date)}.`}
             </Text>
           )}
+
+          <DailyCheckin dateKey={dateKey} checkin={checkinForDay} save={saveDailyCheckin} />
 
           <View style={styles.actionRow}>
             <TouchableOpacity
@@ -425,6 +619,16 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: Colors.softPurple, borderColor: Colors.purple },
   pillText: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.textSecondary },
   pillTextActive: { color: Colors.textPrimary },
+  checkin: { marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.tabBarBorder },
+  yesNoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  yesNoChoices: { flexDirection: 'row', gap: Spacing.xs },
+  clearAnswer: { paddingVertical: Spacing.xs, paddingHorizontal: 2 },
+  clearAnswerText: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.purple },
+  durationRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  quickPill: { minWidth: 42, alignItems: 'center', borderRadius: BorderRadius.full, borderWidth: 1, borderColor: Colors.tabBarBorder, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm },
+  durationInput: { marginTop: Spacing.sm, maxWidth: 140 },
+  goalText: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.textSecondary, marginTop: Spacing.xs },
+  checkinSave: { marginTop: Spacing.md },
   input: { borderWidth: 1, borderColor: Colors.tabBarBorder, borderRadius: BorderRadius.md, padding: Spacing.sm, fontFamily: Fonts.body, fontSize: FontSizes.bodySm, color: Colors.textPrimary },
   notesInput: { marginVertical: Spacing.sm },
   optionalToggle: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.purple, marginTop: Spacing.md },
