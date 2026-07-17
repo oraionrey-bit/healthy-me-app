@@ -23,7 +23,7 @@ export function isValidTime(value: string): boolean {
 
 export function validateZepboundInjection(input: NewZepboundInjection): string | null {
   if (!isValidDateKey(input.injectionDate)) return 'Enter the shot date as YYYY-MM-DD.';
-  if (!isValidTime(input.injectionTime)) return 'Enter the shot time as HH:MM (24-hour time).';
+  if (!isValidTime(input.injectionTime)) return 'Choose a valid shot time.';
   if (!Number.isFinite(input.doseMg) || input.doseMg <= 0) return 'Choose a valid dose.';
   return null;
 }
@@ -34,6 +34,6 @@ export function validateZepboundSymptom(input: NewZepboundSymptom): string | nul
     return 'Choose a severity from 1 to 5.';
   }
   if (!isValidDateKey(input.logDate)) return 'Enter the symptom date as YYYY-MM-DD.';
-  if (!isValidTime(input.symptomTime)) return 'Enter the symptom time as HH:MM (24-hour time).';
+  if (!isValidTime(input.symptomTime)) return 'Choose a valid symptom time.';
   return null;
 }

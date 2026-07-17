@@ -15,7 +15,13 @@ import {
   validateZepboundInjection,
   validateZepboundSymptom,
 } from '../../utils/zepbound-validation';
+import {
+  currentPacificTime,
+  formatDatabaseTime,
+  toDatabaseTime,
+} from '../../utils/zepbound-time';
 import { PixelButton } from '../ui';
+import { ZepboundTimeInput } from '../zepbound/zepbound-time-input';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 const DOSES = [2.5, 5, 7.5, 10, 12.5, 15];
@@ -36,11 +42,6 @@ const SYMPTOMS = [
   'Injection site',
   'Other',
 ];
-
-function currentTime(): string {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-}
 
 function displayDate(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -64,13 +65,13 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
 
   const [openForm, setOpenForm] = useState<'shot' | 'symptom' | null>(null);
   const [dose, setDose] = useState(2.5);
-  const [shotTime, setShotTime] = useState(currentTime());
+  const [shotTime, setShotTime] = useState(currentPacificTime);
   const [showOptionalShotDetails, setShowOptionalShotDetails] = useState(false);
   const [site, setSite] = useState<ZepboundInjectionSite | null>(null);
   const [shotNotes, setShotNotes] = useState('');
   const [symptomType, setSymptomType] = useState('Nausea');
   const [severity, setSeverity] = useState(3);
-  const [symptomTime, setSymptomTime] = useState(currentTime());
+  const [symptomTime, setSymptomTime] = useState(currentPacificTime);
   const [symptomNotes, setSymptomNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,9 +87,14 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
   };
 
   const handleShotSave = async () => {
+    const databaseTime = toDatabaseTime(shotTime);
+    if (!databaseTime) {
+      setError('Choose a valid shot time: hour 1–12, minute 00–59, and AM or PM.');
+      return;
+    }
     const input = {
       injectionDate: dateKey,
-      injectionTime: shotTime,
+      injectionTime: databaseTime,
       doseMg: dose,
       injectionSite: site ?? 'other' as ZepboundInjectionSite,
       notes: shotNotes,
@@ -115,9 +121,14 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
   };
 
   const handleSymptomSave = async () => {
+    const databaseTime = toDatabaseTime(symptomTime);
+    if (!databaseTime) {
+      setError('Choose a valid symptom time: hour 1–12, minute 00–59, and AM or PM.');
+      return;
+    }
     const input = {
       logDate: dateKey,
-      symptomTime,
+      symptomTime: databaseTime,
       symptomType,
       severity,
       notes: symptomNotes,
@@ -161,12 +172,12 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
             <View style={styles.statusWrap}>
               {shotsForDay.map((shot) => (
                 <Text key={shot.id} style={styles.statusText}>
-                  ✓ Shot {shot.dose_mg} mg at {shot.injection_time.slice(0, 5)}
+                  ✓ Shot {shot.dose_mg} mg at {formatDatabaseTime(shot.injection_time)}
                 </Text>
               ))}
               {symptomsForDay.map((symptom) => (
                 <Text key={symptom.id} style={styles.statusText}>
-                  {symptom.symptom_type} · {symptom.severity}/5 at {symptom.symptom_time.slice(0, 5)}
+                  {symptom.symptom_type} · {symptom.severity}/5 at {formatDatabaseTime(symptom.symptom_time)}
                 </Text>
               ))}
             </View>
@@ -217,15 +228,7 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
                   </TouchableOpacity>
                 ))}
               </View>
-              <Text style={styles.label}>Time</Text>
-              <TextInput
-                accessibilityLabel="Shot time"
-                style={styles.input}
-                value={shotTime}
-                onChangeText={setShotTime}
-                placeholder="HH:MM"
-                placeholderTextColor={Colors.textMuted}
-              />
+              <ZepboundTimeInput label="Shot" value={shotTime} onChange={setShotTime} />
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityState={{ expanded: showOptionalShotDetails }}
@@ -299,15 +302,7 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
                   </TouchableOpacity>
                 ))}
               </View>
-              <Text style={styles.label}>Time</Text>
-              <TextInput
-                accessibilityLabel="Symptom time"
-                style={styles.input}
-                value={symptomTime}
-                onChangeText={setSymptomTime}
-                placeholder="HH:MM"
-                placeholderTextColor={Colors.textMuted}
-              />
+              <ZepboundTimeInput label="Symptom" value={symptomTime} onChange={setSymptomTime} />
               <TextInput
                 accessibilityLabel="Symptom notes"
                 style={[styles.input, styles.notesInput]}

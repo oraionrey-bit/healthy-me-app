@@ -34,6 +34,11 @@ This keeps all daily actions in the user's established Home workflow while prese
 | ZEP-8 | Reject malformed dates/times, invalid doses, and invalid symptom severity before writing. | `zepbound-validation`, inline errors, database checks | Validation/component/migration tests |
 | ZEP-9 | Preserve existing rows, ownership, privacy, and production compatibility. | Existing tables/types/RLS unchanged; no new migration | Typecheck + migration/data review |
 | ZEP-10 | Match the existing compact Home card, typography, spacing, accessibility, and selected-date behavior. | Existing theme/shared controls; accessible expanded/selected states | Component tests + build/smoke |
+| ZEP-11 | Never require the user to type or interpret 24-hour time. Shot and symptom entry use separate 12-hour hour/minute fields and an explicit AM/PM choice. | Shared `ZepboundTimeInput` | Component and conversion tests covering 12 AM/PM and invalid combinations |
+| ZEP-12 | Render every Zepbound time in 12-hour AM/PM form on Home and Health. | Shared time formatter | Home/Health component tests with existing database `TIME` values |
+| ZEP-13 | Treat entered times as Pacific local civil time (`America/Los_Angeles`), including daylight-saving changes, without applying a fixed UTC offset or shifting the selected date. | Pacific-aware default-time helper; time-only database boundary converter | DST/default-time and round-trip tests |
+| ZEP-14 | Preserve database `DATE` + `TIME` values exactly at the storage boundary. Existing rows remain compatible and no timezone conversion is applied to stored local civil times. | `zepbound-time` utilities + existing `useZepbound` payloads | Round-trip, seconds, and existing-value tests |
+| ZEP-15 | Zepbound records remain private, owner-scoped, constrained, and safely related. | Existing checks/FKs/RLS plus documented schema audit | Migration policy/constraint tests and production metadata review |
 
 ## Interaction details
 
@@ -48,14 +53,15 @@ This keeps all daily actions in the user's established Home workflow while prese
 ### Shot entry
 
 - Dose options: 2.5, 5, 7.5, 10, 12.5, and 15 mg.
-- Time is required in local `HH:MM` form.
+- Time is required through labeled Hour, Minute, and AM/PM controls. The default is the current Pacific local time.
+- Hour accepts 1–12 and minute accepts 00–59. Incomplete or invalid combinations show a specific inline error before any write.
 - Optional details expose injection site and notes.
 
 ### Symptom entry
 
 - Preset symptom types cover common Zepbound experiences plus Other.
 - Severity is required on a 1–5 scale.
-- Time is required in local `HH:MM` form.
+- Time uses the same 12-hour Pacific controls as shot entry.
 - Notes are optional.
 
 ### Health history
@@ -67,10 +73,20 @@ This keeps all daily actions in the user's established Home workflow while prese
 ## Data model and compatibility
 
 - Keep `zepbound_injections` and `zepbound_symptom_logs` unchanged.
-- Dates and times remain separate local-calendar values, avoiding timezone day shifts.
+- Dates and times remain separate Pacific local-calendar values, avoiding timezone day shifts. `TIME` has no timezone, so `09:30:00` is displayed as `9:30 AM` rather than converted as an instant.
+- The database boundary converts 12-hour entry to canonical `HH:MM`; reading accepts canonical PostgreSQL `HH:MM:SS[.fraction]` without changing its local meaning.
 - Existing injection-site values and notes remain visible in history.
 - New quick shot entries use the existing `other` enum value when optional site is not chosen.
 - No migration is required for this redesign.
+
+## Data-integrity and security acceptance criteria
+
+- Injection date/time/dose/site and symptom date/time/type/severity are `NOT NULL` and value constrained where appropriate.
+- Both tables have RLS enabled and owner-scoped select/insert/update/delete policies.
+- Symptom-to-shot links reject cross-owner references for normal authenticated writes; deleting a shot preserves symptom history by setting only the optional relationship to null.
+- User deletion cascades to both Zepbound tables.
+- Multiple symptoms at one time remain valid. Exact duplicate shots are not silently discarded because corrections and historical imports must stay lossless; the UI does not retry writes automatically.
+- Schema changes, if ever required, must be forward-only and validated against the production migration ledger before application.
 
 ## Out of scope
 

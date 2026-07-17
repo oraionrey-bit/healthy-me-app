@@ -55,11 +55,21 @@ describe('Supabase migration reconciliation guardrails', () => {
   });
 
   it('keeps Zepbound values constrained and user-owned', () => {
+    expect(zepboundMigration).toMatch(/user_id UUID REFERENCES user_profiles\(id\) ON DELETE CASCADE NOT NULL/g);
+    expect(zepboundMigration).toContain('injection_date DATE NOT NULL');
+    expect(zepboundMigration).toContain('injection_time TIME NOT NULL');
+    expect(zepboundMigration).toContain('dose_mg NUMERIC(5,2) NOT NULL CHECK (dose_mg > 0)');
+    expect(zepboundMigration).toContain('injection_id UUID REFERENCES zepbound_injections(id) ON DELETE SET NULL');
+    expect(zepboundMigration).toContain('log_date DATE NOT NULL');
+    expect(zepboundMigration).toContain('symptom_time TIME NOT NULL');
     expect(zepboundMigration).toContain("CHECK (injection_site IN ('abdomen', 'thigh', 'upper_arm', 'other'))");
     expect(zepboundMigration).toContain("CHECK (btrim(symptom_type) <> '')");
     expect(zepboundMigration).toContain('CHECK (severity BETWEEN 1 AND 5)');
     expect(zepboundMigration).toContain('ALTER TABLE zepbound_injections ENABLE ROW LEVEL SECURITY');
     expect(zepboundMigration).toContain('ALTER TABLE zepbound_symptom_logs ENABLE ROW LEVEL SECURITY');
     expect(zepboundMigration.match(/auth\.uid\(\) = user_id/g)?.length).toBeGreaterThanOrEqual(8);
+    expect(zepboundMigration).toMatch(/SELECT 1 FROM zepbound_injections\s+WHERE id = injection_id AND user_id = auth\.uid\(\)/);
+    expect(zepboundMigration).toContain('CREATE INDEX IF NOT EXISTS idx_zepbound_injections_user_date');
+    expect(zepboundMigration).toContain('CREATE INDEX IF NOT EXISTS idx_zepbound_symptom_logs_user_date');
   });
 });

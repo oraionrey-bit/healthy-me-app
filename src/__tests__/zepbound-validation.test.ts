@@ -14,7 +14,7 @@ describe('Zepbound entry validation', () => {
     expect(isValidDateKey('07/15/2026')).toBe(false);
   });
 
-  it('accepts strict 24-hour times only', () => {
+  it('accepts only canonical database-boundary times', () => {
     expect(isValidTime('00:00')).toBe(true);
     expect(isValidTime('23:59')).toBe(true);
     expect(isValidTime('24:00')).toBe(false);
