@@ -53,6 +53,9 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(runbook).toContain('Apply migration 012 once with `supabase db push --linked`');
     expect(runbook).toContain('Do not use `migration repair` for migration 012');
     expect(runbook).toContain('Do not run this casually');
+    expect(runbook).toContain('SHARE ROW EXCLUSIVE');
+    expect(runbook).toContain('allows ordinary reads');
+    expect(runbook).toContain('brief write pause');
   });
 
   it('keeps Zepbound values constrained and user-owned', () => {
@@ -114,6 +117,22 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(zepboundSymptomReplacement).toContain('CREATE UNIQUE INDEX zepbound_symptom_logs_user_date_type_key');
     expect(zepboundSymptomReplacement).toContain('ON zepbound_symptom_logs (user_id, log_date, symptom_type)');
     expect(zepboundSymptomReplacement).not.toMatch(/PARTITION BY user_id, log_date\s*(?:\)|ORDER)/);
+  });
+
+  it('blocks concurrent symptom writes before cleanup until the unique index is created', () => {
+    const lock = 'LOCK TABLE zepbound_symptom_logs IN SHARE ROW EXCLUSIVE MODE;';
+    const lockPosition = zepboundSymptomReplacement.indexOf(lock);
+    const cleanupPosition = zepboundSymptomReplacement.indexOf('WITH ranked_symptoms AS');
+    const indexPosition = zepboundSymptomReplacement.indexOf(
+      'CREATE UNIQUE INDEX zepbound_symptom_logs_user_date_type_key',
+    );
+
+    expect(lockPosition).toBeGreaterThanOrEqual(0);
+    expect(lockPosition).toBeLessThan(cleanupPosition);
+    expect(cleanupPosition).toBeLessThan(indexPosition);
+    expect(zepboundSymptomReplacement.slice(lockPosition, indexPosition)).not.toMatch(
+      /\b(?:COMMIT|ROLLBACK)\b/i,
+    );
   });
 
   it('preserves RPC authentication, owner isolation, association, None validation, and execute grants', () => {

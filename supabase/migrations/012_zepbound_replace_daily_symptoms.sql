@@ -2,6 +2,11 @@
 -- prevent recurrence, and make a daily save replace the complete submitted set.
 -- This migration is forward-only because migration 011 may already be applied.
 
+-- Block INSERT/UPDATE/DELETE before cleanup so no duplicate can commit between
+-- deduplication and unique-index enforcement. SHARE ROW EXCLUSIVE is held until
+-- the migration transaction commits while remaining compatible with reads.
+LOCK TABLE zepbound_symptom_logs IN SHARE ROW EXCLUSIVE MODE;
+
 -- Keep exactly one row per owner/date/type. Distinct symptom types are separate
 -- partitions and are therefore never removed by this one-time cleanup. The UUID
 -- tie-breaker makes retention deterministic if timestamps are equal.
