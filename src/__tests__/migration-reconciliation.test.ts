@@ -120,6 +120,7 @@ describe('Supabase migration reconciliation guardrails', () => {
   });
 
   it('blocks concurrent symptom writes before cleanup until the unique index is created', () => {
+    const beginPosition = zepboundSymptomReplacement.indexOf('BEGIN;');
     const lock = 'LOCK TABLE zepbound_symptom_logs IN SHARE ROW EXCLUSIVE MODE;';
     const lockPosition = zepboundSymptomReplacement.indexOf(lock);
     const cleanupPosition = zepboundSymptomReplacement.indexOf('WITH ranked_symptoms AS');
@@ -127,12 +128,14 @@ describe('Supabase migration reconciliation guardrails', () => {
       'CREATE UNIQUE INDEX zepbound_symptom_logs_user_date_type_key',
     );
 
-    expect(lockPosition).toBeGreaterThanOrEqual(0);
+    expect(beginPosition).toBeGreaterThanOrEqual(0);
+    expect(beginPosition).toBeLessThan(lockPosition);
     expect(lockPosition).toBeLessThan(cleanupPosition);
     expect(cleanupPosition).toBeLessThan(indexPosition);
     expect(zepboundSymptomReplacement.slice(lockPosition, indexPosition)).not.toMatch(
       /\b(?:COMMIT|ROLLBACK)\b/i,
     );
+    expect(zepboundSymptomReplacement.lastIndexOf('COMMIT;')).toBeGreaterThan(indexPosition);
   });
 
   it('preserves RPC authentication, owner isolation, association, None validation, and execute grants', () => {

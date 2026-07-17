@@ -2,6 +2,11 @@
 -- prevent recurrence, and make a daily save replace the complete submitted set.
 -- This migration is forward-only because migration 011 may already be applied.
 
+-- Supabase's migration runner does not guarantee an implicit transaction for
+-- this file. The explicit transaction is required because LOCK TABLE is valid
+-- only inside a transaction block and must remain held through index creation.
+BEGIN;
+
 -- Block INSERT/UPDATE/DELETE before cleanup so no duplicate can commit between
 -- deduplication and unique-index enforcement. SHARE ROW EXCLUSIVE is held until
 -- the migration transaction commits while remaining compatible with reads.
@@ -147,3 +152,5 @@ $$;
 REVOKE ALL ON FUNCTION save_zepbound_symptoms_for_date(DATE, JSONB) FROM PUBLIC;
 REVOKE ALL ON FUNCTION save_zepbound_symptoms_for_date(DATE, JSONB) FROM anon;
 GRANT EXECUTE ON FUNCTION save_zepbound_symptoms_for_date(DATE, JSONB) TO authenticated;
+
+COMMIT;
