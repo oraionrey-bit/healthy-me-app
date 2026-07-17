@@ -15,7 +15,9 @@ CREATE TABLE zepbound_daily_checkins (
   CONSTRAINT zepbound_daily_checkins_answered_check
     CHECK (worked_out IS NOT NULL OR pooped IS NOT NULL),
   CONSTRAINT zepbound_daily_checkins_duration_check CHECK (
-    (worked_out IS TRUE AND workout_duration_minutes BETWEEN 1 AND 1440)
+    (worked_out IS TRUE
+      AND workout_duration_minutes IS NOT NULL
+      AND workout_duration_minutes BETWEEN 1 AND 1440)
     OR (worked_out IS FALSE AND workout_duration_minutes IS NULL)
     OR (worked_out IS NULL AND workout_duration_minutes IS NULL)
   ),

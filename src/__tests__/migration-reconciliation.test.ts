@@ -165,7 +165,11 @@ describe('Supabase migration reconciliation guardrails', () => {
 
   it('enforces answered and duration consistency constraints', () => {
     expect(zepboundDailyCheckin).toMatch(/worked_out IS NOT NULL OR pooped IS NOT NULL/);
-    expect(zepboundDailyCheckin).toMatch(/worked_out IS TRUE[\s\S]+workout_duration_minutes BETWEEN 1 AND 1440/);
+    // PostgreSQL CHECK accepts UNKNOWN, so BETWEEN alone permits a NULL
+    // duration. Keep this explicit guard adjacent to the true branch.
+    expect(zepboundDailyCheckin).toMatch(
+      /worked_out IS TRUE\s+AND workout_duration_minutes IS NOT NULL\s+AND workout_duration_minutes BETWEEN 1 AND 1440/,
+    );
     expect(zepboundDailyCheckin).toMatch(/worked_out IS FALSE[\s\S]+workout_duration_minutes IS NULL/);
     expect(zepboundDailyCheckin).toMatch(/worked_out IS NULL[\s\S]+workout_duration_minutes IS NULL/);
   });

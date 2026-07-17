@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -92,7 +92,10 @@ function workoutCheckinStatus(checkin: ZepboundDailyCheckin): string | null {
   if (checkin.worked_out === null) return null;
   if (!checkin.worked_out) return 'Workout: No';
 
-  const minutes = checkin.workout_duration_minutes ?? 0;
+  const minutes = checkin.workout_duration_minutes;
+  if (minutes === null || !Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+    return 'Workout: logged, duration unavailable';
+  }
   return minutes >= 20
     ? `Workout: ${minutes} min · goal met`
     : `Workout: ${minutes} min · ${20 - minutes} min to goal`;
@@ -111,25 +114,37 @@ function YesNoChoice({
 }: {
   label: 'Workout' | 'Pooped';
   value: boolean | null;
-  onChange: (value: boolean) => void;
+  onChange: (value: boolean | null) => void;
 }) {
   return (
-    <View accessibilityRole="radiogroup" aria-label={label} style={styles.yesNoRow}>
-      {[true, false].map((choice) => (
+    <View style={styles.yesNoRow}>
+      <View accessibilityRole="radiogroup" aria-label={label} style={styles.yesNoChoices}>
+        {[true, false].map((choice) => (
+          <TouchableOpacity
+            accessibilityRole="radio"
+            accessibilityLabel={`${label} ${choice ? 'Yes' : 'No'}`}
+            accessibilityState={{ checked: value === choice }}
+            aria-checked={value === choice}
+            key={String(choice)}
+            onPress={() => onChange(choice)}
+            style={[styles.pill, value === choice && styles.pillActive]}
+          >
+            <Text style={[styles.pillText, value === choice && styles.pillTextActive]}>
+              {choice ? 'Yes' : 'No'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {value !== null && (
         <TouchableOpacity
-          accessibilityRole="radio"
-          accessibilityLabel={`${label} ${choice ? 'Yes' : 'No'}`}
-          accessibilityState={{ checked: value === choice }}
-          aria-checked={value === choice}
-          key={String(choice)}
-          onPress={() => onChange(choice)}
-          style={[styles.pill, value === choice && styles.pillActive]}
+          accessibilityRole="button"
+          accessibilityLabel={`Clear ${label} answer`}
+          onPress={() => onChange(null)}
+          style={styles.clearAnswer}
         >
-          <Text style={[styles.pillText, value === choice && styles.pillTextActive]}>
-            {choice ? 'Yes' : 'No'}
-          </Text>
+          <Text style={styles.clearAnswerText}>Clear answer</Text>
         </TouchableOpacity>
-      ))}
+      )}
     </View>
   );
 }
@@ -140,12 +155,18 @@ function DailyCheckin({ dateKey, checkin, save }: DailyCheckinProps) {
   const [pooped, setPooped] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [checkinError, setCheckinError] = useState<string | null>(null);
+  const dirtyRef = useRef(false);
+  const hydratedDateRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const dateChanged = hydratedDateRef.current !== dateKey;
+    if (!dateChanged && dirtyRef.current) return;
     setWorkedOut(checkin?.worked_out ?? null);
     setDuration(checkin?.workout_duration_minutes?.toString() ?? '');
     setPooped(checkin?.pooped ?? null);
     setCheckinError(null);
+    dirtyRef.current = false;
+    hydratedDateRef.current = dateKey;
   }, [dateKey, checkin]);
 
   const durationNumber = /^\d+$/.test(duration) ? Number(duration) : null;
@@ -154,9 +175,10 @@ function DailyCheckin({ dateKey, checkin, save }: DailyCheckinProps) {
     && durationNumber >= 1
     && durationNumber <= 1440;
 
-  const chooseWorkedOut = (choice: boolean) => {
+  const chooseWorkedOut = (choice: boolean | null) => {
+    dirtyRef.current = true;
     setWorkedOut(choice);
-    if (!choice) setDuration('');
+    if (choice !== true) setDuration('');
     setCheckinError(null);
   };
 
@@ -178,6 +200,7 @@ function DailyCheckin({ dateKey, checkin, save }: DailyCheckinProps) {
         workoutDurationMinutes: workedOut ? durationNumber : null,
         pooped,
       });
+      dirtyRef.current = false;
     } catch {
       setCheckinError('Could not save the daily check-in. Please try again.');
     } finally {
@@ -200,6 +223,7 @@ function DailyCheckin({ dateKey, checkin, save }: DailyCheckinProps) {
                 accessibilityLabel={`${minutes} minutes`}
                 key={minutes}
                 onPress={() => {
+                  dirtyRef.current = true;
                   setDuration(String(minutes));
                   setCheckinError(null);
                 }}
@@ -214,6 +238,7 @@ function DailyCheckin({ dateKey, checkin, save }: DailyCheckinProps) {
             style={[styles.input, styles.durationInput]}
             value={duration}
             onChangeText={(value) => {
+              dirtyRef.current = true;
               setDuration(value);
               setCheckinError(null);
             }}
@@ -233,6 +258,7 @@ function DailyCheckin({ dateKey, checkin, save }: DailyCheckinProps) {
 
       <Text style={styles.label}>Pooped today?</Text>
       <YesNoChoice label="Pooped" value={pooped} onChange={(value) => {
+        dirtyRef.current = true;
         setPooped(value);
         setCheckinError(null);
       }} />
@@ -594,7 +620,10 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.textSecondary },
   pillTextActive: { color: Colors.textPrimary },
   checkin: { marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.tabBarBorder },
-  yesNoRow: { flexDirection: 'row', gap: Spacing.xs },
+  yesNoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  yesNoChoices: { flexDirection: 'row', gap: Spacing.xs },
+  clearAnswer: { paddingVertical: Spacing.xs, paddingHorizontal: 2 },
+  clearAnswerText: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.purple },
   durationRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   quickPill: { minWidth: 42, alignItems: 'center', borderRadius: BorderRadius.full, borderWidth: 1, borderColor: Colors.tabBarBorder, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.sm },
   durationInput: { marginTop: Spacing.sm, maxWidth: 140 },

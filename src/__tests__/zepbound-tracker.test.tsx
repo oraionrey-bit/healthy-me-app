@@ -496,6 +496,72 @@ describe('Zepbound manual daily check-in', () => {
     })));
   });
 
+  it('clears a workout answer and its duration back to unanswered', async () => {
+    mockSetTableData('zepbound_daily_checkins', [
+      checkin('saved', '2026-07-15', true, 45, false),
+    ]);
+    render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
+    await screen.findByLabelText('Workout duration minutes');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear Workout answer' }));
+    expect(screen.getByRole('radio', { name: 'Workout Yes' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('radio', { name: 'Workout No' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.queryByLabelText('Workout duration minutes')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Save check-in' }));
+
+    await waitFor(() => expect(mockDatabaseWrites).toContainEqual(expect.objectContaining({
+      table: 'zepbound_daily_checkins',
+      operation: 'upsert',
+      values: expect.objectContaining({
+        worked_out: null,
+        workout_duration_minutes: null,
+        pooped: false,
+      }),
+    })));
+  });
+
+  it('clears a pooped answer back to unanswered while preserving the workout answer', async () => {
+    mockSetTableData('zepbound_daily_checkins', [
+      checkin('saved', '2026-07-15', false, null, true),
+    ]);
+    render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
+    await screen.findByRole('button', { name: 'Clear Pooped answer' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear Pooped answer' }));
+    expect(screen.getByRole('radio', { name: 'Pooped Yes' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('radio', { name: 'Pooped No' }).getAttribute('aria-checked')).toBe('false');
+    fireEvent.click(screen.getByRole('button', { name: 'Save check-in' }));
+
+    await waitFor(() => expect(mockDatabaseWrites).toContainEqual(expect.objectContaining({
+      table: 'zepbound_daily_checkins',
+      operation: 'upsert',
+      values: expect.objectContaining({
+        worked_out: false,
+        workout_duration_minutes: null,
+        pooped: null,
+      }),
+    })));
+  });
+
+  it('preserves a dirty check-in draft through an unrelated shot refetch', async () => {
+    mockSetTableData('zepbound_daily_checkins', [
+      checkin('saved', '2026-07-15', false, null, false),
+    ]);
+    render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
+    await screen.findByRole('button', { name: 'Clear Workout answer' });
+    fireEvent.click(screen.getByRole('radio', { name: 'Workout Yes' }));
+    fireEvent.change(screen.getByLabelText('Workout duration minutes'), { target: { value: '35' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Pooped Yes' }));
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Log shot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save shot' }));
+    await waitFor(() => expect(lastInsert('zepbound_injections')).toBeTruthy());
+
+    expect(screen.getByRole('radio', { name: 'Workout Yes' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByLabelText('Workout duration minutes').getAttribute('value')).toBe('35');
+    expect(screen.getByRole('radio', { name: 'Pooped Yes' }).getAttribute('aria-checked')).toBe('true');
+  });
+
   it('offers 20/30/45/60 quick choices and shows when the daily goal is met', async () => {
     render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
     await screen.findByText('Daily check-in');
@@ -536,6 +602,16 @@ describe('Zepbound manual daily check-in', () => {
 
     expect(await screen.findByText('Workout: 17 min · 3 min to goal')).toBeTruthy();
     expect(screen.queryByText('No Zepbound entries for Jul 15.')).toBeNull();
+  });
+
+  it('shows a safe fallback for a malformed logged workout with no duration', async () => {
+    mockSetTableData('zepbound_daily_checkins', [
+      checkin('malformed', '2026-07-15', true, null, true),
+    ]);
+    render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
+
+    expect(await screen.findByText('Workout: logged, duration unavailable')).toBeTruthy();
+    expect(screen.queryByText(/Workout: 0 min/)).toBeNull();
   });
 
   it('retains the complete draft when the atomic upsert fails', async () => {
@@ -605,6 +681,17 @@ describe('ZepboundTrackerCard', () => {
     expect(screen.getByText('2026-07-15 · Workout 25 min · Pooped Yes')).toBeTruthy();
     expect(screen.getByText('2026-07-14 · Workout No · Pooped No')).toBeTruthy();
     expect(screen.queryByText('Save check-in')).toBeNull();
+  });
+
+  it('does not print null minutes for malformed legacy workout history', async () => {
+    mockSetTableData('zepbound_daily_checkins', [
+      checkin('malformed', '2026-07-15', true, null, false),
+    ]);
+    render(<ZepboundTrackerCard />);
+
+    await screen.findByText('Daily check-ins');
+    expect(screen.getByText('2026-07-15 · Workout: logged, duration unavailable · Pooped No')).toBeTruthy();
+    expect(screen.queryByText(/Workout null min/)).toBeNull();
   });
 
   it('wraps long symptom names and notes inside both Health history layouts', async () => {

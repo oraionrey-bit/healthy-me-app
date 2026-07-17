@@ -108,7 +108,9 @@ export function ZepboundTrackerCard() {
                 const workout = checkin.worked_out === null
                   ? 'Workout unanswered'
                   : checkin.worked_out
-                    ? `Workout ${checkin.workout_duration_minutes} min`
+                    ? checkin.workout_duration_minutes === null
+                      ? 'Workout: logged, duration unavailable'
+                      : `Workout ${checkin.workout_duration_minutes} min`
                     : 'Workout No';
                 const bowel = checkin.pooped === null
                   ? 'Pooped unanswered'
