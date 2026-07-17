@@ -5,21 +5,17 @@ import { useHealthTrends } from '../../hooks/use-health-trends';
 import { usePeriodCalendar } from '../../hooks/use-period-calendar';
 import { useUserProfile } from '../../hooks/use-user-profile';
 import { TimeRangeSelector } from './time-range-selector';
-import { MoodEnergyTrend } from './mood-energy-trend';
 import { NutritionTrend } from './nutrition-trend';
 import { PeriodCalendarCard } from './period-calendar-card';
 import { SymptomFrequencyCard } from './symptom-frequency';
 import { WeightTrend } from './weight-trend';
-import { OuraSleepTrend } from './oura-sleep-trend';
-import { OuraHrvTrend } from './oura-hrv-trend';
-import { useOura } from '../../hooks/use-oura';
 import { SupplementStreakCard } from './supplement-streak-card';
 import { SupplementTracker } from './supplement-tracker';
 import { LabDashboard } from './lab-dashboard';
 import { ZepboundTrackerCard } from './zepbound-tracker-card';
 
 export function HealthDashboard() {
-  const { moodEnergy, nutrition, symptomFrequency, weight, loading, range, setRange } =
+  const { nutrition, symptomFrequency, weight, loading, range, setRange } =
     useHealthTrends();
   const {
     periodLogs,
@@ -32,7 +28,6 @@ export function HealthDashboard() {
     deletePeriodLog,
   } = usePeriodCalendar();
   const { calorieTarget, profile } = useUserProfile();
-  const { isConnected: ouraConnected, recentData: ouraData } = useOura();
 
   if (loading) {
     return (
@@ -46,13 +41,6 @@ export function HealthDashboard() {
     <View>
       <Text style={styles.title}>HEALTH</Text>
       <TimeRangeSelector range={range} onRangeChange={setRange} />
-      {ouraConnected && ouraData.length > 0 && (
-        <>
-          <OuraSleepTrend data={ouraData} range={range} />
-          <OuraHrvTrend data={ouraData} range={range} />
-        </>
-      )}
-      <MoodEnergyTrend data={moodEnergy} range={range} />
       <NutritionTrend data={nutrition} calorieTarget={calorieTarget} range={range} />
       <PeriodCalendarCard
         periodLogs={periodLogs}

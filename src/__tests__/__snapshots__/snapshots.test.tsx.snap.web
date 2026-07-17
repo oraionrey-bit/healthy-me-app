@@ -323,27 +323,6 @@ exports[`Snapshot: Health Screen matches snapshot 1`] = `
           </div>
           <div
             class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1azax52 r-marginBottom-1ifxtd0 r-padding-nsbfu8"
-            style="border-left-color: rgba(255,128,171,1.00);"
-          >
-            <div
-              class="css-text-146c3p1 r-color-g14633 r-fontFamily-1aoiedr r-fontSize-1i10wst r-marginBottom-5oul0u"
-              dir="auto"
-            >
-              😊 Mood & Energy
-            </div>
-            <div
-              class="css-view-g5y9jx r-alignItems-1awozwy r-paddingBlock-zo2zu6"
-            >
-              <div
-                class="css-text-146c3p1 r-color-jwiekc r-fontFamily-1aoiedr r-fontSize-1enofrn r-textAlign-q4m81j"
-                dir="auto"
-              >
-                Start logging mood & energy on Home to see trends! 😊
-              </div>
-            </div>
-          </div>
-          <div
-            class="css-view-g5y9jx r-backgroundColor-14lw9ot r-borderLeftWidth-119zq30 r-borderRadius-1867qdf r-boxShadow-1azax52 r-marginBottom-1ifxtd0 r-padding-nsbfu8"
             style="border-left-color: rgba(129,199,132,1.00);"
           >
             <div

@@ -271,6 +271,17 @@ describe('DailyZepboundLogCard', () => {
     });
     expect(screen.queryByText(/Other-day reflux/)).toBeNull();
   });
+
+  it('allows long symptom names to wrap within the Home card', async () => {
+    const longName = 'ExtremelyLongUnbrokenZepboundSymptomNameThatMustStayInsideTheCard';
+    mockSetTableData('zepbound_symptom_logs', [symptom('long-home', '2026-07-15', longName, null)]);
+
+    render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
+    const content = await screen.findByTestId('zepbound-home-symptom-long-home');
+    expect(getComputedStyle(content).flexShrink).toBe('1');
+    expect(getComputedStyle(content).maxWidth).toBe('100%');
+    expect(screen.getByText(`${longName} · 3/5`)).toBeTruthy();
+  });
 });
 
 describe('ZepboundTrackerCard', () => {
@@ -311,5 +322,23 @@ describe('ZepboundTrackerCard', () => {
       expect(screen.getByText(/Before-first headache/)).toBeTruthy();
       expect(screen.getByText('Other symptom entries')).toBeTruthy();
     });
+  });
+
+  it('wraps long symptom names and notes inside both Health history layouts', async () => {
+    const longName = 'ExtremelyLongUnbrokenZepboundSymptomNameThatMustWrapOnIPhone';
+    const longNotes = 'A complete meaningful health note that must remain visible and wrap instead of being truncated or leaving the frame.';
+    const associated = { ...symptom('long-associated', '2026-07-15', longName, 'shot-1'), notes: longNotes };
+    const unassociated = { ...symptom('long-unassociated', '2026-07-14', longName, null), notes: longNotes };
+    mockSetTableData('zepbound_injections', [injection('shot-1', '2026-07-15')]);
+    mockSetTableData('zepbound_symptom_logs', [associated, unassociated]);
+
+    render(<ZepboundTrackerCard />);
+    for (const id of ['long-associated', 'long-unassociated']) {
+      const content = await screen.findByTestId(`zepbound-health-symptom-content-${id}`);
+      expect(getComputedStyle(content).flexShrink).toBe('1');
+      expect(getComputedStyle(content).minWidth).toBe('0px');
+    }
+    expect(screen.getAllByText(`${longName} · 3/5`)).toHaveLength(2);
+    expect(screen.getAllByText(longNotes)).toHaveLength(2);
   });
 });

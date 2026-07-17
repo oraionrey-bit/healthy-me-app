@@ -1,9 +1,13 @@
 import React, { useMemo } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { HealthCard } from './health-card';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useZepbound } from '../../hooks/use-zepbound';
 import { formatDatabaseTime } from '../../utils/zepbound-time';
+
+const webWrappingText: any = Platform.OS === 'web'
+  ? { wordBreak: 'break-word' }
+  : undefined;
 
 /** Longitudinal review and correction surface; routine entry belongs on Home. */
 export function ZepboundTrackerCard() {
@@ -63,14 +67,14 @@ export function ZepboundTrackerCard() {
               {injection.notes && <Text style={styles.notes}>{injection.notes}</Text>}
               {(symptomsByInjection.get(injection.id) ?? []).map((symptom) => (
                 <View key={symptom.id} style={styles.symptomRow}>
-                  <View>
-                    <Text style={styles.symptomText}>
+                  <View testID={`zepbound-health-symptom-content-${symptom.id}`} style={styles.symptomContent}>
+                    <Text style={[styles.symptomText, webWrappingText]}>
                       {symptom.symptom_type === 'None' ? 'No symptoms' : `${symptom.symptom_type} · ${symptom.severity}/5`}
                     </Text>
                     <Text style={styles.historySecondary}>{symptom.log_date}</Text>
-                    {symptom.notes && <Text style={styles.notes}>{symptom.notes}</Text>}
+                    {symptom.notes && <Text style={[styles.notes, webWrappingText]}>{symptom.notes}</Text>}
                   </View>
-                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete ${symptom.symptom_type} symptom`} onPress={() => void deleteSymptom(symptom.id)}>
+                  <TouchableOpacity style={styles.deleteButton} accessibilityRole="button" accessibilityLabel={`Delete ${symptom.symptom_type} symptom`} onPress={() => void deleteSymptom(symptom.id)}>
                     <Text style={styles.deleteText}>×</Text>
                   </TouchableOpacity>
                 </View>
@@ -82,14 +86,14 @@ export function ZepboundTrackerCard() {
               <Text style={styles.timelineTitle}>Other symptom entries</Text>
               {unassociatedSymptoms.map((symptom) => (
                 <View key={symptom.id} style={styles.symptomRow}>
-                  <View>
-                    <Text style={styles.symptomText}>
+                  <View testID={`zepbound-health-symptom-content-${symptom.id}`} style={styles.symptomContent}>
+                    <Text style={[styles.symptomText, webWrappingText]}>
                       {symptom.symptom_type === 'None' ? 'No symptoms' : `${symptom.symptom_type} · ${symptom.severity}/5`}
                     </Text>
                     <Text style={styles.historySecondary}>{symptom.log_date}</Text>
-                    {symptom.notes && <Text style={styles.notes}>{symptom.notes}</Text>}
+                    {symptom.notes && <Text style={[styles.notes, webWrappingText]}>{symptom.notes}</Text>}
                   </View>
-                  <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete ${symptom.symptom_type} symptom`} onPress={() => void deleteSymptom(symptom.id)}>
+                  <TouchableOpacity style={styles.deleteButton} accessibilityRole="button" accessibilityLabel={`Delete ${symptom.symptom_type} symptom`} onPress={() => void deleteSymptom(symptom.id)}>
                     <Text style={styles.deleteText}>×</Text>
                   </TouchableOpacity>
                 </View>
@@ -114,8 +118,10 @@ const styles = StyleSheet.create({
   historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   historyPrimary: { fontFamily: Fonts.body, fontSize: FontSizes.bodySm, color: Colors.textPrimary },
   historySecondary: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.textSecondary, marginTop: 2, textTransform: 'capitalize' },
-  notes: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.textSecondary, marginTop: Spacing.xs },
-  symptomRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: Colors.softPink, borderRadius: BorderRadius.sm, padding: Spacing.sm, marginTop: Spacing.xs },
-  symptomText: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.textPrimary },
+  notes: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.textSecondary, marginTop: Spacing.xs, flexShrink: 1 },
+  symptomRow: { flexDirection: 'row', maxWidth: '100%', backgroundColor: Colors.softPink, borderRadius: BorderRadius.sm, padding: Spacing.sm, marginTop: Spacing.xs },
+  symptomContent: { flex: 1, flexShrink: 1, minWidth: 0 },
+  symptomText: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.textPrimary, flexShrink: 1 },
+  deleteButton: { flexShrink: 0, marginLeft: Spacing.sm, alignSelf: 'flex-start' },
   deleteText: { fontFamily: Fonts.body, fontSize: FontSizes.bodyXs, color: Colors.error },
 });
