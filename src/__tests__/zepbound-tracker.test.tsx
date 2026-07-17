@@ -37,6 +37,8 @@ function symptom(
   logDate: string,
   symptomType: string,
   injectionId: string | null,
+  severity = 3,
+  notes: string | null = null,
 ): ZepboundSymptomLog {
   return {
     id,
@@ -46,8 +48,8 @@ function symptom(
     log_date: logDate,
     symptom_time: '12:00:00',
     symptom_type: symptomType,
-    severity: 3,
-    notes: null,
+    severity,
+    notes,
   };
 }
 
@@ -183,6 +185,59 @@ describe('DailyZepboundLogCard', () => {
     expect(inserts('zepbound_symptom_logs')).toHaveLength(0);
   });
 
+  it('prefills every saved symptom plus shared severity and notes when editing and reopening', async () => {
+    mockSetTableData('zepbound_symptom_logs', [
+      symptom('nausea', '2026-07-15', 'Nausea', null, 4, 'After lunch'),
+      symptom('reflux', '2026-07-15', 'Reflux', null, 4, 'After lunch'),
+    ]);
+    render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
+    await screen.findByText('Nausea · 4/5');
+
+    fireEvent.click(screen.getByText('+ Log symptom'));
+    expect(screen.getByRole('checkbox', { name: 'Nausea' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('checkbox', { name: 'Reflux' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: 'Severity 4' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByLabelText('Symptom notes').getAttribute('value')).toBe('After lunch');
+    expect(screen.queryByLabelText('Symptom hour')).toBeNull();
+
+    fireEvent.click(screen.getByText('+ Log symptom'));
+    fireEvent.click(screen.getByText('+ Log symptom'));
+    expect(screen.getByRole('checkbox', { name: 'Nausea' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('checkbox', { name: 'Reflux' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: 'Severity 4' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByLabelText('Symptom notes').getAttribute('value')).toBe('After lunch');
+  });
+
+  it('uses maximum severity and preserves distinct notes for legacy rows with differing values', async () => {
+    mockSetTableData('zepbound_symptom_logs', [
+      symptom('nausea', '2026-07-15', 'Nausea', null, 2, 'Morning'),
+      symptom('reflux', '2026-07-15', 'Reflux', null, 5, 'Evening'),
+      symptom('headache', '2026-07-15', 'Headache', null, 3, 'Morning'),
+    ]);
+    render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
+    await screen.findByText('Nausea · 2/5');
+    fireEvent.click(screen.getByText('+ Log symptom'));
+
+    expect(screen.getByRole('radio', { name: 'Severity 5' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByLabelText('Symptom notes').getAttribute('value')).toBe('Morning\nEvening');
+  });
+
+  it('prefills a saved None exclusively and keeps severity hidden', async () => {
+    mockSetTableData('zepbound_symptom_logs', [
+      symptom('none', '2026-07-15', 'None', null, 1, 'Good day'),
+      // Defensive coverage for malformed legacy data: None remains exclusive.
+      symptom('nausea', '2026-07-15', 'Nausea', null, 4, 'Old conflict'),
+    ]);
+    render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
+    await screen.findByText('No symptoms');
+    fireEvent.click(screen.getByText('+ Log symptom'));
+
+    expect(screen.getByRole('checkbox', { name: 'None' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('checkbox', { name: 'Nausea' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.queryByText('Severity')).toBeNull();
+    expect(screen.getByLabelText('Symptom notes').getAttribute('value')).toBe('Good day');
+  });
+
   it('leaves a symptom before the first shot unassociated', async () => {
     mockSetTableData('zepbound_injections', [injection('first-shot', '2026-07-15', '08:00:00')]);
     render(<DailyZepboundLogCard date={new Date(2026, 6, 14)} />);
@@ -250,6 +305,30 @@ describe('DailyZepboundLogCard', () => {
     fireEvent.click(screen.getByText('+ Log symptom'));
 
     expect(screen.getByRole('checkbox', { name: 'Nausea' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('radio', { name: 'Severity 3' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByLabelText('Symptom notes').getAttribute('value')).toBe('');
+  });
+
+  it('rehydrates each selected date from that date records without leaking drafts', async () => {
+    mockSetTableData('zepbound_symptom_logs', [
+      symptom('nausea', '2026-07-15', 'Nausea', null, 2, 'First date'),
+      symptom('reflux', '2026-07-16', 'Reflux', null, 5, 'Second date'),
+    ]);
+    const { rerender } = render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
+    await screen.findByText('Nausea · 2/5');
+    fireEvent.click(screen.getByText('+ Log symptom'));
+    fireEvent.change(screen.getByLabelText('Symptom notes'), { target: { value: 'Unsaved draft' } });
+
+    rerender(<DailyZepboundLogCard date={new Date(2026, 6, 16)} />);
+    fireEvent.click(screen.getByText('+ Log symptom'));
+    expect(screen.getByRole('checkbox', { name: 'Nausea' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('checkbox', { name: 'Reflux' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: 'Severity 5' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByLabelText('Symptom notes').getAttribute('value')).toBe('Second date');
+
+    rerender(<DailyZepboundLogCard date={new Date(2026, 6, 17)} />);
+    fireEvent.click(screen.getByText('+ Log symptom'));
+    expect(screen.getByRole('checkbox', { name: 'Reflux' }).getAttribute('aria-checked')).toBe('false');
     expect(screen.getByRole('radio', { name: 'Severity 3' }).getAttribute('aria-checked')).toBe('true');
     expect(screen.getByLabelText('Symptom notes').getAttribute('value')).toBe('');
   });

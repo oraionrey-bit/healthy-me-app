@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useZepbound } from '../../hooks/use-zepbound';
 import { toDateKey } from '../../utils/storage';
-import type { ZepboundInjectionSite } from '../../types/database';
+import type { ZepboundInjectionSite, ZepboundSymptomLog } from '../../types/database';
 import {
   validateZepboundInjection,
   validateZepboundSymptom,
@@ -49,6 +49,40 @@ const webWrappingText: any = Platform.OS === 'web'
   ? { wordBreak: 'break-word' }
   : undefined;
 
+interface SymptomDraft {
+  selectedSymptoms: string[];
+  severity: number;
+  notes: string;
+}
+
+/**
+ * The editor has one shared severity and note field while legacy data may have
+ * different values per row. Keep that conversion deterministic and avoid
+ * dropping health information: use the highest severity and join distinct
+ * notes in symptom-name order. Current batch-created rows normally agree, so
+ * they round-trip unchanged. A saved None wins defensively because it must be
+ * exclusive.
+ */
+function symptomDraftFromRows(rows: ZepboundSymptomLog[]): SymptomDraft {
+  const noneRow = rows.find((row) => row.symptom_type === 'None');
+  if (noneRow) {
+    return {
+      selectedSymptoms: ['None'],
+      severity: 1,
+      notes: noneRow.notes?.trim() ?? '',
+    };
+  }
+
+  const orderedRows = [...rows].sort((left, right) =>
+    left.symptom_type.localeCompare(right.symptom_type) || left.id.localeCompare(right.id));
+  const notes = [...new Set(orderedRows.map((row) => row.notes?.trim()).filter(Boolean))].join('\n');
+  return {
+    selectedSymptoms: [...new Set(orderedRows.map((row) => row.symptom_type))],
+    severity: rows.length > 0 ? Math.max(...rows.map((row) => row.severity)) : 3,
+    notes,
+  };
+}
+
 function displayDate(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
@@ -68,6 +102,12 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
   const dateKey = useMemo(() => toDateKey(date), [date]);
   const shotsForDay = injections.filter((item) => item.injection_date === dateKey);
   const symptomsForDay = symptoms.filter((item) => item.log_date === dateKey);
+  const symptomOptions = [
+    ...SYMPTOMS,
+    ...symptomsForDay
+      .map((item) => item.symptom_type)
+      .filter((value, index, values) => !SYMPTOMS.includes(value) && values.indexOf(value) === index),
+  ];
 
   const [openForm, setOpenForm] = useState<'shot' | 'symptom' | null>(null);
   const [dose, setDose] = useState(2.5);
@@ -91,7 +131,17 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
 
   const toggleForm = (form: 'shot' | 'symptom') => {
     setError(null);
-    setOpenForm((current) => current === form ? null : form);
+    if (openForm === form) {
+      setOpenForm(null);
+      return;
+    }
+    if (form === 'symptom') {
+      const draft = symptomDraftFromRows(symptomsForDay);
+      setSelectedSymptoms(draft.selectedSymptoms);
+      setSeverity(draft.severity);
+      setSymptomNotes(draft.notes);
+    }
+    setOpenForm(form);
   };
 
   const toggleSymptom = (symptom: string) => {
@@ -294,7 +344,7 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
               <Text style={styles.formTitle}>{`Symptom on ${displayDate(date)}`}</Text>
               <Text style={styles.label}>Symptom</Text>
               <View aria-label="Symptoms" style={styles.pillWrap}>
-                {SYMPTOMS.map((value) => (
+                {symptomOptions.map((value) => (
                   <TouchableOpacity
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: selectedSymptoms.includes(value) }}
