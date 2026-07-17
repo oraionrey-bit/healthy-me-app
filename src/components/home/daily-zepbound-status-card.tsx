@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -43,6 +44,10 @@ const SYMPTOMS = [
   'Injection site',
   'Other',
 ];
+
+const webWrappingText: any = Platform.OS === 'web'
+  ? { wordBreak: 'break-word' }
+  : undefined;
 
 function displayDate(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -188,7 +193,11 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
                 </Text>
               ))}
               {symptomsForDay.map((symptom) => (
-                <Text key={symptom.id} style={styles.statusText}>
+                <Text
+                  key={symptom.id}
+                  testID={`zepbound-home-symptom-${symptom.id}`}
+                  style={[styles.statusText, styles.wrappingText, webWrappingText]}
+                >
                   {symptom.symptom_type === 'None' ? 'No symptoms' : `${symptom.symptom_type} · ${symptom.severity}/5`}
                 </Text>
               ))}
@@ -353,6 +362,7 @@ const styles = StyleSheet.create({
   loading: { marginTop: Spacing.md },
   statusWrap: { gap: Spacing.xs, marginTop: Spacing.sm },
   statusText: { fontFamily: Fonts.body, fontSize: FontSizes.bodySm, color: Colors.textPrimary },
+  wrappingText: { flexShrink: 1, maxWidth: '100%' },
   emptyText: { fontFamily: Fonts.body, fontSize: FontSizes.bodySm, color: Colors.textSecondary, marginTop: Spacing.sm },
   actionRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
   actionButton: { flex: 1, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: Colors.lavender, padding: Spacing.sm, alignItems: 'center' },

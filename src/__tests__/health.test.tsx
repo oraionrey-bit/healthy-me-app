@@ -4,7 +4,17 @@
  * Tests the health dashboard screen: title, time range selector, Ask Oraion FAB.
  */
 import React from 'react';
-import { render, screen, waitFor } from './test-utils';
+import { mockSetTableData, render, screen, waitFor } from './test-utils';
+
+jest.mock('../hooks/use-oura', () => ({
+  useOura: () => ({
+    isConnected: true,
+    recentData: [{
+      id: 'oura-1', user_id: 'test-user-id', date: '2026-07-15',
+      sleep_score: 80, hrv_average: 42,
+    }],
+  }),
+}));
 
 async function renderHealth() {
   const HealthScreen = require('../app/(tabs)/health').default;
@@ -15,7 +25,13 @@ async function renderHealth() {
 }
 
 describe('Health Screen', () => {
-  beforeEach(() => { jest.clearAllMocks(); });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSetTableData('symptoms', [{
+      id: 'symptoms-1', user_id: 'test-user-id', log_date: '2026-07-15',
+      mood: 4, energy_level: 3,
+    }]);
+  });
 
   it('renders health title', async () => {
     await renderHealth();
@@ -29,9 +45,13 @@ describe('Health Screen', () => {
     expect(screen.getByText('90D')).toBeTruthy();
   });
 
-  it('renders mood and energy section', async () => {
+  it('omits unused Sleep, HRV, and Mood graphs while retaining unrelated graphs', async () => {
     await renderHealth();
-    expect(screen.getByText(/Mood/)).toBeTruthy();
+    expect(screen.queryByText('😴 Sleep Score')).toBeNull();
+    expect(screen.queryByText('💓 HRV')).toBeNull();
+    expect(screen.queryByText(/Mood & Energy/)).toBeNull();
+    expect(screen.getByText(/Nutrition/)).toBeTruthy();
+    expect(screen.getByText(/Weight/)).toBeTruthy();
   });
 
   it('shows Zepbound history without duplicate logging controls', async () => {
