@@ -3,14 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { HealthCard } from './health-card';
 import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useZepbound } from '../../hooks/use-zepbound';
-
-function displayTime(value: string): string {
-  const [hourText, minute = '00'] = value.split(':');
-  const hour = Number(hourText);
-  const suffix = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${minute} ${suffix}`;
-}
+import { formatDatabaseTime } from '../../utils/zepbound-time';
 
 /** Longitudinal review and correction surface; routine entry belongs on Home. */
 export function ZepboundTrackerCard() {
@@ -57,7 +50,7 @@ export function ZepboundTrackerCard() {
             <View key={injection.id} style={styles.historyItem}>
               <View style={styles.historyHeader}>
                 <View>
-                  <Text style={styles.historyPrimary}>{injection.injection_date} · {displayTime(injection.injection_time)}</Text>
+                  <Text style={styles.historyPrimary}>{injection.injection_date} · {formatDatabaseTime(injection.injection_time)}</Text>
                   <Text style={styles.historySecondary}>
                     {injection.dose_mg} mg
                     {injection.injection_site !== 'other' ? ` · ${injection.injection_site.replace('_', ' ')}` : ''}
@@ -72,7 +65,7 @@ export function ZepboundTrackerCard() {
                 <View key={symptom.id} style={styles.symptomRow}>
                   <View>
                     <Text style={styles.symptomText}>{symptom.symptom_type} · {symptom.severity}/5</Text>
-                    <Text style={styles.historySecondary}>{symptom.log_date} · {displayTime(symptom.symptom_time)}</Text>
+                    <Text style={styles.historySecondary}>{symptom.log_date} · {formatDatabaseTime(symptom.symptom_time)}</Text>
                     {symptom.notes && <Text style={styles.notes}>{symptom.notes}</Text>}
                   </View>
                   <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete ${symptom.symptom_type} symptom`} onPress={() => void deleteSymptom(symptom.id)}>
@@ -89,7 +82,7 @@ export function ZepboundTrackerCard() {
                 <View key={symptom.id} style={styles.symptomRow}>
                   <View>
                     <Text style={styles.symptomText}>{symptom.symptom_type} · {symptom.severity}/5</Text>
-                    <Text style={styles.historySecondary}>{symptom.log_date} · {displayTime(symptom.symptom_time)}</Text>
+                    <Text style={styles.historySecondary}>{symptom.log_date} · {formatDatabaseTime(symptom.symptom_time)}</Text>
                     {symptom.notes && <Text style={styles.notes}>{symptom.notes}</Text>}
                   </View>
                   <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete ${symptom.symptom_type} symptom`} onPress={() => void deleteSymptom(symptom.id)}>

@@ -151,6 +151,8 @@ else
     "user_supplements"
     "calf_measurements"
     "skincare_logs"
+    "zepbound_injections"
+    "zepbound_symptom_logs"
   )
 
   EXISTING_TABLES=$(supabase_query "SELECT tablename FROM pg_tables WHERE schemaname = 'public'" 2>/dev/null) || true
@@ -190,7 +192,7 @@ echo -e "${BOLD}[5/7] Row-Level Security${NC}"
 if [ -z "$ACCESS_TOKEN" ]; then
   warn "Skipping RLS checks (no access token)"
 else
-  RLS_STATUS=$(supabase_query "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('daily_logs','food_logs','weight_logs','water_logs','symptoms','supplement_logs','user_supplements','calf_measurements','skincare_logs')") || true
+  RLS_STATUS=$(supabase_query "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('daily_logs','food_logs','weight_logs','water_logs','symptoms','supplement_logs','user_supplements','calf_measurements','skincare_logs','zepbound_injections','zepbound_symptom_logs')") || true
 
   for table in "${REQUIRED_TABLES[@]}"; do
     if echo "$RLS_STATUS" | python3 -c "
