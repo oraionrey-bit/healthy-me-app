@@ -208,6 +208,33 @@ describe('DailyZepboundLogCard', () => {
     expect(screen.getByLabelText('Symptom notes').getAttribute('value')).toBe('After lunch');
   });
 
+  it('sends an edited saved date as one complete replacement payload', async () => {
+    mockSetTableData('zepbound_symptom_logs', [
+      symptom('low-appetite-old', '2026-07-16', 'Low appetite', null, 2, 'Original note'),
+    ]);
+    render(<DailyZepboundLogCard date={new Date(2026, 6, 16)} />);
+    await screen.findByText('Low appetite · 2/5');
+
+    fireEvent.click(screen.getByText('+ Log symptom'));
+    fireEvent.change(screen.getByLabelText('Symptom notes'), {
+      target: { value: 'Original note; body kinda sore after dinner' },
+    });
+    fireEvent.click(screen.getByText('Save symptoms'));
+
+    await waitFor(() => expect(mockRpcCalls).toEqual([{
+      functionName: 'save_zepbound_symptoms_for_date',
+      args: {
+        p_log_date: '2026-07-16',
+        p_symptoms: [{
+          symptom_type: 'Low appetite',
+          severity: 2,
+          notes: 'Original note; body kinda sore after dinner',
+        }],
+      },
+    }]));
+    expect(inserts('zepbound_symptom_logs')).toHaveLength(0);
+  });
+
   it('uses maximum severity and preserves distinct notes for legacy rows with differing values', async () => {
     mockSetTableData('zepbound_symptom_logs', [
       symptom('nausea', '2026-07-15', 'Nausea', null, 2, 'Morning'),
