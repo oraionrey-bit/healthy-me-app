@@ -34,6 +34,5 @@ export function validateZepboundSymptom(input: NewZepboundSymptom): string | nul
     return 'Choose a severity from 1 to 5.';
   }
   if (!isValidDateKey(input.logDate)) return 'Enter the symptom date as YYYY-MM-DD.';
-  if (!isValidTime(input.symptomTime)) return 'Choose a valid symptom time.';
   return null;
 }

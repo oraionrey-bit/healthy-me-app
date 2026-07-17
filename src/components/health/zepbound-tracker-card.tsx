@@ -64,8 +64,10 @@ export function ZepboundTrackerCard() {
               {(symptomsByInjection.get(injection.id) ?? []).map((symptom) => (
                 <View key={symptom.id} style={styles.symptomRow}>
                   <View>
-                    <Text style={styles.symptomText}>{symptom.symptom_type} · {symptom.severity}/5</Text>
-                    <Text style={styles.historySecondary}>{symptom.log_date} · {formatDatabaseTime(symptom.symptom_time)}</Text>
+                    <Text style={styles.symptomText}>
+                      {symptom.symptom_type === 'None' ? 'No symptoms' : `${symptom.symptom_type} · ${symptom.severity}/5`}
+                    </Text>
+                    <Text style={styles.historySecondary}>{symptom.log_date}</Text>
                     {symptom.notes && <Text style={styles.notes}>{symptom.notes}</Text>}
                   </View>
                   <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete ${symptom.symptom_type} symptom`} onPress={() => void deleteSymptom(symptom.id)}>
@@ -81,8 +83,10 @@ export function ZepboundTrackerCard() {
               {unassociatedSymptoms.map((symptom) => (
                 <View key={symptom.id} style={styles.symptomRow}>
                   <View>
-                    <Text style={styles.symptomText}>{symptom.symptom_type} · {symptom.severity}/5</Text>
-                    <Text style={styles.historySecondary}>{symptom.log_date} · {formatDatabaseTime(symptom.symptom_time)}</Text>
+                    <Text style={styles.symptomText}>
+                      {symptom.symptom_type === 'None' ? 'No symptoms' : `${symptom.symptom_type} · ${symptom.severity}/5`}
+                    </Text>
+                    <Text style={styles.historySecondary}>{symptom.log_date}</Text>
                     {symptom.notes && <Text style={styles.notes}>{symptom.notes}</Text>}
                   </View>
                   <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Delete ${symptom.symptom_type} symptom`} onPress={() => void deleteSymptom(symptom.id)}>

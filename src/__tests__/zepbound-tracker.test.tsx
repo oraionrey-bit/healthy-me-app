@@ -3,7 +3,9 @@ import {
   act,
   fireEvent,
   mockDatabaseWrites,
+  mockRpcCalls,
   mockResetZepboundData,
+  mockSetRpcError,
   mockSetTableData,
   render,
   screen,
@@ -51,6 +53,12 @@ function symptom(
 
 function lastInsert(table: string) {
   return [...mockDatabaseWrites].reverse().find(
+    (write) => write.table === table && write.operation === 'insert',
+  );
+}
+
+function inserts(table: string) {
+  return mockDatabaseWrites.filter(
     (write) => write.table === table && write.operation === 'insert',
   );
 }
@@ -145,31 +153,34 @@ describe('DailyZepboundLogCard', () => {
     expect(lastInsert('zepbound_injections')).toBeUndefined();
   });
 
-  it('submits a selected-day symptom and associates only to a prior shot time', async () => {
+  it('submits multiple selected-day symptoms atomically without asking for a symptom time', async () => {
     mockSetTableData('zepbound_injections', [
-      injection('later-shot', '2026-07-15', '20:00:00'),
       injection('earlier-shot', '2026-07-15', '08:00:00'),
       injection('prior-shot', '2026-07-08', '08:00:00'),
+      injection('later-shot', '2026-07-15', '20:00:00'),
     ]);
     render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
     await waitFor(() => expect(screen.getAllByText(/Shot 2.5 mg/)).toHaveLength(2));
     fireEvent.click(screen.getByText('+ Log symptom'));
+    expect(screen.queryByLabelText('Symptom hour')).toBeNull();
+    fireEvent.click(screen.getByText('Nausea'));
     fireEvent.click(screen.getByText('Reflux'));
     fireEvent.click(screen.getByLabelText('Severity 4'));
-    setTwelveHourTime('Symptom', '12', '00', 'PM');
     fireEvent.change(screen.getByLabelText('Symptom notes'), { target: { value: 'After lunch' } });
-    fireEvent.click(screen.getByText('Save symptom'));
+    fireEvent.click(screen.getByText('Save symptoms'));
     await act(async () => { await Promise.resolve(); });
 
-    await waitFor(() => expect(lastInsert('zepbound_symptom_logs')?.values).toEqual({
-      user_id: 'test-user-id',
-      injection_id: 'earlier-shot',
-      log_date: '2026-07-15',
-      symptom_time: '12:00',
-      symptom_type: 'Reflux',
-      severity: 4,
-      notes: 'After lunch',
-    }));
+    await waitFor(() => expect(mockRpcCalls).toEqual([{
+      functionName: 'save_zepbound_symptoms_for_date',
+      args: {
+        p_log_date: '2026-07-15',
+        p_symptoms: [
+          { symptom_type: 'Nausea', severity: 4, notes: 'After lunch' },
+          { symptom_type: 'Reflux', severity: 4, notes: 'After lunch' },
+        ],
+      },
+    }]));
+    expect(inserts('zepbound_symptom_logs')).toHaveLength(0);
   });
 
   it('leaves a symptom before the first shot unassociated', async () => {
@@ -177,29 +188,73 @@ describe('DailyZepboundLogCard', () => {
     render(<DailyZepboundLogCard date={new Date(2026, 6, 14)} />);
     await waitFor(() => expect(screen.getByText(/Last shot/)).toBeTruthy());
     fireEvent.click(screen.getByText('+ Log symptom'));
-    setTwelveHourTime('Symptom', '6', '00', 'PM');
-    fireEvent.click(screen.getByText('Save symptom'));
+    fireEvent.click(screen.getByText('Nausea'));
+    fireEvent.click(screen.getByText('Save symptoms'));
     await act(async () => { await Promise.resolve(); });
 
-    await waitFor(() => expect(lastInsert('zepbound_symptom_logs')?.values).toEqual(expect.objectContaining({
-      injection_id: null,
-      log_date: '2026-07-14',
-      symptom_time: '18:00',
+    await waitFor(() => expect(mockRpcCalls[0]).toEqual(expect.objectContaining({
+      functionName: 'save_zepbound_symptoms_for_date',
+      args: expect.objectContaining({ p_log_date: '2026-07-14' }),
     })));
   });
 
-  it('rejects an incomplete 12-hour symptom time before writing', async () => {
+  it('allows an explicit no-symptoms entry and makes None exclusive', async () => {
     render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
     await waitFor(() => expect(screen.getByText('No Zepbound entries for Jul 15.')).toBeTruthy());
     fireEvent.click(screen.getByText('+ Log symptom'));
-    fireEvent.change(screen.getByLabelText('Symptom minute'), { target: { value: '' } });
-    fireEvent.click(screen.getByText('Save symptom'));
+    fireEvent.click(screen.getByText('Nausea'));
+    fireEvent.click(screen.getByText('None'));
 
-    expect(await screen.findByText('Choose a valid symptom time: hour 1–12, minute 00–59, and AM or PM.')).toBeTruthy();
-    expect(lastInsert('zepbound_symptom_logs')).toBeUndefined();
+    expect(screen.getByRole('checkbox', { name: 'None' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('checkbox', { name: 'Nausea' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.queryByText('Severity')).toBeNull();
+    fireEvent.click(screen.getByText('Save symptoms'));
+    await act(async () => { await Promise.resolve(); });
+
+    await waitFor(() => expect(mockRpcCalls[0]).toEqual({
+      functionName: 'save_zepbound_symptoms_for_date',
+      args: {
+        p_log_date: '2026-07-15',
+        p_symptoms: [{ symptom_type: 'None', severity: 1, notes: null }],
+      },
+    }));
   });
 
-  it('shows selected-day shot and symptom status with times', async () => {
+  it('keeps the whole symptom draft when the atomic save fails', async () => {
+    mockSetRpcError(new Error('transaction rolled back'));
+    render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
+    await waitFor(() => expect(screen.getByText('No Zepbound entries for Jul 15.')).toBeTruthy());
+    fireEvent.click(screen.getByText('+ Log symptom'));
+    fireEvent.click(screen.getByText('Nausea'));
+    fireEvent.click(screen.getByText('Reflux'));
+    fireEvent.change(screen.getByLabelText('Symptom notes'), { target: { value: 'Keep me' } });
+    fireEvent.click(screen.getByText('Save symptoms'));
+
+    expect(await screen.findByText('Could not save the symptoms. Please try again.')).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'Nausea' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('checkbox', { name: 'Reflux' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByLabelText('Symptom notes').getAttribute('value')).toBe('Keep me');
+    expect(mockRpcCalls).toHaveLength(1);
+    expect(inserts('zepbound_symptom_logs')).toHaveLength(0);
+  });
+
+  it('resets the symptom draft when the selected date changes', async () => {
+    const { rerender } = render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
+    await waitFor(() => expect(screen.getByText('No Zepbound entries for Jul 15.')).toBeTruthy());
+    fireEvent.click(screen.getByText('+ Log symptom'));
+    fireEvent.click(screen.getByText('Nausea'));
+    fireEvent.click(screen.getByLabelText('Severity 5'));
+    fireEvent.change(screen.getByLabelText('Symptom notes'), { target: { value: 'Old date' } });
+
+    rerender(<DailyZepboundLogCard date={new Date(2026, 6, 16)} />);
+    fireEvent.click(screen.getByText('+ Log symptom'));
+
+    expect(screen.getByRole('checkbox', { name: 'Nausea' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('radio', { name: 'Severity 3' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByLabelText('Symptom notes').getAttribute('value')).toBe('');
+  });
+
+  it('shows selected-day shot time and date-only symptom status', async () => {
     mockSetTableData('zepbound_injections', [
       injection('selected-shot', '2026-07-15', '09:30:00'),
       injection('other-shot', '2026-07-08', '08:00:00'),
@@ -212,7 +267,7 @@ describe('DailyZepboundLogCard', () => {
     render(<DailyZepboundLogCard date={new Date(2026, 6, 15)} />);
     await waitFor(() => {
       expect(screen.getByText('✓ Shot 2.5 mg at 9:30 AM')).toBeTruthy();
-      expect(screen.getByText('Selected-day nausea · 3/5 at 12:00 PM')).toBeTruthy();
+      expect(screen.getByText('Selected-day nausea · 3/5')).toBeTruthy();
     });
     expect(screen.queryByText(/Other-day reflux/)).toBeNull();
   });
@@ -236,7 +291,7 @@ describe('ZepboundTrackerCard', () => {
     expect(screen.queryByText('+ Log symptom')).toBeNull();
     expect(screen.getByText('Nausea · 3/5')).toBeTruthy();
     expect(screen.getByText('2026-07-15 · 12:00 AM')).toBeTruthy();
-    expect(screen.getByText('2026-07-15 · 12:00 PM')).toBeTruthy();
+    expect(screen.getByText('2026-07-15')).toBeTruthy();
   });
 
   it('retains symptoms associated with older shots and unassociated entries', async () => {

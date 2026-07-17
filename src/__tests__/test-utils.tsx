@@ -53,6 +53,12 @@ export interface MockDatabaseWrite {
 }
 
 export const mockDatabaseWrites: MockDatabaseWrite[] = [];
+export const mockRpcCalls: Array<{ functionName: string; args: unknown }> = [];
+let mockRpcError: unknown | null = null;
+
+export function mockSetRpcError(error: unknown | null) {
+  mockRpcError = error;
+}
 
 const mockTableData: Record<string, any[]> = {
   user_profiles: [mockProfileData],
@@ -81,6 +87,8 @@ export function mockResetZepboundData() {
   mockTableData.zepbound_injections = [];
   mockTableData.zepbound_symptom_logs = [];
   mockDatabaseWrites.length = 0;
+  mockRpcCalls.length = 0;
+  mockRpcError = null;
 }
 
 const mockAuthUser = { id: 'test-user-id', email: 'tina@test.com' };
@@ -146,6 +154,10 @@ jest.mock('../lib/supabase', () => ({
       signOut: jest.fn(() => Promise.resolve({ error: null })),
     },
     from: jest.fn((table: string) => mockCreateTable(table)),
+    rpc: jest.fn((functionName: string, args: unknown) => {
+      mockRpcCalls.push({ functionName, args });
+      return Promise.resolve({ data: null, error: mockRpcError });
+    }),
     channel: jest.fn(() => ({
       on: jest.fn(function(this: any) { return this; }),
       subscribe: jest.fn(function(this: any) { return this; }),
