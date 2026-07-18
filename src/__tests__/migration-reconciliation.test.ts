@@ -232,7 +232,7 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(zepboundUnifiedDailyLog).toContain("TIME '12:00'");
   });
 
-  it('serializes every legacy direct check-in write and key-moving updates', () => {
+  it('fails legacy direct check-in writes fast when the shared lock is busy', () => {
     expect(zepboundUnifiedDailyLog).toContain('lock_zepbound_daily_checkin_owner_date');
     expect(zepboundUnifiedDailyLog).toMatch(
       /BEFORE INSERT OR UPDATE OR DELETE ON zepbound_daily_checkins/,
@@ -240,9 +240,19 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(zepboundUnifiedDailyLog).toMatch(/TG_OP <> 'INSERT'[\s\S]+OLD\.user_id[\s\S]+OLD\.log_date/);
     expect(zepboundUnifiedDailyLog).toMatch(/TG_OP <> 'DELETE'[\s\S]+NEW\.user_id[\s\S]+NEW\.log_date/);
     expect(zepboundUnifiedDailyLog).toMatch(
-      /v_old_key <> v_new_key[\s\S]+LEAST\(v_old_key, v_new_key\)[\s\S]+GREATEST\(v_old_key, v_new_key\)/,
+      /v_old_key <> v_new_key[\s\S]+pg_try_advisory_xact_lock\(LEAST\(v_old_key, v_new_key\)\)[\s\S]+pg_try_advisory_xact_lock\(GREATEST\(v_old_key, v_new_key\)\)/,
     );
-    expect(zepboundUnifiedDailyLog).toMatch(/COALESCE\(v_new_key, v_old_key\)/);
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /pg_try_advisory_xact_lock\(COALESCE\(v_new_key, v_old_key\)\)/,
+    );
+
+    const triggerBody = zepboundUnifiedDailyLog.match(
+      /CREATE OR REPLACE FUNCTION lock_zepbound_daily_checkin_owner_date\(\)[\s\S]*?\$\$;/,
+    )?.[0] ?? '';
+    expect(triggerBody.match(/pg_try_advisory_xact_lock/g)).toHaveLength(3);
+    expect(triggerBody).not.toMatch(/\bpg_advisory_xact_lock\s*\(/);
+    expect(triggerBody.match(/ERRCODE = 'serialization_failure'/g)).toHaveLength(3);
+    expect(triggerBody).toContain('retry the transaction');
   });
 
   it('uses invoker RLS, owner identity, shared lock, and least-privilege grants', () => {

@@ -3,10 +3,12 @@
 -- existing symptom, check-in, or injection row when it is applied.
 BEGIN;
 
--- Legacy clients can still write the check-in table directly. Serialize those
+-- Legacy clients can still write the check-in table directly. Coordinate those
 -- writes with symptom writes and save_zepbound_daily_log using the same
--- owner/date transaction advisory key. Key-moving updates lock both keys in
--- numeric order so two opposite moves cannot deadlock.
+-- owner/date transaction advisory key. A row trigger can run while its statement
+-- already owns a tuple lock, so it must never wait for an advisory lock: a
+-- conflicting legacy write fails with retryable SQLSTATE 40001 and releases its
+-- tuple lock. Key-moving updates try both keys in numeric order.
 CREATE OR REPLACE FUNCTION lock_zepbound_daily_checkin_owner_date()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -25,10 +27,19 @@ BEGIN
   END IF;
 
   IF TG_OP = 'UPDATE' AND v_old_key <> v_new_key THEN
-    PERFORM pg_advisory_xact_lock(LEAST(v_old_key, v_new_key));
-    PERFORM pg_advisory_xact_lock(GREATEST(v_old_key, v_new_key));
+    IF pg_try_advisory_xact_lock(LEAST(v_old_key, v_new_key)) IS NOT TRUE THEN
+      RAISE EXCEPTION 'Concurrent Zepbound daily check-in save; retry the transaction'
+        USING ERRCODE = 'serialization_failure';
+    END IF;
+    IF pg_try_advisory_xact_lock(GREATEST(v_old_key, v_new_key)) IS NOT TRUE THEN
+      RAISE EXCEPTION 'Concurrent Zepbound daily check-in save; retry the transaction'
+        USING ERRCODE = 'serialization_failure';
+    END IF;
   ELSE
-    PERFORM pg_advisory_xact_lock(COALESCE(v_new_key, v_old_key));
+    IF pg_try_advisory_xact_lock(COALESCE(v_new_key, v_old_key)) IS NOT TRUE THEN
+      RAISE EXCEPTION 'Concurrent Zepbound daily check-in save; retry the transaction'
+        USING ERRCODE = 'serialization_failure';
+    END IF;
   END IF;
   IF TG_OP = 'DELETE' THEN
     RETURN OLD;
