@@ -1,11 +1,14 @@
 import React from 'react';
 import {
+  act,
   fireEvent,
   mockDatabaseWrites,
   mockResetZepboundData,
   mockRpcCalls,
   mockSetRpcError,
+  mockSetRpcPromise,
   mockSetTableData,
+  mockSetTableError,
   render,
   screen,
   waitFor,
@@ -60,6 +63,18 @@ function injection(id: string, date: string): ZepboundInjection {
     notes: null,
     created_at: `${date}T08:00:00Z`,
   };
+}
+
+function setShotTime(hour: string, minute: string, period: 'AM' | 'PM') {
+  fireEvent.change(screen.getByLabelText('Shot hour'), { target: { value: hour } });
+  fireEvent.change(screen.getByLabelText('Shot minute'), { target: { value: minute } });
+  fireEvent.click(screen.getByLabelText(`Shot ${period}`));
+}
+
+function lastInjectionInsert() {
+  return [...mockDatabaseWrites].reverse().find(
+    (write) => write.table === 'zepbound_injections' && write.operation === 'insert',
+  );
 }
 
 async function openDaily() {
@@ -354,6 +369,124 @@ describe('unified Daily Zepbound check-in', () => {
     expect(screen.getByRole('radio', { name: 'Pooped Yes' }).getAttribute('aria-checked')).toBe('true');
   });
 
+  it('stores a midnight shot on the selected date', async () => {
+    render(<DailyZepboundLogCard date={DATE} />);
+    fireEvent.click(await screen.findByRole('button', { name: '+ Log shot' }));
+    setShotTime('12', '00', 'AM');
+    fireEvent.click(screen.getByRole('button', { name: 'Save shot' }));
+    await waitFor(() => expect(lastInjectionInsert()?.values).toEqual(expect.objectContaining({
+      injection_date: '2026-07-17', injection_time: '00:00',
+    })));
+  });
+
+  it('sends optional injection site and notes with the shot payload', async () => {
+    render(<DailyZepboundLogCard date={DATE} />);
+    fireEvent.click(await screen.findByRole('button', { name: '+ Log shot' }));
+    fireEvent.click(screen.getByText(/Optional details/));
+    fireEvent.click(screen.getByRole('radio', { name: 'Thigh' }));
+    fireEvent.change(screen.getByLabelText('Shot notes'), { target: { value: ' Left side ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save shot' }));
+    await waitFor(() => expect(lastInjectionInsert()?.values).toEqual(expect.objectContaining({
+      injection_site: 'thigh', notes: 'Left side',
+    })));
+  });
+
+  it('rejects an invalid shot time before any write', async () => {
+    render(<DailyZepboundLogCard date={DATE} />);
+    fireEvent.click(await screen.findByRole('button', { name: '+ Log shot' }));
+    setShotTime('13', '00', 'AM');
+    fireEvent.click(screen.getByRole('button', { name: 'Save shot' }));
+    expect(await screen.findByText(/Choose a valid shot time/)).toBeTruthy();
+    expect(lastInjectionInsert()).toBeUndefined();
+  });
+
+  it('accepts a symptom dated before the first shot through the association-safe RPC', async () => {
+    mockSetTableData('zepbound_injections', [injection('future', '2026-07-18')]);
+    render(<DailyZepboundLogCard date={DATE} />);
+    await openDaily();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Nausea' }));
+    saveDaily();
+    await waitFor(() => expect(mockRpcCalls[0]).toEqual(expect.objectContaining({
+      functionName: 'save_zepbound_daily_log',
+      args: expect.objectContaining({ p_log_date: '2026-07-17' }),
+    })));
+  });
+
+  it('preserves a dirty daily draft through a separate shot save and refetch', async () => {
+    render(<DailyZepboundLogCard date={DATE} />);
+    await openDaily();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Fatigue' }));
+    fireEvent.change(screen.getByLabelText('Symptom notes'), { target: { value: 'Keep this draft' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Workout Yes' }));
+    fireEvent.change(screen.getByLabelText('Workout duration minutes'), { target: { value: '35' } });
+    fireEvent.click(screen.getByRole('button', { name: '+ Log shot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save shot' }));
+    await waitFor(() => expect(lastInjectionInsert()).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: '+ Daily check-in' }));
+    expect(screen.getByRole('checkbox', { name: 'Fatigue' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByLabelText('Symptom notes').getAttribute('value')).toBe('Keep this draft');
+    expect(screen.getByLabelText('Workout duration minutes').getAttribute('value')).toBe('35');
+  });
+
+  it('shows a safe Home fallback for malformed workout history', async () => {
+    mockSetTableData('zepbound_daily_checkins', [checkin('bad', '2026-07-17', true, null, true)]);
+    render(<DailyZepboundLogCard date={DATE} />);
+    expect(await screen.findByText('Workout: logged, duration unavailable')).toBeTruthy();
+    expect(screen.queryByText(/Workout: 0 min/)).toBeNull();
+  });
+
+  it('clears only the workout answer and duration', async () => {
+    mockSetTableData('zepbound_daily_checkins', [checkin('daily', '2026-07-17', true, 45, false)]);
+    render(<DailyZepboundLogCard date={DATE} />);
+    await openDaily();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear Workout answer' }));
+    saveDaily();
+    await waitFor(() => expect(mockRpcCalls[0]?.args).toEqual(expect.objectContaining({
+      p_worked_out: null, p_workout_duration_minutes: null, p_pooped: false,
+    })));
+  });
+
+  it('clears only the pooped answer while retaining workout status', async () => {
+    mockSetTableData('zepbound_daily_checkins', [checkin('daily', '2026-07-17', false, null, true)]);
+    render(<DailyZepboundLogCard date={DATE} />);
+    await openDaily();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear Pooped answer' }));
+    saveDaily();
+    await waitFor(() => expect(mockRpcCalls[0]?.args).toEqual(expect.objectContaining({
+      p_worked_out: false, p_workout_duration_minutes: null, p_pooped: null,
+    })));
+  });
+
+  it('reports a committed save with refresh warning instead of a database failure', async () => {
+    render(<DailyZepboundLogCard date={DATE} />);
+    await openDaily();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Nausea' }));
+    mockSetTableError('zepbound_symptom_logs', new Error('offline after commit'));
+    saveDaily();
+    expect(await screen.findByText(/Saved successfully, but history could not refresh/)).toBeTruthy();
+    expect(screen.queryByText(/Could not save the daily check-in/)).toBeNull();
+    expect(mockRpcCalls).toHaveLength(1);
+  });
+
+  it('does not let an old date save completion close or mark the new date form', async () => {
+    let resolveRpc!: (value: { data: null; error: null }) => void;
+    mockSetRpcPromise(new Promise((resolve) => { resolveRpc = resolve; }));
+    const { rerender } = render(<DailyZepboundLogCard date={DATE} />);
+    await openDaily();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Nausea' }));
+    saveDaily();
+    await waitFor(() => expect(mockRpcCalls).toHaveLength(1));
+
+    rerender(<DailyZepboundLogCard date={new Date(2026, 6, 18)} />);
+    fireEvent.click(await screen.findByRole('button', { name: '+ Daily check-in' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Pooped No' }));
+    await act(async () => { resolveRpc({ data: null, error: null }); });
+
+    expect(screen.getByText('Daily Zepbound check-in · Jul 18')).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Pooped No' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.queryByText(/Could not save|Saved successfully/)).toBeNull();
+  });
+
   it('keeps shot save separate and unchanged', async () => {
     render(<DailyZepboundLogCard date={DATE} />);
     fireEvent.click(await screen.findByRole('button', { name: '+ Log shot' }));
@@ -380,6 +513,46 @@ describe('Zepbound health history', () => {
     expect(screen.getByText('2026-07-17 · Workout 25 min · Pooped Yes')).toBeTruthy();
     expect(screen.queryByText('Save daily check-in')).toBeNull();
     expect(screen.queryByText('+ Log shot')).toBeNull();
+  });
+
+  it('retains symptoms associated with older shots and unassociated before-first-shot history', async () => {
+    mockSetTableData('zepbound_injections', [
+      injection('new-shot', '2026-07-17'),
+      injection('old-shot', '2026-05-27'),
+    ]);
+    mockSetTableData('zepbound_symptom_logs', [
+      { ...symptom('older', '2026-05-28', 'Older-shot nausea'), injection_id: 'old-shot' },
+      symptom('before', '2026-05-20', 'Before-first headache'),
+    ]);
+    render(<ZepboundTrackerCard />);
+    expect(await screen.findByText('Older-shot nausea · 3/5')).toBeTruthy();
+    expect(screen.getByText('Before-first headache · 3/5')).toBeTruthy();
+    expect(screen.getByText('Other symptom entries')).toBeTruthy();
+    expect(screen.queryByText('Save daily check-in')).toBeNull();
+  });
+
+  it('uses a safe malformed-workout fallback in Health history', async () => {
+    mockSetTableData('zepbound_daily_checkins', [checkin('bad', '2026-07-17', true, null, false)]);
+    render(<ZepboundTrackerCard />);
+    expect(await screen.findByText('2026-07-17 · Workout: logged, duration unavailable · Pooped No')).toBeTruthy();
+    expect(screen.queryByText(/Workout null min/)).toBeNull();
+  });
+
+  it('wraps long names and notes in associated and unassociated Health layouts', async () => {
+    const longName = 'ExtremelyLongUnbrokenZepboundSymptomNameThatMustWrapOnIPhone';
+    const longNotes = 'A complete meaningful health note that must remain visible and wrap instead of being truncated or leaving the frame.';
+    mockSetTableData('zepbound_injections', [injection('shot', '2026-07-17')]);
+    mockSetTableData('zepbound_symptom_logs', [
+      { ...symptom('associated', '2026-07-17', longName, 4, longNotes), injection_id: 'shot' },
+      symptom('unassociated', '2026-07-16', longName, 3, longNotes),
+    ]);
+    render(<ZepboundTrackerCard />);
+    for (const id of ['associated', 'unassociated']) {
+      const content = await screen.findByTestId(`zepbound-health-symptom-content-${id}`);
+      expect(getComputedStyle(content).flexShrink).toBe('1');
+      expect(getComputedStyle(content).minWidth).toBe('0px');
+    }
+    expect(screen.getAllByText(longNotes)).toHaveLength(2);
   });
 
   it('shows Indigestion and Fullness as separate wrapping history rows', async () => {

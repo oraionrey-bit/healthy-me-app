@@ -3,6 +3,44 @@
 -- existing symptom, check-in, or injection row when it is applied.
 BEGIN;
 
+-- Legacy clients can still write the check-in table directly. Serialize those
+-- writes with symptom writes and save_zepbound_daily_log using the same
+-- owner/date transaction advisory key. Key-moving updates lock both keys in
+-- numeric order so two opposite moves cannot deadlock.
+CREATE OR REPLACE FUNCTION lock_zepbound_daily_checkin_owner_date()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_old_key BIGINT;
+  v_new_key BIGINT;
+BEGIN
+  IF TG_OP <> 'INSERT' THEN
+    v_old_key := hashtextextended(OLD.user_id::TEXT || ':' || OLD.log_date::TEXT, 0);
+  END IF;
+  IF TG_OP <> 'DELETE' THEN
+    v_new_key := hashtextextended(NEW.user_id::TEXT || ':' || NEW.log_date::TEXT, 0);
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND v_old_key <> v_new_key THEN
+    PERFORM pg_advisory_xact_lock(LEAST(v_old_key, v_new_key));
+    PERFORM pg_advisory_xact_lock(GREATEST(v_old_key, v_new_key));
+  ELSE
+    PERFORM pg_advisory_xact_lock(COALESCE(v_new_key, v_old_key));
+  END IF;
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER lock_zepbound_daily_checkin_writes
+  BEFORE INSERT OR UPDATE OR DELETE ON zepbound_daily_checkins
+  FOR EACH ROW EXECUTE FUNCTION lock_zepbound_daily_checkin_owner_date();
+
 CREATE OR REPLACE FUNCTION save_zepbound_daily_log(
   p_log_date DATE,
   p_symptoms JSONB,
@@ -95,8 +133,6 @@ BEGIN
       USING ERRCODE = 'unique_violation';
   END IF;
 
-  -- This is the same owner/date key used by the symptom direct-write trigger
-  -- and legacy symptom RPC, so old and new clients cannot interleave.
   PERFORM pg_advisory_xact_lock(
     hashtextextended(v_user_id::TEXT || ':' || p_log_date::TEXT, 0)
   );
@@ -108,11 +144,28 @@ BEGIN
   ORDER BY injection_date DESC, injection_time DESC, created_at DESC, id DESC
   LIMIT 1;
 
-  -- Full-state replacement is safe here because every field above has already
-  -- been validated. Any following failure rolls all statements back together.
-  DELETE FROM zepbound_symptom_logs
-  WHERE user_id = v_user_id AND log_date = p_log_date;
+  -- Apply a diff, deleting absent rows first so transitions to/from None satisfy
+  -- the existing exclusivity trigger. Matching rows keep id, created_at,
+  -- symptom_time, and injection_id; only their editable detail is updated.
+  DELETE FROM zepbound_symptom_logs existing
+  WHERE existing.user_id = v_user_id
+    AND existing.log_date = p_log_date
+    AND NOT EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements(p_symptoms) item
+      WHERE btrim(item->>'symptom_type') = existing.symptom_type
+    );
 
+  UPDATE zepbound_symptom_logs existing
+  SET
+    severity = (item.value->>'severity')::SMALLINT,
+    notes = NULLIF(btrim(item.value->>'notes'), '')
+  FROM jsonb_array_elements(p_symptoms) item(value)
+  WHERE existing.user_id = v_user_id
+    AND existing.log_date = p_log_date
+    AND existing.symptom_type = btrim(item.value->>'symptom_type');
+
+  -- Association and noon are assigned only when a submitted type is new.
   INSERT INTO zepbound_symptom_logs (
     user_id, injection_id, log_date, symptom_time, symptom_type, severity, notes
   )
@@ -121,10 +174,17 @@ BEGIN
     v_injection_id,
     p_log_date,
     TIME '12:00',
-    btrim(item->>'symptom_type'),
-    (item->>'severity')::SMALLINT,
-    NULLIF(btrim(item->>'notes'), '')
-  FROM jsonb_array_elements(p_symptoms) item;
+    btrim(item.value->>'symptom_type'),
+    (item.value->>'severity')::SMALLINT,
+    NULLIF(btrim(item.value->>'notes'), '')
+  FROM jsonb_array_elements(p_symptoms) item(value)
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM zepbound_symptom_logs existing
+    WHERE existing.user_id = v_user_id
+      AND existing.log_date = p_log_date
+      AND existing.symptom_type = btrim(item.value->>'symptom_type')
+  );
 
   IF p_worked_out IS NULL AND p_pooped IS NULL THEN
     DELETE FROM zepbound_daily_checkins

@@ -39,6 +39,11 @@ export interface NewZepboundDailyLog {
   pooped: boolean | null;
 }
 
+export interface ZepboundDailyLogSaveResult {
+  /** The transaction committed, but the best-effort history refresh failed. */
+  refreshFailed: boolean;
+}
+
 interface InsertOperation<T> {
   insert: (values: T) => PromiseLike<{ error: unknown | null }>;
 }
@@ -131,7 +136,9 @@ export function useZepbound() {
     await refetch();
   }, [user, refetch]);
 
-  const saveDailyLog = useCallback(async (input: NewZepboundDailyLog) => {
+  const saveDailyLog = useCallback(async (
+    input: NewZepboundDailyLog,
+  ): Promise<ZepboundDailyLogSaveResult | undefined> => {
     if (!user) return;
     if (input.symptoms.length === 0 && input.workedOut === null && input.pooped === null) {
       throw new Error('Answer at least one daily check-in question.');
@@ -171,8 +178,61 @@ export function useZepbound() {
       p_pooped: input.pooped,
     });
     if (error) throw error;
-    await refetch();
-  }, [user, refetch]);
+
+    // The RPC has committed. Keep the selected day locally consistent if the
+    // best-effort read is offline; a refresh problem must never masquerade as a
+    // failed transaction and invite a destructive retry.
+    const savedAt = new Date().toISOString();
+    setSymptoms((current) => {
+      const existingForDate = new Map(
+        current.filter((row) => row.log_date === input.logDate).map((row) => [row.symptom_type, row]),
+      );
+      const otherDates = current.filter((row) => row.log_date !== input.logDate);
+      const latestEligibleInjection = injections.find((row) => row.injection_date <= input.logDate);
+      return [
+        ...symptomInputs.map((symptom) => {
+          const symptomType = symptom.symptomType.trim();
+          const existing = existingForDate.get(symptomType);
+          return existing
+            ? { ...existing, severity: symptom.severity, notes: symptom.notes?.trim() || null }
+            : {
+              id: `optimistic:${input.logDate}:${symptomType}`,
+              user_id: user.id,
+              injection_id: latestEligibleInjection?.id ?? null,
+              log_date: input.logDate,
+              symptom_time: '12:00:00',
+              symptom_type: symptomType,
+              severity: symptom.severity,
+              notes: symptom.notes?.trim() || null,
+              created_at: savedAt,
+            };
+        }),
+        ...otherDates,
+      ];
+    });
+    setDailyCheckins((current) => {
+      const otherDates = current.filter((row) => row.log_date !== input.logDate);
+      if (input.workedOut === null && input.pooped === null) return otherDates;
+      const existing = current.find((row) => row.log_date === input.logDate);
+      return [{
+        id: existing?.id ?? `optimistic:${input.logDate}`,
+        user_id: user.id,
+        log_date: input.logDate,
+        worked_out: input.workedOut,
+        workout_duration_minutes: input.workedOut ? input.workoutDurationMinutes : null,
+        pooped: input.pooped,
+        created_at: existing?.created_at ?? savedAt,
+        updated_at: savedAt,
+      }, ...otherDates];
+    });
+
+    try {
+      await refetch();
+      return { refreshFailed: false };
+    } catch {
+      return { refreshFailed: true };
+    }
+  }, [user, refetch, injections]);
 
   const deleteInjection = useCallback(async (id: string) => {
     if (!user) return;

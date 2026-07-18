@@ -187,14 +187,14 @@ describe('Supabase migration reconciliation guardrails', () => {
   it('adds migration 014 in an explicit transaction without top-level data mutation', () => {
     expect(zepboundUnifiedDailyLog.trimStart().indexOf('BEGIN;')).toBeGreaterThanOrEqual(0);
     expect(zepboundUnifiedDailyLog.trimEnd().endsWith('COMMIT;')).toBe(true);
-    const withoutFunctionBody = zepboundUnifiedDailyLog.replace(/AS \$\$[\s\S]*?\$\$;/, '');
+    const withoutFunctionBody = zepboundUnifiedDailyLog.replace(/AS \$\$[\s\S]*?\$\$;/g, '');
     expect(withoutFunctionBody).not.toMatch(/\b(?:DELETE|UPDATE|INSERT)\s+(?:FROM|INTO)?\s*zepbound_/i);
     expect(zepboundUnifiedDailyLog).not.toMatch(/ALTER TABLE|DROP TABLE|TRUNCATE/i);
     expect(zepboundUnifiedDailyLog).not.toContain('CREATE OR REPLACE FUNCTION save_zepbound_symptoms_for_date');
   });
 
   it('validates the complete unified payload before locking or mutation', () => {
-    const lock = zepboundUnifiedDailyLog.indexOf('pg_advisory_xact_lock');
+    const lock = zepboundUnifiedDailyLog.lastIndexOf('pg_advisory_xact_lock');
     const symptomDelete = zepboundUnifiedDailyLog.indexOf('DELETE FROM zepbound_symptom_logs');
     expect(zepboundUnifiedDailyLog).toContain("jsonb_typeof(p_symptoms) <> 'array'");
     expect(zepboundUnifiedDailyLog).toMatch(/jsonb_array_length\(p_symptoms\) = 0[\s\S]+p_worked_out IS NULL[\s\S]+p_pooped IS NULL/);
@@ -205,13 +205,44 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(symptomDelete).toBeGreaterThan(lock);
   });
 
-  it('atomically replaces symptoms and upserts or deletes the manual check-in', () => {
+  it('diffs symptoms without replacing matching row identity or association', () => {
     expect(zepboundUnifiedDailyLog).toContain('CREATE OR REPLACE FUNCTION save_zepbound_daily_log');
-    expect(zepboundUnifiedDailyLog).toMatch(/DELETE FROM zepbound_symptom_logs[\s\S]+INSERT INTO zepbound_symptom_logs/);
+    expect(zepboundUnifiedDailyLog).not.toMatch(
+      /DELETE FROM zepbound_symptom_logs\s+(?:AS\s+)?\w*\s*WHERE\s+(?:\w+\.)?user_id = v_user_id\s+AND (?:\w+\.)?log_date = p_log_date\s*;/,
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /DELETE FROM zepbound_symptom_logs existing[\s\S]+AND NOT EXISTS \([\s\S]+existing\.symptom_type/,
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /UPDATE zepbound_symptom_logs existing\s+SET\s+severity =[\s\S]+notes =[\s\S]+existing\.symptom_type = btrim/,
+    );
+    const updateBlock = zepboundUnifiedDailyLog.match(
+      /UPDATE zepbound_symptom_logs existing[\s\S]*?FROM jsonb_array_elements\(p_symptoms\)/,
+    )?.[0] ?? '';
+    expect(updateBlock).not.toMatch(/\b(?:id|created_at|symptom_time|injection_id)\s*=/);
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /INSERT INTO zepbound_symptom_logs[\s\S]+FROM jsonb_array_elements\(p_symptoms\)[\s\S]+WHERE NOT EXISTS/,
+    );
+    expect(zepboundUnifiedDailyLog.indexOf('DELETE FROM zepbound_symptom_logs existing')).toBeLessThan(
+      zepboundUnifiedDailyLog.indexOf('UPDATE zepbound_symptom_logs existing'),
+    );
     expect(zepboundUnifiedDailyLog).toMatch(/p_worked_out IS NULL AND p_pooped IS NULL[\s\S]+DELETE FROM zepbound_daily_checkins/);
     expect(zepboundUnifiedDailyLog).toMatch(/INSERT INTO zepbound_daily_checkins[\s\S]+ON CONFLICT \(user_id, log_date\) DO UPDATE/);
     expect(zepboundUnifiedDailyLog).toMatch(/WHERE user_id = v_user_id\s+AND injection_date <= p_log_date/);
     expect(zepboundUnifiedDailyLog).toContain("TIME '12:00'");
+  });
+
+  it('serializes every legacy direct check-in write and key-moving updates', () => {
+    expect(zepboundUnifiedDailyLog).toContain('lock_zepbound_daily_checkin_owner_date');
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /BEFORE INSERT OR UPDATE OR DELETE ON zepbound_daily_checkins/,
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(/TG_OP <> 'INSERT'[\s\S]+OLD\.user_id[\s\S]+OLD\.log_date/);
+    expect(zepboundUnifiedDailyLog).toMatch(/TG_OP <> 'DELETE'[\s\S]+NEW\.user_id[\s\S]+NEW\.log_date/);
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /v_old_key <> v_new_key[\s\S]+LEAST\(v_old_key, v_new_key\)[\s\S]+GREATEST\(v_old_key, v_new_key\)/,
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(/COALESCE\(v_new_key, v_old_key\)/);
   });
 
   it('uses invoker RLS, owner identity, shared lock, and least-privilege grants', () => {

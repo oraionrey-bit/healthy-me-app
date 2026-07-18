@@ -18,14 +18,18 @@ Home's selected-date Zepbound card has one compact **Daily Zepbound check-in** e
 
 ## Atomic data contract
 
-Migration 014 adds only the authenticated `SECURITY INVOKER` RPC `save_zepbound_daily_log`; applying the migration does not mutate existing rows. The UI calls that RPC exactly once and performs no direct symptom/check-in writes.
+Migration 014 adds the authenticated `SECURITY INVOKER` RPC `save_zepbound_daily_log` plus a coordination trigger; applying the migration does not mutate existing rows. The UI calls that RPC exactly once and performs no direct symptom/check-in writes.
 
-The RPC validates authentication, date, complete symptom JSON, None exclusivity, duplicate types, severity/notes shape, workout consistency/range, and the nonblank overall answer before any mutation. It then takes the same authenticated owner/date advisory transaction lock used by existing symptom writes, preserves nearest-prior injection association, and in one PostgreSQL transaction:
+The RPC validates authentication, date, complete symptom JSON, None exclusivity, duplicate types, severity/notes shape, workout consistency/range, and the nonblank overall answer before any mutation. It then takes the authenticated owner/date advisory transaction lock shared by existing symptom writes and direct legacy check-in writes, and in one PostgreSQL transaction:
 
-1. fully replaces that owner's symptom rows for the date;
-2. upserts the owner's check-in when either manual answer is nonnull, or deletes it when both are null.
+1. deletes only symptom types absent from the submitted complete set;
+2. updates matching types in place only for severity and notes, preserving `id`, `created_at`, `symptom_time`, and `injection_id`;
+3. inserts only new types, assigning the latest eligible injection and noon placeholder only to those rows;
+4. upserts the owner's check-in when either manual answer is nonnull, or deletes it when both are null.
 
-Any delete, insert, or upsert failure rolls the complete operation back. `SECURITY INVOKER` and existing RLS preserve owner isolation. Old RPC/table APIs remain available for deployment compatibility.
+Absent rows are deleted before updates/inserts so transitions to and from `None` remain compatible with the exclusivity trigger. Any delete, update, insert, or upsert failure rolls the complete operation back. `SECURITY INVOKER` and existing RLS preserve owner isolation. Old RPC/table APIs remain available for deployment compatibility. A `BEFORE INSERT OR UPDATE OR DELETE` trigger serializes direct check-in writes on the same owner/date key; key-moving updates acquire old/new numeric keys in deterministic order.
+
+After a committed RPC, the client updates the selected day optimistically. A failed history refetch is shown as a non-destructive refresh warning, not as a database-save failure. Completion is scoped to the date that initiated the save so it cannot close or set an error on a newly selected date.
 
 ## Verification
 

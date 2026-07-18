@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -159,6 +159,8 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
     saveDailyLog,
   } = useZepbound();
   const dateKey = useMemo(() => toDateKey(date), [date]);
+  const selectedDateKeyRef = useRef(dateKey);
+  selectedDateKeyRef.current = dateKey;
   const shotsForDay = injections.filter((item) => item.injection_date === dateKey);
   const symptomsForDay = symptoms.filter((item) => item.log_date === dateKey);
   const checkinForDay = dailyCheckins.find((item) => item.log_date === dateKey) ?? null;
@@ -185,10 +187,13 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
   const [pooped, setPooped] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshWarning, setRefreshWarning] = useState<string | null>(null);
+  const [preserveDailyDraft, setPreserveDailyDraft] = useState(false);
 
   useEffect(() => {
     setOpenForm(null);
     setError(null);
+    setRefreshWarning(null);
     setSelectedSymptoms([]);
     setSeverity(3);
     setSymptomNotes('');
@@ -197,24 +202,31 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
     setWorkedOut(null);
     setDuration('');
     setPooped(null);
+    setSaving(false);
+    setPreserveDailyDraft(false);
   }, [dateKey]);
 
   const toggleForm = (form: 'shot' | 'daily') => {
     setError(null);
     if (openForm === form) {
       setOpenForm(null);
+      if (form === 'daily') setPreserveDailyDraft(false);
       return;
     }
+    if (form === 'shot' && openForm === 'daily') setPreserveDailyDraft(true);
     if (form === 'daily') {
-      const draft = symptomDraftFromRows(symptomsForDay);
-      setSelectedSymptoms(draft.selectedSymptoms);
-      setSeverity(draft.severity);
-      setSymptomNotes(draft.notes);
-      setSymptomsDirty(false);
-      setSymptomDetailsDirty(false);
-      setWorkedOut(checkinForDay?.worked_out ?? null);
-      setDuration(checkinForDay?.workout_duration_minutes?.toString() ?? '');
-      setPooped(checkinForDay?.pooped ?? null);
+      if (!preserveDailyDraft) {
+        const draft = symptomDraftFromRows(symptomsForDay);
+        setSelectedSymptoms(draft.selectedSymptoms);
+        setSeverity(draft.severity);
+        setSymptomNotes(draft.notes);
+        setSymptomsDirty(false);
+        setSymptomDetailsDirty(false);
+        setWorkedOut(checkinForDay?.worked_out ?? null);
+        setDuration(checkinForDay?.workout_duration_minutes?.toString() ?? '');
+        setPooped(checkinForDay?.pooped ?? null);
+      }
+      setPreserveDailyDraft(false);
     }
     setOpenForm(form);
   };
@@ -271,6 +283,7 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
     && durationNumber <= 1440;
 
   const handleDailySave = async () => {
+    const saveDateKey = dateKey;
     if (selectedSymptoms.length === 0 && workedOut === null && pooped === null) {
       setError('Answer at least one part of the daily check-in.');
       return;
@@ -314,19 +327,26 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
 
     setSaving(true);
     setError(null);
+    setRefreshWarning(null);
     try {
-      await saveDailyLog({
-        logDate: dateKey,
+      const result = await saveDailyLog({
+        logDate: saveDateKey,
         symptoms: inputs,
         workedOut,
         workoutDurationMinutes: workedOut ? durationNumber : null,
         pooped,
       });
+      if (selectedDateKeyRef.current !== saveDateKey) return;
       setOpenForm(null);
+      if (result?.refreshFailed) {
+        setRefreshWarning('Saved successfully, but history could not refresh. Your save is safe; refresh later.');
+      }
     } catch {
-      setError('Could not save the daily check-in. Your changes are still here; please try again.');
+      if (selectedDateKeyRef.current === saveDateKey) {
+        setError('Could not save the daily check-in. Your changes are still here; please try again.');
+      }
     } finally {
-      setSaving(false);
+      if (selectedDateKeyRef.current === saveDateKey) setSaving(false);
     }
   };
 
@@ -563,6 +583,7 @@ export function DailyZepboundLogCard({ date }: { date: Date }) {
           )}
 
           {error && <Text style={styles.error}>{error}</Text>}
+          {refreshWarning && <Text style={styles.warning}>{refreshWarning}</Text>}
         </>
       )}
     </View>
@@ -615,4 +636,5 @@ const styles = StyleSheet.create({
   severityDotActive: { backgroundColor: Colors.pink },
   severityText: { fontFamily: Fonts.body, fontSize: FontSizes.bodySm, color: Colors.textPrimary },
   error: { fontFamily: Fonts.body, fontSize: FontSizes.bodySm, color: Colors.error, marginTop: Spacing.sm },
+  warning: { fontFamily: Fonts.body, fontSize: FontSizes.bodySm, color: Colors.textSecondary, marginTop: Spacing.sm },
 });
