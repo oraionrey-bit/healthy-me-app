@@ -117,7 +117,18 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      save_zepbound_daily_log: {
+        Args: {
+          p_log_date: string;
+          p_symptoms: Array<{ symptom_type: string; severity: number; notes: string | null }>;
+          p_worked_out: boolean | null;
+          p_workout_duration_minutes: number | null;
+          p_pooped: boolean | null;
+        };
+        Returns: undefined;
+      };
+    };
     Enums: Record<string, never>;
   };
 }

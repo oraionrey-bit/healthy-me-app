@@ -11,6 +11,7 @@ describe('Supabase migration reconciliation guardrails', () => {
   const zepboundAtomicSymptoms = read('supabase/migrations/011_zepbound_atomic_daily_symptoms.sql');
   const zepboundSymptomReplacement = read('supabase/migrations/012_zepbound_replace_daily_symptoms.sql');
   const zepboundDailyCheckin = read('supabase/migrations/013_zepbound_daily_checkins.sql');
+  const zepboundUnifiedDailyLog = read('supabase/migrations/014_zepbound_unified_daily_log.sql');
 
   it('orders reconciliation before Zepbound schema creation', () => {
     const files = fs.readdirSync(migrationDir);
@@ -181,5 +182,45 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(zepboundDailyCheckin.match(/auth\.uid\(\) = user_id/g)).toHaveLength(5);
     expect(zepboundDailyCheckin).toMatch(/FOR INSERT[\s\S]+WITH CHECK \(auth\.uid\(\) = user_id\)/);
     expect(zepboundDailyCheckin).toMatch(/FOR UPDATE[\s\S]+USING \(auth\.uid\(\) = user_id\)[\s\S]+WITH CHECK \(auth\.uid\(\) = user_id\)/);
+  });
+
+  it('adds migration 014 in an explicit transaction without top-level data mutation', () => {
+    expect(zepboundUnifiedDailyLog.trimStart().indexOf('BEGIN;')).toBeGreaterThanOrEqual(0);
+    expect(zepboundUnifiedDailyLog.trimEnd().endsWith('COMMIT;')).toBe(true);
+    const withoutFunctionBody = zepboundUnifiedDailyLog.replace(/AS \$\$[\s\S]*?\$\$;/, '');
+    expect(withoutFunctionBody).not.toMatch(/\b(?:DELETE|UPDATE|INSERT)\s+(?:FROM|INTO)?\s*zepbound_/i);
+    expect(zepboundUnifiedDailyLog).not.toMatch(/ALTER TABLE|DROP TABLE|TRUNCATE/i);
+    expect(zepboundUnifiedDailyLog).not.toContain('CREATE OR REPLACE FUNCTION save_zepbound_symptoms_for_date');
+  });
+
+  it('validates the complete unified payload before locking or mutation', () => {
+    const lock = zepboundUnifiedDailyLog.indexOf('pg_advisory_xact_lock');
+    const symptomDelete = zepboundUnifiedDailyLog.indexOf('DELETE FROM zepbound_symptom_logs');
+    expect(zepboundUnifiedDailyLog).toContain("jsonb_typeof(p_symptoms) <> 'array'");
+    expect(zepboundUnifiedDailyLog).toMatch(/jsonb_array_length\(p_symptoms\) = 0[\s\S]+p_worked_out IS NULL[\s\S]+p_pooped IS NULL/);
+    expect(zepboundUnifiedDailyLog).toContain('p_workout_duration_minutes NOT BETWEEN 1 AND 1440');
+    expect(zepboundUnifiedDailyLog).toContain('None cannot be saved with other symptoms');
+    expect(zepboundUnifiedDailyLog).toContain('A symptom type can only be saved once per date');
+    expect(lock).toBeGreaterThan(zepboundUnifiedDailyLog.indexOf('A symptom type can only be saved once per date'));
+    expect(symptomDelete).toBeGreaterThan(lock);
+  });
+
+  it('atomically replaces symptoms and upserts or deletes the manual check-in', () => {
+    expect(zepboundUnifiedDailyLog).toContain('CREATE OR REPLACE FUNCTION save_zepbound_daily_log');
+    expect(zepboundUnifiedDailyLog).toMatch(/DELETE FROM zepbound_symptom_logs[\s\S]+INSERT INTO zepbound_symptom_logs/);
+    expect(zepboundUnifiedDailyLog).toMatch(/p_worked_out IS NULL AND p_pooped IS NULL[\s\S]+DELETE FROM zepbound_daily_checkins/);
+    expect(zepboundUnifiedDailyLog).toMatch(/INSERT INTO zepbound_daily_checkins[\s\S]+ON CONFLICT \(user_id, log_date\) DO UPDATE/);
+    expect(zepboundUnifiedDailyLog).toMatch(/WHERE user_id = v_user_id\s+AND injection_date <= p_log_date/);
+    expect(zepboundUnifiedDailyLog).toContain("TIME '12:00'");
+  });
+
+  it('uses invoker RLS, owner identity, shared lock, and least-privilege grants', () => {
+    expect(zepboundUnifiedDailyLog).toContain('SECURITY INVOKER');
+    expect(zepboundUnifiedDailyLog).toContain('v_user_id UUID := auth.uid()');
+    expect(zepboundUnifiedDailyLog).not.toMatch(/p_user_id/i);
+    expect(zepboundUnifiedDailyLog).toMatch(/hashtextextended\(v_user_id::TEXT \|\| ':' \|\| p_log_date::TEXT, 0\)/);
+    expect(zepboundUnifiedDailyLog).toContain('REVOKE ALL ON FUNCTION save_zepbound_daily_log(DATE, JSONB, BOOLEAN, INTEGER, BOOLEAN) FROM PUBLIC');
+    expect(zepboundUnifiedDailyLog).toContain('REVOKE ALL ON FUNCTION save_zepbound_daily_log(DATE, JSONB, BOOLEAN, INTEGER, BOOLEAN) FROM anon');
+    expect(zepboundUnifiedDailyLog).toContain('GRANT EXECUTE ON FUNCTION save_zepbound_daily_log(DATE, JSONB, BOOLEAN, INTEGER, BOOLEAN) TO authenticated');
   });
 });
