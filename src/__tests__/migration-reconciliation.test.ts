@@ -11,6 +11,7 @@ describe('Supabase migration reconciliation guardrails', () => {
   const zepboundAtomicSymptoms = read('supabase/migrations/011_zepbound_atomic_daily_symptoms.sql');
   const zepboundSymptomReplacement = read('supabase/migrations/012_zepbound_replace_daily_symptoms.sql');
   const zepboundDailyCheckin = read('supabase/migrations/013_zepbound_daily_checkins.sql');
+  const zepboundUnifiedDailyLog = read('supabase/migrations/014_zepbound_unified_daily_log.sql');
 
   it('orders reconciliation before Zepbound schema creation', () => {
     const files = fs.readdirSync(migrationDir);
@@ -181,5 +182,145 @@ describe('Supabase migration reconciliation guardrails', () => {
     expect(zepboundDailyCheckin.match(/auth\.uid\(\) = user_id/g)).toHaveLength(5);
     expect(zepboundDailyCheckin).toMatch(/FOR INSERT[\s\S]+WITH CHECK \(auth\.uid\(\) = user_id\)/);
     expect(zepboundDailyCheckin).toMatch(/FOR UPDATE[\s\S]+USING \(auth\.uid\(\) = user_id\)[\s\S]+WITH CHECK \(auth\.uid\(\) = user_id\)/);
+  });
+
+  it('adds migration 014 in an explicit transaction without top-level data mutation', () => {
+    expect(zepboundUnifiedDailyLog.trimStart().indexOf('BEGIN;')).toBeGreaterThanOrEqual(0);
+    expect(zepboundUnifiedDailyLog.trimEnd().endsWith('COMMIT;')).toBe(true);
+    const withoutFunctionBody = zepboundUnifiedDailyLog.replace(/AS \$\$[\s\S]*?\$\$;/g, '');
+    expect(withoutFunctionBody).not.toMatch(/\b(?:DELETE|UPDATE|INSERT)\s+(?:FROM|INTO)?\s*zepbound_/i);
+    expect(zepboundUnifiedDailyLog).not.toMatch(/ALTER TABLE|DROP TABLE|TRUNCATE/i);
+    expect(zepboundUnifiedDailyLog).not.toContain('CREATE OR REPLACE FUNCTION save_zepbound_symptoms_for_date');
+  });
+
+  it('validates the complete unified payload before locking or mutation', () => {
+    const lock = zepboundUnifiedDailyLog.lastIndexOf('pg_advisory_xact_lock');
+    const symptomDelete = zepboundUnifiedDailyLog.indexOf('DELETE FROM zepbound_symptom_logs');
+    expect(zepboundUnifiedDailyLog).toContain("jsonb_typeof(p_symptoms) <> 'array'");
+    expect(zepboundUnifiedDailyLog).toMatch(/jsonb_array_length\(p_symptoms\) = 0[\s\S]+p_worked_out IS NULL[\s\S]+p_pooped IS NULL/);
+    expect(zepboundUnifiedDailyLog).toContain('p_workout_duration_minutes NOT BETWEEN 1 AND 1440');
+    expect(zepboundUnifiedDailyLog).toContain('None cannot be saved with other symptoms');
+    expect(zepboundUnifiedDailyLog).toContain('A symptom type can only be saved once per date');
+    expect(lock).toBeGreaterThan(zepboundUnifiedDailyLog.indexOf('A symptom type can only be saved once per date'));
+    expect(symptomDelete).toBeGreaterThan(lock);
+  });
+
+  it('diffs symptoms without replacing matching row identity or association', () => {
+    expect(zepboundUnifiedDailyLog).toContain('CREATE OR REPLACE FUNCTION save_zepbound_daily_log');
+    expect(zepboundUnifiedDailyLog).not.toMatch(
+      /DELETE FROM zepbound_symptom_logs\s+(?:AS\s+)?\w*\s*WHERE\s+(?:\w+\.)?user_id = v_user_id\s+AND (?:\w+\.)?log_date = p_log_date\s*;/,
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /DELETE FROM zepbound_symptom_logs existing[\s\S]+AND NOT EXISTS \([\s\S]+existing\.symptom_type/,
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /UPDATE zepbound_symptom_logs existing\s+SET\s+severity =[\s\S]+notes =[\s\S]+existing\.symptom_type = btrim/,
+    );
+    const updateBlock = zepboundUnifiedDailyLog.match(
+      /UPDATE zepbound_symptom_logs existing[\s\S]*?FROM jsonb_array_elements\(p_symptoms\)/,
+    )?.[0] ?? '';
+    expect(updateBlock).not.toMatch(/\b(?:id|created_at|symptom_time|injection_id)\s*=/);
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /INSERT INTO zepbound_symptom_logs[\s\S]+FROM jsonb_array_elements\(p_symptoms\)[\s\S]+WHERE NOT EXISTS/,
+    );
+    expect(zepboundUnifiedDailyLog.indexOf('DELETE FROM zepbound_symptom_logs existing')).toBeLessThan(
+      zepboundUnifiedDailyLog.indexOf('UPDATE zepbound_symptom_logs existing'),
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(/p_worked_out IS NULL AND p_pooped IS NULL[\s\S]+DELETE FROM zepbound_daily_checkins/);
+    expect(zepboundUnifiedDailyLog).toMatch(/INSERT INTO zepbound_daily_checkins[\s\S]+ON CONFLICT \(user_id, log_date\) DO UPDATE/);
+    expect(zepboundUnifiedDailyLog).toMatch(/WHERE user_id = v_user_id\s+AND injection_date <= p_log_date/);
+    expect(zepboundUnifiedDailyLog).toContain("TIME '12:00'");
+  });
+
+  it('fails legacy direct check-in writes fast when the shared lock is busy', () => {
+    expect(zepboundUnifiedDailyLog).toContain('lock_zepbound_daily_checkin_owner_date');
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /BEFORE INSERT OR UPDATE OR DELETE ON zepbound_daily_checkins/,
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(/TG_OP <> 'INSERT'[\s\S]+OLD\.user_id[\s\S]+OLD\.log_date/);
+    expect(zepboundUnifiedDailyLog).toMatch(/TG_OP <> 'DELETE'[\s\S]+NEW\.user_id[\s\S]+NEW\.log_date/);
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /v_old_key <> v_new_key[\s\S]+pg_try_advisory_xact_lock\(LEAST\(v_old_key, v_new_key\)\)[\s\S]+pg_try_advisory_xact_lock\(GREATEST\(v_old_key, v_new_key\)\)/,
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /pg_try_advisory_xact_lock\(COALESCE\(v_new_key, v_old_key\)\)/,
+    );
+
+    const triggerBody = zepboundUnifiedDailyLog.match(
+      /CREATE OR REPLACE FUNCTION lock_zepbound_daily_checkin_owner_date\(\)[\s\S]*?\$\$;/,
+    )?.[0] ?? '';
+    expect(triggerBody.match(/pg_try_advisory_xact_lock/g)).toHaveLength(3);
+    expect(triggerBody).not.toMatch(/\bpg_advisory_xact_lock\s*\(/);
+    expect(triggerBody.match(/ERRCODE = 'serialization_failure'/g)).toHaveLength(3);
+    expect(triggerBody).toContain('retry the transaction');
+    expect(zepboundUnifiedDailyLog).toContain(
+      'REVOKE ALL ON FUNCTION lock_zepbound_daily_checkin_owner_date() FROM PUBLIC',
+    );
+  });
+
+  it('fails all direct symptom writes fast while preserving None exclusivity', () => {
+    expect(zepboundUnifiedDailyLog).toContain(
+      'CREATE OR REPLACE FUNCTION enforce_zepbound_symptom_none_exclusivity()',
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /BEFORE INSERT OR UPDATE OR DELETE ON zepbound_symptom_logs/,
+    );
+    expect(zepboundUnifiedDailyLog).not.toMatch(
+      /BEFORE INSERT OR UPDATE OF [^\n]+ON zepbound_symptom_logs/,
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(/TG_OP <> 'INSERT'[\s\S]+OLD\.user_id[\s\S]+OLD\.log_date/);
+    expect(zepboundUnifiedDailyLog).toMatch(/TG_OP <> 'DELETE'[\s\S]+NEW\.user_id[\s\S]+NEW\.log_date/);
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /v_old_key <> v_new_key[\s\S]+pg_try_advisory_xact_lock\(LEAST\(v_old_key, v_new_key\)\)[\s\S]+pg_try_advisory_xact_lock\(GREATEST\(v_old_key, v_new_key\)\)/,
+    );
+    expect(zepboundUnifiedDailyLog).toMatch(
+      /pg_try_advisory_xact_lock\(COALESCE\(v_new_key, v_old_key\)\)/,
+    );
+
+    const triggerBody = zepboundUnifiedDailyLog.match(
+      /CREATE OR REPLACE FUNCTION enforce_zepbound_symptom_none_exclusivity\(\)[\s\S]*?\$\$;/,
+    )?.[0] ?? '';
+    expect(triggerBody.match(/pg_try_advisory_xact_lock/g)).toHaveLength(3);
+    expect(triggerBody).not.toMatch(/\bpg_advisory_xact_lock\s*\(/);
+    expect(triggerBody.match(/ERRCODE = 'serialization_failure'/g)).toHaveLength(3);
+    expect(triggerBody).toMatch(/IF TG_OP = 'DELETE' THEN\s+RETURN OLD;\s+END IF/);
+    expect(triggerBody.indexOf("IF TG_OP = 'DELETE'")).toBeLessThan(
+      triggerBody.indexOf('IF EXISTS ('),
+    );
+    expect(triggerBody).toMatch(
+      /existing\.user_id = NEW\.user_id[\s\S]+existing\.log_date = NEW\.log_date[\s\S]+existing\.id <> NEW\.id/,
+    );
+    expect(triggerBody).toMatch(
+      /NEW\.symptom_type = 'None'[\s\S]+existing\.symptom_type <> 'None'[\s\S]+NEW\.symptom_type <> 'None'[\s\S]+existing\.symptom_type = 'None'/,
+    );
+    expect(zepboundUnifiedDailyLog).toContain(
+      'REVOKE ALL ON FUNCTION enforce_zepbound_symptom_none_exclusivity() FROM PUBLIC',
+    );
+  });
+
+  it('uses no blocking advisory lock inside either direct-write trigger', () => {
+    const triggerFunctions = [
+      'lock_zepbound_daily_checkin_owner_date',
+      'enforce_zepbound_symptom_none_exclusivity',
+    ];
+
+    for (const functionName of triggerFunctions) {
+      const triggerBody = zepboundUnifiedDailyLog.match(
+        new RegExp(`CREATE OR REPLACE FUNCTION ${functionName}\\(\\)[\\s\\S]*?\\$\\$;`),
+      )?.[0] ?? '';
+      expect(triggerBody).not.toBe('');
+      expect(triggerBody).not.toMatch(/\bpg_advisory_xact_lock\s*\(/);
+      expect(triggerBody).toContain('pg_try_advisory_xact_lock');
+    }
+  });
+
+  it('uses invoker RLS, owner identity, shared lock, and least-privilege grants', () => {
+    expect(zepboundUnifiedDailyLog).toContain('SECURITY INVOKER');
+    expect(zepboundUnifiedDailyLog).toContain('v_user_id UUID := auth.uid()');
+    expect(zepboundUnifiedDailyLog).not.toMatch(/p_user_id/i);
+    expect(zepboundUnifiedDailyLog).toMatch(/hashtextextended\(v_user_id::TEXT \|\| ':' \|\| p_log_date::TEXT, 0\)/);
+    expect(zepboundUnifiedDailyLog).toContain('REVOKE ALL ON FUNCTION save_zepbound_daily_log(DATE, JSONB, BOOLEAN, INTEGER, BOOLEAN) FROM PUBLIC');
+    expect(zepboundUnifiedDailyLog).toContain('REVOKE ALL ON FUNCTION save_zepbound_daily_log(DATE, JSONB, BOOLEAN, INTEGER, BOOLEAN) FROM anon');
+    expect(zepboundUnifiedDailyLog).toContain('GRANT EXECUTE ON FUNCTION save_zepbound_daily_log(DATE, JSONB, BOOLEAN, INTEGER, BOOLEAN) TO authenticated');
   });
 });

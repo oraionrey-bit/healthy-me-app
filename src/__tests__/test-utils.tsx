@@ -56,10 +56,15 @@ export interface MockDatabaseWrite {
 export const mockDatabaseWrites: MockDatabaseWrite[] = [];
 export const mockRpcCalls: Array<{ functionName: string; args: unknown }> = [];
 let mockRpcError: unknown | null = null;
+let mockRpcPromise: Promise<{ data: null; error: unknown | null }> | null = null;
 const mockTableErrors: Record<string, unknown | null> = {};
 
 export function mockSetRpcError(error: unknown | null) {
   mockRpcError = error;
+}
+
+export function mockSetRpcPromise(promise: Promise<{ data: null; error: unknown | null }> | null) {
+  mockRpcPromise = promise;
 }
 
 export function mockSetTableError(table: string, error: unknown | null) {
@@ -97,6 +102,9 @@ export function mockResetZepboundData() {
   mockDatabaseWrites.length = 0;
   mockRpcCalls.length = 0;
   mockRpcError = null;
+  mockRpcPromise = null;
+  mockTableErrors.zepbound_injections = null;
+  mockTableErrors.zepbound_symptom_logs = null;
   mockTableErrors.zepbound_daily_checkins = null;
 }
 
@@ -106,7 +114,7 @@ const mockAuthSession = { user: mockAuthUser, access_token: 'test-token' };
 // Must prefix with 'mock' to be accessible inside jest.mock factory
 function mockCreateTable(table: string) {
   const data = mockTableData[table] ?? [];
-  let operationError: unknown | null = null;
+  let operationError: unknown | null = mockTableErrors[table] ?? null;
 
   const builder: any = {};
   builder.select = jest.fn(() => builder);
@@ -167,7 +175,7 @@ jest.mock('../lib/supabase', () => ({
     from: jest.fn((table: string) => mockCreateTable(table)),
     rpc: jest.fn((functionName: string, args: unknown) => {
       mockRpcCalls.push({ functionName, args });
-      return Promise.resolve({ data: null, error: mockRpcError });
+      return mockRpcPromise ?? Promise.resolve({ data: null, error: mockRpcError });
     }),
     channel: jest.fn(() => ({
       on: jest.fn(function(this: any) { return this; }),

@@ -72,7 +72,7 @@ describe('Home Screen', () => {
   it('keeps Zepbound shot and symptom logging on Home', async () => {
     await renderHome();
     expect(screen.getByRole('button', { name: '+ Log shot' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '+ Log symptom' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '+ Daily check-in' })).toBeTruthy();
   });
 
   it('daily check-in is collapsed by default', async () => {

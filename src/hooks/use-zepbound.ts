@@ -27,28 +27,37 @@ export interface NewZepboundSymptom {
   notes?: string;
 }
 
-export interface NewZepboundDailyCheckin {
+export interface NewZepboundDailyLog {
   logDate: string;
+  symptoms: Array<{
+    symptomType: string;
+    severity: number;
+    notes?: string;
+  }>;
   workedOut: boolean | null;
   workoutDurationMinutes: number | null;
   pooped: boolean | null;
+}
+
+export interface ZepboundDailyLogSaveResult {
+  /** The transaction committed, but the best-effort history refresh failed. */
+  refreshFailed: boolean;
 }
 
 interface InsertOperation<T> {
   insert: (values: T) => PromiseLike<{ error: unknown | null }>;
 }
 
-interface UpsertOperation<T> {
-  upsert: (
-    values: T,
-    options: { onConflict: 'user_id,log_date' },
-  ) => PromiseLike<{ error: unknown | null }>;
-}
-
 interface RpcOperation {
   rpc: (
-    functionName: 'save_zepbound_symptoms_for_date',
-    args: { p_log_date: string; p_symptoms: Array<{ symptom_type: string; severity: number; notes: string | null }> },
+    functionName: 'save_zepbound_daily_log',
+    args: {
+      p_log_date: string;
+      p_symptoms: Array<{ symptom_type: string; severity: number; notes: string | null }>;
+      p_worked_out: boolean | null;
+      p_workout_duration_minutes: number | null;
+      p_pooped: boolean | null;
+    },
   ) => PromiseLike<{ error: unknown | null }>;
 }
 
@@ -127,37 +136,22 @@ export function useZepbound() {
     await refetch();
   }, [user, refetch]);
 
-  const saveSymptoms = useCallback(async (inputs: NewZepboundSymptom[]) => {
+  const saveDailyLog = useCallback(async (
+    input: NewZepboundDailyLog,
+  ): Promise<ZepboundDailyLogSaveResult | undefined> => {
     if (!user) return;
-    if (inputs.length === 0) throw new Error('Choose one or more symptoms, or None.');
-    const validationError = inputs.map(validateZepboundSymptom).find(Boolean);
-    if (validationError) throw new Error(validationError);
-    const logDate = inputs[0].logDate;
-    if (inputs.some((input) => input.logDate !== logDate)) {
-      throw new Error('Symptoms in one save must use the same date.');
-    }
-    const hasNone = inputs.some((input) => input.symptomType.trim() === 'None');
-    if (hasNone && inputs.length !== 1) {
-      throw new Error('None cannot be saved with other symptoms.');
-    }
-
-    const rpc = supabase as unknown as RpcOperation;
-    const { error } = await rpc.rpc('save_zepbound_symptoms_for_date', {
-      p_log_date: logDate,
-      p_symptoms: inputs.map((input) => ({
-        symptom_type: input.symptomType.trim(),
-        severity: input.severity,
-        notes: input.notes?.trim() || null,
-      })),
-    });
-    if (error) throw error;
-    await refetch();
-  }, [user, refetch]);
-
-  const saveDailyCheckin = useCallback(async (input: NewZepboundDailyCheckin) => {
-    if (!user) return;
-    if (input.workedOut === null && input.pooped === null) {
+    if (input.symptoms.length === 0 && input.workedOut === null && input.pooped === null) {
       throw new Error('Answer at least one daily check-in question.');
+    }
+    const symptomInputs: NewZepboundSymptom[] = input.symptoms.map((symptom) => ({
+      ...symptom,
+      logDate: input.logDate,
+    }));
+    const validationError = symptomInputs.map(validateZepboundSymptom).find(Boolean);
+    if (validationError) throw new Error(validationError);
+    const hasNone = symptomInputs.some((symptom) => symptom.symptomType.trim() === 'None');
+    if (hasNone && symptomInputs.length !== 1) {
+      throw new Error('None cannot be saved with other symptoms.');
     }
     if (input.workedOut === true && (
       input.workoutDurationMinutes === null
@@ -171,18 +165,74 @@ export function useZepbound() {
       throw new Error('Workout duration is only allowed when worked out is Yes.');
     }
 
-    const payload = {
-      user_id: user.id,
-      log_date: input.logDate,
-      worked_out: input.workedOut,
-      workout_duration_minutes: input.workedOut ? input.workoutDurationMinutes : null,
-      pooped: input.pooped,
-    } satisfies Omit<ZepboundDailyCheckin, 'id' | 'created_at' | 'updated_at'>;
-    const checkinTable = supabase.from('zepbound_daily_checkins') as unknown as UpsertOperation<typeof payload>;
-    const { error } = await checkinTable.upsert(payload, { onConflict: 'user_id,log_date' });
+    const rpc = supabase as unknown as RpcOperation;
+    const { error } = await rpc.rpc('save_zepbound_daily_log', {
+      p_log_date: input.logDate,
+      p_symptoms: symptomInputs.map((symptom) => ({
+        symptom_type: symptom.symptomType.trim(),
+        severity: symptom.severity,
+        notes: symptom.notes?.trim() || null,
+      })),
+      p_worked_out: input.workedOut,
+      p_workout_duration_minutes: input.workedOut ? input.workoutDurationMinutes : null,
+      p_pooped: input.pooped,
+    });
     if (error) throw error;
-    await refetch();
-  }, [user, refetch]);
+
+    // The RPC has committed. Keep the selected day locally consistent if the
+    // best-effort read is offline; a refresh problem must never masquerade as a
+    // failed transaction and invite a destructive retry.
+    const savedAt = new Date().toISOString();
+    setSymptoms((current) => {
+      const existingForDate = new Map(
+        current.filter((row) => row.log_date === input.logDate).map((row) => [row.symptom_type, row]),
+      );
+      const otherDates = current.filter((row) => row.log_date !== input.logDate);
+      const latestEligibleInjection = injections.find((row) => row.injection_date <= input.logDate);
+      return [
+        ...symptomInputs.map((symptom) => {
+          const symptomType = symptom.symptomType.trim();
+          const existing = existingForDate.get(symptomType);
+          return existing
+            ? { ...existing, severity: symptom.severity, notes: symptom.notes?.trim() || null }
+            : {
+              id: `optimistic:${input.logDate}:${symptomType}`,
+              user_id: user.id,
+              injection_id: latestEligibleInjection?.id ?? null,
+              log_date: input.logDate,
+              symptom_time: '12:00:00',
+              symptom_type: symptomType,
+              severity: symptom.severity,
+              notes: symptom.notes?.trim() || null,
+              created_at: savedAt,
+            };
+        }),
+        ...otherDates,
+      ];
+    });
+    setDailyCheckins((current) => {
+      const otherDates = current.filter((row) => row.log_date !== input.logDate);
+      if (input.workedOut === null && input.pooped === null) return otherDates;
+      const existing = current.find((row) => row.log_date === input.logDate);
+      return [{
+        id: existing?.id ?? `optimistic:${input.logDate}`,
+        user_id: user.id,
+        log_date: input.logDate,
+        worked_out: input.workedOut,
+        workout_duration_minutes: input.workedOut ? input.workoutDurationMinutes : null,
+        pooped: input.pooped,
+        created_at: existing?.created_at ?? savedAt,
+        updated_at: savedAt,
+      }, ...otherDates];
+    });
+
+    try {
+      await refetch();
+      return { refreshFailed: false };
+    } catch {
+      return { refreshFailed: true };
+    }
+  }, [user, refetch, injections]);
 
   const deleteInjection = useCallback(async (id: string) => {
     if (!user) return;
@@ -222,8 +272,7 @@ export function useZepbound() {
     lastInjection,
     nextInjectionDate,
     saveInjection,
-    saveSymptoms,
-    saveDailyCheckin,
+    saveDailyLog,
     deleteInjection,
     deleteSymptom,
     refetch: () => refetch(true),
