@@ -3,8 +3,8 @@
 -- existing symptom, check-in, or injection row when it is applied.
 BEGIN;
 
--- Legacy clients can still write the check-in table directly. Coordinate those
--- writes with symptom writes and save_zepbound_daily_log using the same
+-- Legacy clients can still write the symptom and check-in tables directly.
+-- Coordinate those writes with save_zepbound_daily_log using the same
 -- owner/date transaction advisory key. A row trigger can run while its statement
 -- already owns a tuple lock, so it must never wait for an advisory lock: a
 -- conflicting legacy write fails with retryable SQLSTATE 40001 and releases its
@@ -51,6 +51,77 @@ $$;
 CREATE TRIGGER lock_zepbound_daily_checkin_writes
   BEFORE INSERT OR UPDATE OR DELETE ON zepbound_daily_checkins
   FOR EACH ROW EXECUTE FUNCTION lock_zepbound_daily_checkin_owner_date();
+
+REVOKE ALL ON FUNCTION lock_zepbound_daily_checkin_owner_date() FROM PUBLIC;
+
+-- Replace migration 011's blocking INSERT/UPDATE trigger. Direct symptom
+-- UPDATE/DELETE statements may already own tuple locks, so every operation must
+-- try (rather than wait for) the shared owner/date lock. The unified RPC takes
+-- this lock before touching rows, making its trigger acquisitions reentrant.
+CREATE OR REPLACE FUNCTION enforce_zepbound_symptom_none_exclusivity()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_old_key BIGINT;
+  v_new_key BIGINT;
+BEGIN
+  IF TG_OP <> 'INSERT' THEN
+    v_old_key := hashtextextended(OLD.user_id::TEXT || ':' || OLD.log_date::TEXT, 0);
+  END IF;
+  IF TG_OP <> 'DELETE' THEN
+    v_new_key := hashtextextended(NEW.user_id::TEXT || ':' || NEW.log_date::TEXT, 0);
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND v_old_key <> v_new_key THEN
+    IF pg_try_advisory_xact_lock(LEAST(v_old_key, v_new_key)) IS NOT TRUE THEN
+      RAISE EXCEPTION 'Concurrent Zepbound symptom save; retry the transaction'
+        USING ERRCODE = 'serialization_failure';
+    END IF;
+    IF pg_try_advisory_xact_lock(GREATEST(v_old_key, v_new_key)) IS NOT TRUE THEN
+      RAISE EXCEPTION 'Concurrent Zepbound symptom save; retry the transaction'
+        USING ERRCODE = 'serialization_failure';
+    END IF;
+  ELSE
+    IF pg_try_advisory_xact_lock(COALESCE(v_new_key, v_old_key)) IS NOT TRUE THEN
+      RAISE EXCEPTION 'Concurrent Zepbound symptom save; retry the transaction'
+        USING ERRCODE = 'serialization_failure';
+    END IF;
+  END IF;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM zepbound_symptom_logs existing
+    WHERE existing.user_id = NEW.user_id
+      AND existing.log_date = NEW.log_date
+      AND existing.id <> NEW.id
+      AND (
+        (NEW.symptom_type = 'None' AND existing.symptom_type <> 'None')
+        OR (NEW.symptom_type <> 'None' AND existing.symptom_type = 'None')
+      )
+  ) THEN
+    RAISE EXCEPTION 'None cannot coexist with symptoms for the same date'
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS zepbound_symptom_none_exclusivity
+  ON zepbound_symptom_logs;
+CREATE TRIGGER zepbound_symptom_none_exclusivity
+  BEFORE INSERT OR UPDATE OR DELETE ON zepbound_symptom_logs
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_zepbound_symptom_none_exclusivity();
+
+REVOKE ALL ON FUNCTION enforce_zepbound_symptom_none_exclusivity() FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION save_zepbound_daily_log(
   p_log_date DATE,
