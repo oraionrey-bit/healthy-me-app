@@ -77,7 +77,7 @@ function getSupplementIcon(name: string): ImageSourcePropType {
 
 // ── Supplement Group Component ──
 
-const SupplementGroup = React.memo(function SupplementGroup({
+export const SupplementGroup = React.memo(function SupplementGroup({
   title,
   items,
   isChecked,

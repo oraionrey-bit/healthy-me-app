@@ -58,6 +58,8 @@ export const mockRpcCalls: Array<{ functionName: string; args: unknown }> = [];
 let mockRpcError: unknown | null = null;
 let mockRpcPromise: Promise<{ data: null; error: unknown | null }> | null = null;
 const mockTableErrors: Record<string, unknown | null> = {};
+let mockMutableWrites = false;
+let mockGeneratedId = 0;
 
 export function mockSetRpcError(error: unknown | null) {
   mockRpcError = error;
@@ -95,6 +97,11 @@ export function mockSetTableData(table: string, rows: any[]) {
   mockTableData[table] = rows;
 }
 
+/** Opt in when a test needs a write followed by a realistic refetch/remount. */
+export function mockSetMutableWrites(enabled: boolean) {
+  mockMutableWrites = enabled;
+}
+
 export function mockResetZepboundData() {
   mockTableData.zepbound_injections = [];
   mockTableData.zepbound_symptom_logs = [];
@@ -120,6 +127,16 @@ function mockCreateTable(table: string) {
   builder.select = jest.fn(() => builder);
   builder.insert = jest.fn((values: unknown) => {
     mockDatabaseWrites.push({ table, operation: 'insert', values });
+    if (mockMutableWrites) {
+      const rows = Array.isArray(values) ? values : [values];
+      for (const row of rows) {
+        mockTableData[table].push({
+          id: `mock-generated-${++mockGeneratedId}`,
+          created_at: '2026-01-01T00:00:00Z',
+          ...(row as Record<string, unknown>),
+        });
+      }
+    }
     return builder;
   });
   builder.update = jest.fn((values: unknown) => {

@@ -29,6 +29,19 @@ function encodeFeelingToNotes(feeling: SupplementFeeling, note?: string): string
   return JSON.stringify({ feeling, note: note || undefined });
 }
 
+function canonicalIdentity(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function distinctScheduleValues(timeOfDay: string): string[] {
+  return Array.from(new Set(
+    timeOfDay
+      .split(',')
+      .map(canonicalIdentity)
+      .filter(Boolean),
+  ));
+}
+
 export function useSupplements(date?: Date) {
   const { user } = useAuth();
   const { isOnboarded } = useUserProfile();
@@ -176,47 +189,37 @@ export function useSupplements(date?: Date) {
     async (name: string, dosage: string, timeOfDay: string, notes?: string) => {
       if (!user) return;
 
-      // Check if a supplement with the same name already exists for this user
-      const existing = supplements.find(
-        (s) => s.supplement_name.toLowerCase() === name.toLowerCase(),
-      );
+      // A scheduled dose is its own tracker entry. Keeping morning and evening
+      // rows distinct gives each checkbox and daily log a stable, unique ID.
+      const normalizedName = name.trim();
+      const scheduledTimes = distinctScheduleValues(timeOfDay);
+      let nextSortOrder = supplements.reduce(
+        (max, supplement) => Math.max(max, supplement.sort_order),
+        -1,
+      ) + 1;
 
-      if (existing) {
-        // Merge time_of_day (e.g. "morning" + "evening" → "morning,evening")
-        const existingTimes = existing.time_of_day.split(',').map((t) => t.trim());
-        const newTimes = timeOfDay.split(',').map((t) => t.trim());
-        const mergedTimes = Array.from(new Set([...existingTimes, ...newTimes])).join(',');
-
-        if (mergedTimes !== existing.time_of_day) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
-          const { error } = await (supabase.from('user_supplements') as any)
-            .update({
-              time_of_day: mergedTimes,
-              ...(dosage ? { dosage } : {}),
-              ...(notes ? { notes } : {}),
-            })
-            .eq('id', existing.id)
-            .eq('user_id', user.id);
-
-          if (error) throw error;
-        }
-      } else {
-        // Get next sort_order
-        const maxSort = supplements.reduce((max, s) => Math.max(max, s.sort_order), -1);
+      for (const scheduledTime of scheduledTimes) {
+        const existing = supplements.find(
+          (supplement) =>
+            canonicalIdentity(supplement.supplement_name) === canonicalIdentity(normalizedName)
+            && canonicalIdentity(supplement.time_of_day) === scheduledTime,
+        );
+        if (existing) continue;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
         const { error } = await (supabase.from('user_supplements') as any).insert({
           user_id: user.id,
-          supplement_name: name,
+          supplement_name: normalizedName,
           dosage: dosage || null,
           frequency: 'daily',
-          time_of_day: timeOfDay,
+          time_of_day: scheduledTime,
           notes: notes || null,
           is_active: true,
-          sort_order: maxSort + 1,
+          sort_order: nextSortOrder,
         });
 
         if (error) throw error;
+        nextSortOrder += 1;
       }
 
       await fetchSupplements();
@@ -228,16 +231,67 @@ export function useSupplements(date?: Date) {
     async (id: string, updates: Partial<Pick<UserSupplement, 'supplement_name' | 'dosage' | 'time_of_day' | 'is_active' | 'notes'>>) => {
       if (!user) return;
 
+      const current = supplements.find((supplement) => supplement.id === id);
+      if (!current) return;
+
+      const normalizedName = (updates.supplement_name ?? current.supplement_name).trim();
+      const scheduledTimes = distinctScheduleValues(updates.time_of_day ?? current.time_of_day);
+      if (scheduledTimes.length === 0) throw new Error('A supplement schedule is required.');
+
+      const [primaryTime, ...additionalTimes] = scheduledTimes;
+      const duplicatePrimary = supplements.some(
+        (supplement) => supplement.id !== id
+          && canonicalIdentity(supplement.supplement_name) === canonicalIdentity(normalizedName)
+          && canonicalIdentity(supplement.time_of_day) === primaryTime,
+      );
+      if (duplicatePrimary) {
+        throw new Error(`${normalizedName} already has a ${primaryTime} schedule.`);
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
       const { error } = await (supabase.from('user_supplements') as any)
-        .update(updates)
+        .update({
+          ...updates,
+          supplement_name: normalizedName,
+          time_of_day: primaryTime,
+        })
         .eq('id', id)
         .eq('user_id', user.id);
 
       if (error) throw error;
+
+      let nextSortOrder = supplements.reduce(
+        (max, supplement) => Math.max(max, supplement.sort_order),
+        -1,
+      ) + 1;
+      for (const scheduledTime of additionalTimes) {
+        const alreadyExists = supplements.some(
+          (supplement) => supplement.id !== id
+            && canonicalIdentity(supplement.supplement_name) === canonicalIdentity(normalizedName)
+            && canonicalIdentity(supplement.time_of_day) === scheduledTime,
+        );
+        if (alreadyExists) continue;
+
+        // Never persist a comma-combined schedule, even if a stale caller sends one.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
+        const { error: insertError } = await (supabase.from('user_supplements') as any).insert({
+          user_id: user.id,
+          supplement_name: normalizedName,
+          dosage: updates.dosage ?? current.dosage,
+          frequency: current.frequency,
+          time_of_day: scheduledTime,
+          notes: updates.notes ?? current.notes,
+          is_active: updates.is_active ?? current.is_active,
+          sort_order: nextSortOrder,
+          phase_schedule: current.phase_schedule,
+        });
+        if (insertError) throw insertError;
+        nextSortOrder += 1;
+      }
+
       await fetchSupplements();
     },
-    [user, fetchSupplements],
+    [user, supplements, fetchSupplements],
   );
 
   const deleteSupplement = useCallback(
