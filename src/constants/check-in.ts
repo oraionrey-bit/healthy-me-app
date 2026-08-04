@@ -2,7 +2,7 @@
  * Shared option arrays for the Home Daily Check-in card and its summary view.
  * Extracted from src/app/(tabs)/index.tsx during the May 7 component split.
  */
-import type { SymptomType } from '../types/database';
+import type { FlowLevel, SymptomType } from '../types/database';
 
 export const MOOD_OPTIONS: Array<{ value: number; emoji: string }> = [
   { value: 1, emoji: '😢' },
@@ -31,7 +31,7 @@ export function periodStatusToDailyLogPeriod(periodStatus: string): string | nul
   return null;
 }
 
-export function periodStatusToPeriodLogFlow(periodStatus: string): string | null {
+export function periodStatusToPeriodLogFlow(periodStatus: string): FlowLevel | null {
   if (periodStatus === 'spotting') return 'spotting';
   if (periodStatus === 'on') return 'medium';
   return null;

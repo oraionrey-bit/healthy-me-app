@@ -53,6 +53,7 @@ function SupplementForm({
 
   const toggleTime = (value: string) => {
     setSelectedTimes((prev) => {
+      if (initial) return new Set([value]);
       const next = new Set(prev);
       if (next.has(value)) {
         if (next.size > 1) next.delete(value);
@@ -63,7 +64,8 @@ function SupplementForm({
     });
   };
 
-  const timeOfDay = ['morning', 'evening'].filter((t) => selectedTimes.has(t)).join(',');
+  const selectedTimeValues = ['morning', 'evening'].filter((t) => selectedTimes.has(t));
+  const timeOfDay = initial ? selectedTimeValues[0] : selectedTimeValues.join(',');
 
   const handleSubmit = async () => {
     if (!name.trim()) return;
