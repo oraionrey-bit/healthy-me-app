@@ -20,6 +20,7 @@ import { useSupplements } from '../../hooks/use-supplements';
 import { useMoodEnergy } from '../../hooks/use-mood-energy';
 import { useSymptomLog } from '../../hooks/use-symptom-log';
 import { useDailyLog } from '../../hooks/use-daily-log';
+import { useDailyPeriodLog } from '../../hooks/use-daily-period-log';
 import { useDailyScore } from '../../hooks/use-daily-score';
 import type { ScoreBreakdown } from '../../hooks/use-daily-score';
 import { useStreak } from '../../hooks/use-streak';
@@ -152,6 +153,7 @@ export default function HomeScreen() {
   const { mood: savedMood, energy: savedEnergy, saveMoodEnergy } = useMoodEnergy(selectedDate);
   const { symptomLogs, addSymptom, removeSymptom, updateSymptomLog } = useSymptomLog(selectedDate);
   const { dailyLog, saveDailyLog } = useDailyLog(selectedDate);
+  const { periodLog, savePeriodFlow } = useDailyPeriodLog(selectedDateKey);
   const { score: dailyScoreValue, breakdown: dailyBreakdown, tips: dailyTips } = useDailyScore();
   const [scoreExpanded, setScoreExpanded] = useState(false);
   const { currentStreak, isMilestone } = useStreak();
@@ -256,12 +258,15 @@ export default function HomeScreen() {
           }
         }
       }
-      setPeriodStatus(dailyLogPeriodToPeriodStatus(dailyLog.period));
     }
-  }, [dailyLog]);
+
+    // Spotting lives in period_logs because the legacy daily_logs constraint
+    // does not accept it. Prefer the dedicated record when restoring the form.
+    setPeriodStatus(dailyLogPeriodToPeriodStatus(periodLog?.flow ?? dailyLog?.period));
+  }, [dailyLog, periodLog]);
 
   // Auto-collapse if already submitted
-  const hasSubmittedToday = dailyLog !== null || savedMood !== null;
+  const hasSubmittedToday = dailyLog !== null || savedMood !== null || periodLog !== null;
 
   const toggleSymptom = useCallback((type: SymptomType) => {
     setSelectedSymptoms((prev) => {
@@ -294,39 +299,7 @@ export default function HomeScreen() {
       }
 
       // Save period to period_logs
-      const periodLogFlow = periodStatusToPeriodLogFlow(periodStatus);
-      if (periodLogFlow) {
-        const existing = await supabase
-          .from('period_logs')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('log_date', selectedDateKey)
-          .maybeSingle();
-
-        if (existing.data) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
-          await (supabase.from('period_logs') as any)
-            .update({ flow: periodLogFlow, cramps: 0, headache: false, back_pain: false })
-            .eq('id', (existing.data as { id: string }).id);
-        } else {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js generic mismatch
-          await (supabase.from('period_logs') as any).insert({
-            user_id: user.id,
-            log_date: selectedDateKey,
-            flow: periodLogFlow,
-            cramps: 0,
-            headache: false,
-            back_pain: false,
-            notes: null,
-          });
-        }
-      } else {
-        await supabase
-          .from('period_logs')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('log_date', selectedDateKey);
-      }
+      await savePeriodFlow(periodStatusToPeriodLogFlow(periodStatus));
 
       // Save notes + love to daily_logs FIRST (most important — don't lose user's text)
       // Preserve skincare JSON if it exists in health_notes
@@ -409,7 +382,7 @@ export default function HomeScreen() {
     }
   }, [
     user, mood, energy, periodStatus, love, selectedSymptoms, notes,
-    saveMoodEnergy, symptomLogs, removeSymptom, addSymptom, updateSymptomLog, saveDailyLog,
+    saveMoodEnergy, savePeriodFlow, symptomLogs, removeSymptom, addSymptom, updateSymptomLog, saveDailyLog,
     selectedDateKey,
   ]);
 

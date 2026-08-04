@@ -4,7 +4,8 @@
  * Tests the main dashboard/home screen rendering and interactions.
  */
 import React from 'react';
-import { render, fireEvent, screen, waitFor } from './test-utils';
+import { render, fireEvent, screen, waitFor, mockSetTableData } from './test-utils';
+import { toDateKey } from '../utils/storage';
 
 // Helper to render Home and wait for it to be ready
 async function renderHome() {
@@ -17,7 +18,10 @@ async function renderHome() {
 }
 
 describe('Home Screen', () => {
-  beforeEach(() => { jest.clearAllMocks(); });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSetTableData('period_logs', []);
+  });
 
   it('renders the app title "HEALTHY ME"', async () => {
     await renderHome();
@@ -113,6 +117,23 @@ describe('Home Screen', () => {
     expect(screen.getByText('Off')).toBeTruthy();
     expect(screen.getByText('On')).toBeTruthy();
     expect(screen.getByText('Spotting')).toBeTruthy();
+  });
+
+  it('restores spotting from period history in the daily check-in', async () => {
+    mockSetTableData('period_logs', [{
+      id: 'period-spotting',
+      user_id: 'test-user-id',
+      log_date: toDateKey(new Date()),
+      flow: 'spotting',
+      cramps: 0,
+      headache: false,
+      back_pain: false,
+      notes: null,
+      created_at: '2026-08-03T12:00:00Z',
+    }]);
+
+    await renderHome();
+    expect(await screen.findByText('🩸 spotting')).toBeTruthy();
   });
 
   it('renders "Save Check-in" button in expanded view', async () => {

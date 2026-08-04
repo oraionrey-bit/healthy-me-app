@@ -132,6 +132,9 @@ export const DailyCheckinCard = React.memo(function DailyCheckinCard({
                 <TouchableOpacity
                   key={opt.value}
                   onPress={() => setPeriodStatus(opt.value)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={opt.label}
+                  accessibilityState={{ checked: periodStatus === opt.value }}
                   style={[
                     styles.periodPill,
                     periodStatus === opt.value &&
